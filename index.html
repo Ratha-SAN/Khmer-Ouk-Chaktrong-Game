@@ -282,7 +282,7 @@
   // since _setState (not a fresh listener array) is what changes.
   window.__oukAuth = (function () {
     var listeners = [];
-    var state = { signedIn: false, method: null, uid: null };
+    var state = { signedIn: false, method: null, uid: null, tier: 'guest' };
     return {
       getState: function () { return state; },
       onChange: function (cb) { listeners.push(cb); cb(state); },
@@ -290,7 +290,9 @@
       signInGuest: function () { return Promise.reject(new Error('Firebase unavailable')); },
       signInGoogle: function () { return Promise.reject(new Error('Firebase unavailable')); },
       signInApple: function () { return Promise.reject(new Error('Firebase unavailable')); },
-      signOut: function () { return Promise.resolve(); }
+      signOut: function () { return Promise.resolve(); },
+      // No-op until Firestore is available; upgraded below once it loads.
+      recordProfile: function () {}
     };
   })();
 </script>
@@ -344,6 +346,15 @@
           startTime: firebase.firestore.FieldValue.serverTimestamp(),
           userAgent: navigator.userAgent
         }).catch(function (err) { console.warn('Firestore session start failed:', err); });
+        // Captures a Google/Apple profile (uid/email/displayName/provider)
+        // so the same account is recognized on a later sign-in -- upserted
+        // by uid, so repeat sign-ins update the same record.
+        window.__oukAuth.recordProfile = function (profile) {
+          try {
+            db.collection('users').doc(profile.uid).set(profile, { merge: true })
+              .catch(function (err) { console.warn('Firestore user profile save failed:', err); });
+          } catch (err) { console.warn('Firestore user profile save threw:', err); }
+        };
       }
       if (firebase.auth) {
         var auth = firebase.auth();
@@ -356,8 +367,9 @@
             // Firebase marks anonymous auth with isAnonymous; Google/Apple
             // sign-ins carry a providerId on their providerData entry.
             method: user.isAnonymous ? 'guest' : ((user.providerData[0] && user.providerData[0].providerId) || 'unknown'),
-            uid: user.uid
-          } : { signedIn: false, method: null, uid: null });
+            uid: user.uid,
+            tier: user.isAnonymous ? 'guest' : 'full'
+          } : { signedIn: false, method: null, uid: null, tier: 'guest' });
         });
         window.__oukAuth.signInGuest = function () {
           return auth.signInAnonymously().catch(function (err) {
@@ -453,13 +465,22 @@
   <div class="box">
     <h1>អុកចត្រង្គ<br>Ouk Chatrang</h1>
     <p>ចូលគណនី — Sign in to sync your settings, or continue as a guest</p>
-    <div class="btnrow" style="flex-direction:column;gap:10px">
+    <div style="text-align:left;margin-top:6px">
+      <label style="display:block">ឈ្មោះអ្នកប្រើ Username
+        <input type="text" id="loginUsername" placeholder="leave blank for an auto guest name" style="width:100%;margin-top:4px" autocomplete="username">
+      </label>
+      <label style="display:block;margin-top:8px">លេខសម្ងាត់ Password <span style="color:#8a785c">(optional for guest)</span>
+        <input type="password" id="loginPassword" placeholder="leave blank for none" style="width:100%;margin-top:4px" autocomplete="current-password">
+      </label>
+    </div>
+    <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
+      <button id="loginSubmitBtn">ចូល Log In</button>
+      <button id="loginGuestBtn">បន្តជាភ្ញៀវ — Continue as Guest</button>
       <button id="loginGoogleBtn">ចូលដោយ Google — Sign in with Google</button>
       <button id="loginAppleBtn"> Sign in with Apple</button>
-      <button id="loginGuestBtn">បន្តជាភ្ញៀវ — Continue as Guest</button>
     </div>
     <p id="loginError" style="display:none;color:var(--danger);font-size:12px;margin-top:12px"></p>
-    <p style="font-size:11px;color:#8a785c;margin-top:14px">Guest access unlocks the top 2 options in Theme, Background, Music, and Lighting. Sign in to unlock everything.</p>
+    <p style="font-size:11px;color:#8a785c;margin-top:14px">Guest access unlocks the top 2 options in Theme, Background, Music, and Lighting. Sign in to unlock everything. Test account: root / admin.</p>
   </div>
 </div>
 
@@ -3656,34 +3677,128 @@ window.__oukActions = {
   }
 };
 
+// ---------- local user directory ----------
+// This is a fully offline single-file demo with no server, so username/
+// password accounts are matched against a small directory kept in
+// localStorage (persists across visits on this browser/device only) --
+// not a real security boundary, just enough to support real match/reject
+// behavior and a couple of named accounts.
+const USER_DIR_KEY = 'oukUserDirectory';
+function loadUserDirectory() {
+  try { return JSON.parse(localStorage.getItem(USER_DIR_KEY)) || {}; } catch (e) { return {}; }
+}
+function saveUserDirectory(dir) {
+  try { localStorage.setItem(USER_DIR_KEY, JSON.stringify(dir)); } catch (e) {}
+}
+(function seedTestUser() {
+  const dir = loadUserDirectory();
+  if (!dir.root) {
+    dir.root = { password: 'admin', tier: 'full', createdAt: Date.now() };
+    saveUserDirectory(dir);
+  }
+})();
+// Auto guest username: KhmerOuk + YYYYMMDD + a per-day sequence number
+// starting at 1 (e.g. KhmerOuk2026070501 for the first guest on 2026-07-05).
+function nextGuestUsername() {
+  const now = new Date();
+  const datePart = String(now.getFullYear()) + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+  const counterKey = 'oukGuestCounter_' + datePart;
+  let n = 1;
+  try { n = (+localStorage.getItem(counterKey) || 0) + 1; localStorage.setItem(counterKey, String(n)); } catch (e) {}
+  return 'KhmerOuk' + datePart + String(n).padStart(2, '0');
+}
+
 // ---------- sign-in (login screen) ----------
 function showLoginError(msg) {
   const el = document.getElementById('loginError');
   el.textContent = msg;
   el.style.display = 'block';
 }
+function clearLoginError() { document.getElementById('loginError').style.display = 'none'; }
 function finishLogin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('startScreen').style.display = 'flex';
+  document.getElementById('loginPassword').value = '';
 }
-document.getElementById('loginGuestBtn').onclick = () => {
-  // Even if anonymous auth itself fails (offline, blocked network), still
-  // let the player continue locally as an unauthenticated guest -- signing
-  // in is only ever needed to unlock full settings, never to play at all.
-  window.__oukAuth.signInGuest().then(finishLogin).catch(finishLogin);
+// Shared by both the "Log In" and "Continue as Guest" buttons: looks the
+// username up in the local directory. An existing username must have its
+// password match (this is what makes root/admin, or any previously-used
+// guest name, a real match-or-reject check instead of always succeeding).
+// A username that doesn't exist yet is only auto-created by the guest
+// path (allowGuestCreate); the Log In button never creates new accounts.
+function attemptLocalLogin(username, password, allowGuestCreate) {
+  const dir = loadUserDirectory();
+  const existing = dir[username];
+  if (existing) {
+    if (existing.password !== (password || '')) return null;
+    return { username, tier: existing.tier };
+  }
+  if (!allowGuestCreate) return null;
+  dir[username] = { password: password || '', tier: 'guest', createdAt: Date.now() };
+  saveUserDirectory(dir);
+  return { username, tier: 'guest' };
+}
+document.getElementById('loginSubmitBtn').onclick = () => {
+  clearLoginError();
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!username) { showLoginError('Please enter a username, or use Continue as Guest.'); return; }
+  const match = attemptLocalLogin(username, password, false);
+  if (!match) { showLoginError('Wrong username or password.'); return; }
+  window.__oukAuth._setState({ signedIn: true, method: 'local', uid: 'local:' + match.username, tier: match.tier });
+  finishLogin();
 };
+document.getElementById('loginGuestBtn').onclick = () => {
+  clearLoginError();
+  const typed = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const username = typed || nextGuestUsername();
+  const match = attemptLocalLogin(username, password, true);
+  if (!match) { showLoginError('Wrong username or password.'); return; }
+  window.__oukAuth._setState({ signedIn: true, method: 'guest', uid: 'local:' + match.username, tier: match.tier });
+  finishLogin();
+};
+// Google/Apple launch the provider's real sign-in page via Firebase's
+// signInWithPopup (this genuinely opens accounts.google.com / Apple's
+// sign-in flow whenever the app is hosted on an authorized https origin --
+// it only falls back below because a local file:// page or an
+// unauthorized domain can't complete that redirect/popup handshake).
+// On success the returned profile is captured (recordProfile) so the same
+// account is recognized on a later visit.
 document.getElementById('loginGoogleBtn').onclick = () => {
-  window.__oukAuth.signInGoogle().then(finishLogin).catch(() => {
-    showLoginError('Google sign-in needs this page to be hosted on an https site (not a local file). Continuing as guest.');
+  clearLoginError();
+  window.__oukAuth.signInGoogle().then((cred) => {
+    captureOAuthProfile(cred, 'google.com');
     finishLogin();
+  }).catch(() => {
+    showLoginError('Google sign-in needs this page to be hosted on an authorized https site (not a local file). Try Log In or Continue as Guest instead.');
   });
 };
 document.getElementById('loginAppleBtn').onclick = () => {
-  window.__oukAuth.signInApple().then(finishLogin).catch(() => {
-    showLoginError('Apple sign-in needs this page to be hosted on an https site (not a local file). Continuing as guest.');
+  clearLoginError();
+  window.__oukAuth.signInApple().then((cred) => {
+    captureOAuthProfile(cred, 'apple.com');
     finishLogin();
+  }).catch(() => {
+    showLoginError('Apple sign-in needs this page to be hosted on an authorized https site (not a local file). Try Log In or Continue as Guest instead.');
   });
 };
+function captureOAuthProfile(cred, providerId) {
+  try {
+    const user = cred && cred.user;
+    if (!user) return;
+    window.__oukAuth.recordProfile({
+      uid: user.uid,
+      email: user.email || null,
+      displayName: user.displayName || null,
+      provider: providerId,
+      lastSignInAt: Date.now()
+    });
+  } catch (e) {}
+}
+document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click();
+});
 
 // ---------- guest feature gating ----------
 // A real Google/Apple sign-in unlocks every option; anonymous/guest (or no
@@ -3760,7 +3875,7 @@ Object.keys(GUEST_SELECT_LIMITS).forEach(gateSelect);
 GUEST_LOCKED_BUTTONS.forEach(gateButton);
 applyAccessTier();
 window.__oukAuth.onChange((s) => {
-  accessTier = (s.signedIn && s.method !== 'guest') ? 'full' : 'guest';
+  accessTier = (s.signedIn && s.tier === 'full') ? 'full' : 'guest';
   applyAccessTier();
 });
 
