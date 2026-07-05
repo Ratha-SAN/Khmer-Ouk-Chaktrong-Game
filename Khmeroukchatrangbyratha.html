@@ -1,0 +1,3670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>អុកចត្រង្គ — Ouk Chatrang (Khmer Chess)</title>
+<style>
+  :root {
+    --panel-bg: #221a12;
+    --panel-fg: #ede3d0;
+    --accent: #d4a548;
+    --accent-dim: #8a6a2f;
+    --danger: #e05d44;
+    --ok: #7fb069;
+    --line: #4a3a26;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: "Noto Sans Khmer", "Khmer OS", "Khmer MN", "Leelawadee UI", "Segoe UI", system-ui, sans-serif;
+    background: #15100a; color: var(--panel-fg); display: flex;
+  }
+  #scene { flex: 1 1 auto; position: relative; min-width: 0; }
+  #scene canvas { display: block; }
+  #scene canvas.pixelated {
+    image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+  #thinking {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    background: rgba(34,26,18,.9); border: 1px solid var(--line); border-radius: 20px;
+    padding: 6px 18px; font-size: 14px; display: none; color: var(--accent);
+  }
+  #hud {
+    position: absolute; top: 14px; left: 16px; z-index: 3;
+    color: #fff; font-family: "Courier New", monospace; font-weight: 700; letter-spacing: 1px;
+    font-size: 14px; line-height: 1.7; display: none;
+    text-shadow: 0 1px 3px #000, 0 0 6px rgba(0,0,0,.8), 2px 2px 0 rgba(0,0,0,.6);
+  }
+  #hud b { color: #ffd23f; }
+  #banner {
+    position: absolute; top: 40%; left: 50%; transform: translate(-50%,-50%);
+    background: rgba(20,14,8,.92); border: 2px solid var(--accent); border-radius: 12px;
+    padding: 22px 40px; font-size: 24px; text-align: center; display: none; z-index: 5;
+  }
+  #banner small { display: block; font-size: 14px; margin-top: 8px; color: #c9b891; }
+  #panel {
+    flex: 0 0 330px; background: var(--panel-bg); border-left: 1px solid var(--line);
+    display: flex; flex-direction: column; overflow-y: auto; padding: 14px; gap: 12px;
+  }
+  /* Without this, flexbox shrinks every section proportionally to fit the
+     container instead of letting #panel scroll — so opening one accordion
+     (or several at once) would squash the others below their content
+     height. #movelist is deliberately the one flexible/scrollable area. */
+  #panel > *:not(#movelist) { flex-shrink: 0; }
+  h1 { font-size: 20px; color: var(--accent); font-weight: 600; }
+  h1 small { display: block; font-size: 12px; color: #b7a687; font-weight: 400; }
+  #tabs { display: flex; gap: 8px; }
+  #tabs button {
+    flex: 1; padding: 8px 0; font-size: 14px; border-radius: 8px;
+    border: 1px solid var(--accent-dim); background: #2a2013; color: var(--panel-fg); cursor: pointer;
+  }
+  #tabs button.active { background: var(--accent); color: #221a12; font-weight: 600; }
+  #status {
+    background: #2c2115; border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; font-size: 15px; line-height: 1.5;
+  }
+  #status .check { color: var(--danger); font-weight: 600; }
+  #status .flash { color: var(--ok); font-weight: 600; }
+  fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  legend { font-size: 12px; color: #b7a687; padding: 0 6px; }
+  /* collapsible settings sections */
+  details.acc {
+    border: 1px solid var(--line); border-radius: 8px; background: #1e170f; overflow: hidden;
+  }
+  details.acc > summary {
+    list-style: none; cursor: pointer; padding: 9px 12px; font-size: 13px; font-weight: 600;
+    color: var(--accent); display: flex; align-items: center; justify-content: space-between;
+    user-select: none;
+  }
+  details.acc > summary::-webkit-details-marker { display: none; }
+  details.acc > summary::after { content: '▾'; transition: transform .15s; color: #8a785c; }
+  details.acc[open] > summary::after { transform: rotate(180deg); }
+  details.acc > summary:hover { background: #2a2013; }
+  details.acc > .acc-body { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+  /* right-panel hide/show toggle */
+  #panelToggle {
+    position: absolute; top: 12px; right: 12px; z-index: 6; width: 34px; height: 34px;
+    border-radius: 8px; border: 1px solid var(--accent-dim); background: rgba(34,26,18,.85);
+    color: var(--panel-fg); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  /* desktop: panel-hidden fully removes the sidebar. On mobile (see the
+     phone media query below) the same class instead means "sheet closed"
+     and is handled purely via a transform, so display must stay untouched
+     there for the slide transition to animate. */
+  @media (min-width: 821px) and (min-height: 561px) {
+    body.panel-hidden #panel { display: none; }
+  }
+  /* floating camera controls, top-right of the board */
+  #camControls {
+    position: absolute; top: 56px; right: 12px; z-index: 4; display: flex; flex-direction: column; gap: 6px;
+  }
+  #camControls button {
+    width: 44px; height: 40px; font-size: 16px; border-radius: 8px; border: 1px solid var(--accent-dim);
+    background: rgba(34,26,18,.82); color: var(--panel-fg); cursor: pointer;
+  }
+  #camControls button:hover { background: rgba(74,58,32,.9); border-color: var(--accent); }
+  /* enlarged title above the board */
+  #boardTitle {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 2;
+    font-size: 26px; font-weight: 700; color: var(--accent); text-shadow: 0 2px 6px rgba(0,0,0,.8), 0 0 20px rgba(0,0,0,.6);
+    text-align: center; pointer-events: none; letter-spacing: .5px;
+  }
+  #boardTitle small { display: block; font-size: 12px; font-weight: 400; color: #e8dcc0; margin-top: 2px; }
+  /* background-change fade overlay */
+  #bgFade {
+    position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none;
+    transition: opacity .35s ease; z-index: 1;
+  }
+  #bgFade.show { opacity: 1; }
+  /* piece-name billboard sprites don't need DOM CSS (rendered in WebGL) */
+  .queueList { max-height: 110px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; }
+  .queueList div {
+    display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; font-size: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .queueList div:last-child { border-bottom: none; }
+  .queueList button { padding: 2px 8px; font-size: 11px; }
+  .queueList div.playing { background: #33271a; color: var(--accent); }
+  label { font-size: 13px; display: block; margin: 4px 0; cursor: pointer; }
+  select, button {
+    font-family: inherit; font-size: 13px; border-radius: 6px; border: 1px solid var(--accent-dim);
+    background: #33271a; color: var(--panel-fg); padding: 6px 10px; cursor: pointer;
+  }
+  select { width: 100%; margin: 3px 0; }
+  button:hover:not(:disabled) { background: #4a3a20; border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  .btnrow { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btnrow button { flex: 1 1 auto; }
+  #countPanel {
+    border: 1px solid var(--accent-dim); border-radius: 8px; padding: 10px 12px;
+    background: #2e2415; display: none; font-size: 13px; line-height: 1.6;
+  }
+  #countPanel .big { font-size: 20px; color: var(--accent); }
+  #countPanel button { margin-top: 6px; }
+  #movelist {
+    flex: 1 1 120px; min-height: 90px; overflow-y: auto; border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 12px; font-size: 13px; line-height: 1.7; background: #1c1610;
+  }
+  #movelist div span.no { color: #8a785c; display: inline-block; min-width: 2.2em; }
+  /* training */
+  #trainPanel { display: none; flex-direction: column; gap: 10px; }
+  .piecebtns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .piecebtns button { padding: 8px 4px; font-size: 13px; line-height: 1.4; }
+  .piecebtns button.active, .subtabs button.active { background: var(--accent); color: #221a12; font-weight: 600; }
+  .subtabs { display: flex; gap: 6px; }
+  .subtabs button { flex: 1; }
+  #lessonText {
+    border: 1px solid var(--line); border-radius: 8px; background: #1c1610;
+    padding: 10px 12px; font-size: 14px; line-height: 1.9; min-height: 120px;
+  }
+  #lessonText .en { display: block; margin-top: 8px; font-size: 12px; color: #b7a687; line-height: 1.5; }
+  #panel footer { font-size: 11px; color: #8a785c; line-height: 1.5; }
+  #panel footer a { color: var(--accent-dim); }
+  /* modal */
+  #modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.65); display: none;
+    align-items: center; justify-content: center; z-index: 10;
+  }
+  #modal .box {
+    background: var(--panel-bg); border: 1px solid var(--accent-dim); border-radius: 12px;
+    max-width: 640px; max-height: 86vh; overflow-y: auto; padding: 24px; font-size: 14px; line-height: 1.65;
+  }
+  #modal h2 { color: var(--accent); font-size: 18px; margin-bottom: 10px; }
+  #modal h3 { color: var(--accent); font-size: 14px; margin: 14px 0 6px; }
+  #modal table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+  #modal th, #modal td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; font-size: 13px; }
+  #modal .note { color: #b7a687; font-size: 12px; font-style: italic; }
+  #modal .close { float: right; }
+  /* full-screen overlays: start screen + mode selection */
+  .fullOverlay {
+    position: fixed; inset: 0; background: rgba(8,6,3,.88); display: flex;
+    align-items: center; justify-content: center; z-index: 20; text-align: center;
+  }
+  .fullOverlay .box {
+    background: var(--panel-bg); border: 2px solid var(--accent); border-radius: 14px;
+    max-width: 480px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 30px 26px;
+  }
+  #startScreen .box h1 { font-size: 30px; color: var(--accent); margin-bottom: 6px; }
+  #startScreen .box p { font-size: 14px; color: #c9b891; margin-bottom: 24px; }
+  #startScreen .box button {
+    font-size: 18px; padding: 14px 40px; background: var(--accent); color: #221a12;
+    font-weight: 700; border: none;
+  }
+  #startScreen .box button:hover { background: #e6bd66; }
+  #modeScreen h2 { font-size: 18px; color: var(--accent); margin-bottom: 16px; }
+  #modeScreen .bigpick { display: flex; gap: 10px; }
+  #modeScreen .bigpick button { flex: 1; padding: 16px 8px; font-size: 15px; line-height: 1.4; }
+  .levelgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 12px; }
+  .levelgrid button { padding: 8px 2px; font-size: 12px; line-height: 1.35; }
+  .levelgrid button.active, .sidebtn.active { background: var(--accent); color: #221a12; font-weight: 700; }
+  .sidepick { display: flex; gap: 8px; margin-top: 12px; }
+  .sidepick button { flex: 1; }
+  #modeScreen .btnrow { justify-content: center; }
+  #modeCancel { background: transparent; border-color: #6a5738; color: #b7a687; }
+  /* ---------- mobile (phone) layout: portrait and landscape ----------
+     The settings panel becomes a full-screen slide-up sheet (toggled by
+     the React touch toolbar or the panel-hide button) instead of a fixed
+     sidebar, so the board gets the full screen by default. */
+  @media (max-width: 820px), (max-height: 560px) {
+    body { overflow: hidden; }
+    #scene { width: 100%; height: 100%; }
+    #panelToggle { display: none; }
+    #panel {
+      position: fixed; inset: 0; z-index: 15; display: flex;
+      transform: translateY(100%); transition: transform .28s ease;
+      padding-bottom: 76px; /* clears the bottom toolbar */
+    }
+    body:not(.panel-hidden) #panel { transform: translateY(0); }
+    #panel, #panel select, #panel button, #panel input[type="range"] { font-size: 15px; }
+    #panel button { padding: 11px 10px; min-height: 44px; }
+    details.acc > summary { padding: 13px 12px; font-size: 14px; }
+    #camControls { top: 12px; }
+    #boardTitle { font-size: 20px; top: 68px; }
+    #hud { font-size: 11px; }
+    #mobileToolbar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 16; max-height: 100%;
+      display: flex; justify-content: space-around; align-items: center;
+      background: rgba(20,15,9,.96); border-top: 1px solid var(--line);
+      padding: 8px calc(6px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-right));
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    #mobileToolbar button {
+      flex: 0 0 auto; min-width: 44px; min-height: 48px; margin: 0 3px; font-size: 20px;
+      border-radius: 10px; border: 1px solid var(--accent-dim); background: #2a2013; color: var(--panel-fg);
+    }
+    #mobileToolbar button.active { background: var(--accent); color: #221a12; }
+  }
+  @media (max-height: 560px) and (orientation: landscape) {
+    #mobileToolbar { flex-direction: column; left: auto; right: 0; top: 0; bottom: 0; width: 60px;
+      border-top: none; border-left: 1px solid var(--line); padding: calc(8px + env(safe-area-inset-top)) 6px 8px;
+      overflow-x: visible; overflow-y: auto; justify-content: flex-start; }
+    #mobileToolbar button { flex: 0 0 auto; margin: 3px 0; min-height: 44px; }
+    #panel { padding-bottom: 12px; padding-right: 68px; }
+    #camControls { right: 68px; }
+    #boardTitle { top: 12px; font-size: 15px; }
+    #boardTitle small { font-size: 9px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<!-- React powers the mobile touch UI (bottom toolbar + settings-sheet
+     control) layered over the vanilla-JS/Three.js game below. -->
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+</head>
+<body>
+
+<div id="scene">
+  <div id="bgFade"></div>
+  <div id="boardTitle">អុកចត្រង្គ<small>OUK CHATRANG</small></div>
+  <div id="hud"></div>
+  <div id="thinking">កំពុងគិត… Computer is thinking…</div>
+  <div id="banner"></div>
+  <button id="panelToggle" title="Hide/show settings panel">◧</button>
+  <div id="camControls">
+    <button id="zoomInBtn" title="Zoom In">＋</button>
+    <button id="zoomOutBtn" title="Zoom Out">－</button>
+    <button id="zoomResetBtn" title="Reset View">⟲</button>
+    <button id="topViewBtn" title="Top View">⬒</button>
+  </div>
+</div>
+
+<div id="startScreen" class="fullOverlay">
+  <div class="box">
+    <h1>អុកចត្រង្គ<br>Ouk Chatrang</h1>
+    <p>ល្បែងអុកខ្មែរបែបប្រពៃណី — Traditional Cambodian chess</p>
+    <button id="startBtn">ចាប់ផ្ដើម ▸ START</button>
+  </div>
+</div>
+
+<div id="modeScreen" class="fullOverlay" style="display:none">
+  <div class="box">
+    <h2>ជ្រើសរើសរបៀបលេង — Choose a play mode</h2>
+    <div class="bigpick">
+      <button id="pick2p">២នាក់លេង<br>2 Player</button>
+      <button id="pickAi">ជាមួយកុំព្យូទ័រ<br>vs Computer</button>
+    </div>
+    <div id="aiOptions" style="display:none">
+      <div class="levelgrid" id="levelBtns"></div>
+      <div class="sidepick">
+        <button class="sidebtn active" data-side="0">ស White</button>
+        <button class="sidebtn" data-side="1">ខ្មៅ Black</button>
+      </div>
+      <div class="btnrow" style="margin-top:14px">
+        <button id="confirmAi">លេង ▸ Play</button>
+      </div>
+    </div>
+    <div class="btnrow" style="margin-top:18px">
+      <button id="modeCancel">បោះបង់ Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="panel">
+  <h1>ការកំណត់ Setting Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
+
+  <div id="tabs">
+    <button id="tabPlay" class="active">លេង Play</button>
+    <button id="tabTrain">រៀន Training</button>
+  </div>
+
+  <div id="status">White to move</div>
+
+  <div id="countPanel"></div>
+
+  <div id="playPanel">
+  <details class="acc" open>
+    <summary>Game ល្បែង</summary>
+    <div class="acc-body">
+    <div id="modeReadout" style="font-size:13px;margin:2px 0 4px;">Mode: <b id="modeReadoutText">—</b></div>
+    <div class="btnrow">
+      <button id="changeModeBtn">ប្ដូររបៀបលេង Change Mode</button>
+    </div>
+    <div class="btnrow" style="margin-top:6px">
+      <button id="newBtn">New game ល្បែងថ្មី</button>
+      <button id="undoBtn">Undo ត្រឡប់</button>
+    </div>
+    <div class="btnrow" style="margin-top:6px">
+      <button id="saveBtn">រក្សាទុក Save</button>
+      <button id="loadBtn">ផ្ទុក Load</button>
+    </div>
+    <div class="btnrow" style="margin-top:6px">
+      <button id="rulesBtn">Rules ច្បាប់</button>
+      <button id="cancelGameBtn">បោះបង់ Cancel Game</button>
+    </div>
+    <div id="saveStatus" style="font-size:12px;color:#b7a687;margin-top:4px;min-height:14px;"></div>
+    </div>
+  </details>
+  </div>
+
+  <div id="trainPanel">
+    <fieldset>
+      <legend>រៀនដើរកូនអុក — Learn the pieces</legend>
+      <div class="piecebtns" id="pieceBtns"></div>
+      <div class="subtabs" style="margin-top:8px">
+        <button id="subBasic" class="active">មូលដ្ឋាន Basic</button>
+        <button id="subAdv">កម្រិតខ្ពស់ Advanced</button>
+      </div>
+      <div class="btnrow" style="margin-top:8px">
+        <button id="lessonReset">ចាប់ផ្ដើមឡើងវិញ Reset</button>
+      </div>
+    </fieldset>
+    <div id="lessonText"></div>
+  </div>
+
+  <details class="acc" id="themePanel" open>
+    <summary>រូបរាង Theme &amp; Pieces</summary>
+    <div class="acc-body">
+    <select id="themeSel">
+      <option value="wood" selected>Classic Wood — ឈើបុរាណ</option>
+      <option value="stone">Angkor Stone — ថ្មអង្គរ</option>
+      <option value="night">Modern Night — ទំនើបយប់</option>
+      <option value="pixel">Pixel Jungle — ព្រៃភីកសែល</option>
+      <option value="painting">Painted Jungle — គំនូរព្រៃ</option>
+    </select>
+    <select id="pieceStyleSel" style="margin-top:6px">
+      <option value="auto" selected>Piece style: matches theme</option>
+      <option value="traditional">Piece style: Classic Turned</option>
+      <option value="carved">Piece style: Carved Angular</option>
+      <option value="minimal">Piece style: Modern Minimal</option>
+      <option value="khmer">Piece style: Khmer Traditional — ខ្មែរបុរាណ</option>
+      <option value="pixel">Piece style: Pixel Voxel</option>
+    </select>
+    <label style="margin-top:6px">
+      <input type="checkbox" id="khmerBoardChk">
+      ក្ដារបែបខ្មែរ Khmer board (single wood tone, no checker squares)
+    </label>
+    <label>
+      <input type="checkbox" id="pieceNameChk">
+      ឈ្មោះកូនអុក Show piece names above pieces
+    </label>
+    <div id="pieceNameOpts" style="margin-top:6px;display:none">
+      <select id="pieceNamePosSel" style="margin-bottom:6px">
+        <option value="tip" selected>Name position: at tip</option>
+        <option value="base">Name position: at base</option>
+      </select>
+      <select id="pieceNameLangSel">
+        <option value="both" selected>Name language: Khmer + Latin</option>
+        <option value="kh">Name language: Khmer only</option>
+        <option value="en">Name language: Latin only</option>
+      </select>
+    </div>
+    </div>
+  </details>
+
+  <details class="acc" id="lightPanel">
+    <summary>ពន្លឺ Lighting</summary>
+    <div class="acc-body">
+    <div class="btnrow">
+      <button id="lightDaytime">☀ Daytime</button>
+      <button id="lightSpotlight">🔦 Spotlight</button>
+    </div>
+    <div class="btnrow" style="margin-top:6px">
+      <button id="lightEvening">🌇 Warm Evening</button>
+      <button id="lightStudio">💡 Cool Studio</button>
+    </div>
+    <label style="margin-top:6px">Direction (azimuth) ទិសដៅ
+      <input type="range" id="lightAzimuth" min="0" max="360" step="1" value="35" style="width:100%">
+    </label>
+    <label>Height (elevation) កម្ពស់
+      <input type="range" id="lightElevation" min="10" max="85" step="1" value="55" style="width:100%">
+    </label>
+    </div>
+  </details>
+
+  <details class="acc" id="bgPanel">
+    <summary>ផ្ទៃខាងក្រោយ Background</summary>
+    <div class="acc-body">
+    <select id="bgSel"></select>
+    <label style="margin-top:6px">Softness​ ភាពស្រទន់
+      <input type="range" id="bgSoftness" min="0" max="16" step="1" value="2" style="width:100%">
+    </label>
+    <label>
+      <input type="checkbox" id="bgStrokeChk">
+      រូបគំនូរគូសដៃ Painting/sketch stroke texture
+    </label>
+    </div>
+  </details>
+
+  <details class="acc" id="sfxPanel">
+    <summary>សំឡេងកូនអុក Sound Effects</summary>
+    <div class="acc-body">
+    <label><input type="checkbox" id="sfxChk" checked> បើក/បិទ Enable move/capture/check sounds</label>
+    <label style="margin-top:6px">Volume កម្រិតសំឡេង
+      <input type="range" id="sfxVolumeSlider" min="0" max="1" step="0.01" value="0.5" style="width:100%">
+    </label>
+    </div>
+  </details>
+
+  <details class="acc" id="musicPanel">
+    <summary>តន្ត្រី Music Player</summary>
+    <div class="acc-body">
+    <select id="musicSel">
+      <option value="none">No music</option>
+      <optgroup label="Relaxing (5)"></optgroup>
+      <optgroup label="Khmer Traditional (5)"></optgroup>
+    </select>
+    <div class="btnrow" style="margin-top:6px">
+      <button id="musicPlayBtn">▶ Play</button>
+      <button id="musicPrevBtn">⏮ Prev</button>
+      <button id="musicNextBtn">⏭ Next</button>
+      <button id="musicStopBtn">⏹ Stop</button>
+    </div>
+    <label style="margin-top:6px">Volume កម្រិតតន្ត្រី
+      <input type="range" id="musicVolumeSlider" min="0" max="1" step="0.01" value="0.5" style="width:100%">
+    </label>
+    <div style="margin-top:8px;font-size:12px;color:#b7a687">
+      ជួរអូនចម្រៀង Playback queue (your own files)
+      <input type="file" id="queueFile" accept="audio/*" multiple style="display:block;margin-top:4px;width:100%">
+    </div>
+    <div class="queueList" id="queueList"></div>
+    </div>
+  </details>
+
+  <details class="acc" id="variantPanel">
+    <summary>Special first-move jumps — rule variant</summary>
+    <div class="acc-body">
+    <label><input type="radio" name="variant" value="capture" checked>
+      Lost once any piece has been captured <span style="color:#8a785c">(default)</span></label>
+    <label><input type="radio" name="variant" value="rook">
+      King's jump lost once an enemy Tuuk aligns with the King</label>
+    </div>
+  </details>
+
+  <div id="movelist"></div>
+
+  <footer>
+    Sources conflict on some details (special-move forfeiture, counting limits);
+    see <a href="#" id="rulesLink">Rules</a> for what this implementation follows.
+    Self-tests: open the console and run <code>runOukSelfTests()</code>.
+  </footer>
+</div>
+
+<div id="modal"><div class="box">
+  <button class="close" onclick="document.getElementById('modal').style.display='none'">✕ Close</button>
+  <h2>ច្បាប់អុកចត្រង្គ — Rules of Ouk Chatrang</h2>
+
+  <h3>Pieces &amp; moves</h3>
+  <table>
+    <tr><th>Khmer</th><th>Name</th><th>English</th><th>Move</th></tr>
+    <tr><td>ស្ដេច</td><td>Sdach</td><td>King</td><td>One square in any direction.</td></tr>
+    <tr><td>នាង</td><td>Neang</td><td>Queen</td><td>One square diagonally only.</td></tr>
+    <tr><td>គោល</td><td>Koul</td><td>Bishop</td><td>One square diagonally, or one square straight <em>forward</em>.</td></tr>
+    <tr><td>សេះ</td><td>Ses</td><td>Knight</td><td>Exactly like a chess knight.</td></tr>
+    <tr><td>ទូក</td><td>Tuuk</td><td>Boat / Rook</td><td>Exactly like a chess rook.</td></tr>
+    <tr><td>ត្រី</td><td>Trey</td><td>Fish / Pawn</td><td>One square forward; captures one square diagonally forward. No double step, no en&nbsp;passant.</td></tr>
+  </table>
+
+  <h3>Setup</h3>
+  <p>Trey start on each side's <strong>third</strong> rank. The kings do not face each other:
+     White King on e1, Black King on d8, each Neang opposite the enemy King. White moves first.
+     There is no castling.</p>
+
+  <h3>Special first moves</h3>
+  <p>On its first move the <strong>Sdach</strong> may jump like a knight (never a capture, never while in check).
+     On its first move the <strong>Neang</strong> may leap two squares straight forward (never a capture; it may
+     pass over an occupied square).</p>
+  <p class="note">Sources conflict on when these jumps are forfeited. Default here: both jumps are lost once
+     <em>any</em> piece has been captured. Alternative (selectable in settings): the King's jump is permanently
+     lost once an enemy Tuuk aligns on the King's rank or file — even if the Tuuk later moves away, and even
+     if other pieces stand between.</p>
+
+  <h3>Promotion</h3>
+  <p>A Trey promotes immediately and mandatorily on reaching the <strong>sixth</strong> rank
+     (the opponent's third), and thereafter moves as a Neang.</p>
+
+  <h3>Game end</h3>
+  <p>Checkmate wins. <strong>Stalemate is a draw.</strong></p>
+
+  <h3>Counting rules (draws for the weaker side)</h3>
+  <p><strong>Board's honor:</strong> a player with three or fewer pieces may start counting from 1
+     with a limit of 64; they may stop at any time, and a restart begins from 1 again.</p>
+  <p><strong>Piece's honor:</strong> when no unpromoted Trey remain and a player has only the bare Sdach,
+     that player may instead count starting from (all pieces on the board, both Sdach included) + 1,
+     with the limit fixed by the stronger side's force — the smallest applicable value:</p>
+  <table>
+    <tr><th>Stronger side has…</th><th>Limit</th></tr>
+    <tr><td>Two Tuuk</td><td>8</td></tr>
+    <tr><td>One Tuuk</td><td>16</td></tr>
+    <tr><td>Two Koul</td><td>22</td></tr>
+    <tr><td>Two Ses</td><td>32</td></tr>
+    <tr><td>One Koul</td><td>44</td></tr>
+    <tr><td>One Ses</td><td>64</td></tr>
+    <tr><td>Only Neang / promoted Trey</td><td>64</td></tr>
+  </table>
+  <p class="note">These limits are the commonly cited table; exact values vary slightly between Cambodian
+     and Thai sources. The table lives in one editable constant (<code>PIECE_HONOR_TABLE</code>) in the
+     engine script. Once piece-counting starts the limit never changes, even if pieces are captured later;
+     stopping and restarting re-fixes it. If the count reaches the limit before checkmate, the game is a draw.</p>
+</div></div>
+
+<!-- ============ RULES ENGINE (also shipped to the AI web worker) ============ -->
+<script id="engine-src">
+/* ============================================================
+   Ouk Chatrang (Cambodian chess) rules engine + AI.
+   Plain script: defines global OukEngine. Runs in window,
+   Web Worker, or Node (vm) unchanged.
+   ============================================================ */
+(function (g) {
+  'use strict';
+
+  // ---- piece encoding: type(3 bits) | color flag(8) | promoted flag(16)
+  var EMPTY = 0, KING = 1, QUEEN = 2, BISHOP = 3, KNIGHT = 4, ROOK = 5, PAWN = 6;
+  var WHITE = 0, BLACK = 1;
+  function mk(t, c, prom) { return t | (c ? 8 : 0) | (prom ? 16 : 0); }
+  function typeOf(p) { return p & 7; }
+  function colorOf(p) { return (p & 8) ? BLACK : WHITE; }
+  function isProm(p) { return (p & 16) !== 0; }
+
+  // Board: 64 squares, sq = rank*8 + file. Rank 0 = White's back rank.
+  // White King e1 (sq 4), Queen d1 (sq 3); Black King d8 (sq 59), Queen e8 (sq 60).
+  var QUEEN_START = [3, 60];
+  var PROM_RANK = [5, 2];           // Trey promotes on reaching the 6th rank
+  function fwd(c) { return c === WHITE ? 8 : -8; }
+  function fileOf(sq) { return sq & 7; }
+  function rankOf(sq) { return sq >> 3; }
+
+  var KNIGHT_D = [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]];
+  var KING_D = [[0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1]];
+  var DIAG_D = [[1, 1], [1, -1], [-1, -1], [-1, 1]];
+  var ORTH_D = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+  function shift(sq, df, dr) {
+    var f = fileOf(sq) + df, r = rankOf(sq) + dr;
+    return (f < 0 || f > 7 || r < 0 || r > 7) ? -1 : r * 8 + f;
+  }
+
+  /* ---- Counting-rule table (piece's honor), "commonly cited" limits.
+     Evaluated top to bottom against the stronger side's remaining force;
+     first matching row fixes the limit. Edit here to adjust. */
+  var PIECE_HONOR_TABLE = [
+    { piece: ROOK,   count: 2, limit: 8  },
+    { piece: ROOK,   count: 1, limit: 16 },
+    { piece: BISHOP, count: 2, limit: 22 },
+    { piece: KNIGHT, count: 2, limit: 32 },
+    { piece: BISHOP, count: 1, limit: 44 },
+    { piece: KNIGHT, count: 1, limit: 64 }
+  ];
+  var PIECE_HONOR_DEFAULT_LIMIT = 64;  // Neang / promoted Trey only
+  var BOARD_HONOR = { maxPieces: 3, start: 1, limit: 64 };
+
+  // ---- state ------------------------------------------------------------
+  // variant: 'capture' (default; special jumps lost once any capture occurs)
+  //          'rook'    (king's jump permanently lost once an enemy Tuuk
+  //                     aligns on the king's rank or file)
+  function initialState(variant) {
+    var b = new Array(64).fill(EMPTY);
+    var back = [ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK];
+    for (var f = 0; f < 8; f++) {
+      b[f] = mk(back[f], WHITE);
+      b[16 + f] = mk(PAWN, WHITE);
+      b[40 + f] = mk(PAWN, BLACK);
+    }
+    b[56] = mk(ROOK, BLACK); b[57] = mk(KNIGHT, BLACK); b[58] = mk(BISHOP, BLACK);
+    b[59] = mk(KING, BLACK); b[60] = mk(QUEEN, BLACK);  b[61] = mk(BISHOP, BLACK);
+    b[62] = mk(KNIGHT, BLACK); b[63] = mk(ROOK, BLACK);
+    var S = {
+      board: b, turn: WHITE,
+      kingMoved: [false, false], queenMoved: [false, false],
+      kingJumpLostRook: [false, false],
+      captureOccurred: false,
+      variant: variant || 'capture',
+      counting: null,   // {side, mode:'board'|'piece', count, limit}
+      result: null      // {type:'checkmate'|'stalemate'|'count-limit', winner?}
+    };
+    updateRookAlignment(S);
+    return S;
+  }
+
+  function toJSON(S) {
+    return {
+      board: S.board.slice(), turn: S.turn,
+      kingMoved: S.kingMoved.slice(), queenMoved: S.queenMoved.slice(),
+      kingJumpLostRook: S.kingJumpLostRook.slice(),
+      captureOccurred: S.captureOccurred, variant: S.variant,
+      counting: S.counting ? { side: S.counting.side, mode: S.counting.mode, count: S.counting.count, limit: S.counting.limit } : null,
+      result: S.result ? JSON.parse(JSON.stringify(S.result)) : null
+    };
+  }
+  function fromJSON(j) { return toJSON(j); } // same shape; deep-copies
+
+  function kingSq(S, c) {
+    var k = mk(KING, c);
+    for (var i = 0; i < 64; i++) if (S.board[i] === k) return i;
+    return -1;
+  }
+
+  // ---- attack detection (special jumps never capture, so they never attack)
+  function isAttacked(S, sq, by) {
+    var b = S.board, i, t, p;
+    for (i = 0; i < 8; i++) {
+      t = shift(sq, KNIGHT_D[i][0], KNIGHT_D[i][1]);
+      if (t >= 0 && b[t] !== EMPTY && colorOf(b[t]) === by && typeOf(b[t]) === KNIGHT) return true;
+    }
+    for (i = 0; i < 8; i++) {
+      t = shift(sq, KING_D[i][0], KING_D[i][1]);
+      if (t >= 0 && b[t] !== EMPTY && colorOf(b[t]) === by && typeOf(b[t]) === KING) return true;
+    }
+    // diagonal-adjacent: Neang (incl. promoted Trey), Koul, and Trey from its own side
+    var pawnRankStep = (by === WHITE) ? 1 : -1; // a `by` pawn at (sq - fwd(by) +/- 1 file) attacks sq
+    for (i = 0; i < 4; i++) {
+      t = shift(sq, DIAG_D[i][0], DIAG_D[i][1]);
+      if (t < 0) continue;
+      p = b[t];
+      if (p === EMPTY || colorOf(p) !== by) continue;
+      var ty = typeOf(p);
+      if (ty === QUEEN || ty === BISHOP) return true;
+      if (ty === PAWN && rankOf(t) === rankOf(sq) - pawnRankStep) return true;
+    }
+    // Koul one straight forward: a `by` bishop at sq - fwd(by)
+    t = sq - fwd(by);
+    if (t >= 0 && t < 64 && Math.abs(fileOf(t) - fileOf(sq)) === 0 &&
+        b[t] !== EMPTY && colorOf(b[t]) === by && typeOf(b[t]) === BISHOP) return true;
+    // Tuuk rays
+    for (i = 0; i < 4; i++) {
+      var df = ORTH_D[i][0], dr = ORTH_D[i][1];
+      t = shift(sq, df, dr);
+      while (t >= 0) {
+        p = b[t];
+        if (p !== EMPTY) {
+          if (colorOf(p) === by && typeOf(p) === ROOK) return true;
+          break;
+        }
+        t = shift(t, df, dr);
+      }
+    }
+    return false;
+  }
+
+  function inCheck(S, c) { return isAttacked(S, kingSq(S, c), 1 - c); }
+
+  function kingJumpAvailable(S, c) {
+    if (S.kingMoved[c]) return false;
+    return S.variant === 'capture' ? !S.captureOccurred : !S.kingJumpLostRook[c];
+  }
+  function queenJumpAvailable(S, c) {
+    if (S.queenMoved[c]) return false;
+    return S.variant === 'capture' ? !S.captureOccurred : true;
+  }
+
+  // ---- move generation ----------------------------------------------------
+  // move: {from, to, special: 0 | 1 (king knight-jump) | 2 (queen 2-forward jump)}
+  function genPseudo(S, c) {
+    var b = S.board, moves = [], sq, p, ty, i, t;
+    for (sq = 0; sq < 64; sq++) {
+      p = b[sq];
+      if (p === EMPTY || colorOf(p) !== c) continue;
+      ty = typeOf(p);
+      if (ty === KING) {
+        for (i = 0; i < 8; i++) {
+          t = shift(sq, KING_D[i][0], KING_D[i][1]);
+          if (t >= 0 && (b[t] === EMPTY || colorOf(b[t]) !== c)) moves.push({ from: sq, to: t, special: 0 });
+        }
+        if (kingJumpAvailable(S, c) && !isAttacked(S, sq, 1 - c)) {
+          for (i = 0; i < 8; i++) {
+            t = shift(sq, KNIGHT_D[i][0], KNIGHT_D[i][1]);
+            if (t >= 0 && b[t] === EMPTY) moves.push({ from: sq, to: t, special: 1 }); // never a capture
+          }
+        }
+      } else if (ty === QUEEN) { // Neang and promoted Trey: one step diagonal
+        for (i = 0; i < 4; i++) {
+          t = shift(sq, DIAG_D[i][0], DIAG_D[i][1]);
+          if (t >= 0 && (b[t] === EMPTY || colorOf(b[t]) !== c)) moves.push({ from: sq, to: t, special: 0 });
+        }
+        if (!isProm(p) && sq === QUEEN_START[c] && queenJumpAvailable(S, c)) {
+          t = sq + 2 * fwd(c); // a leap: may pass over an occupied square, never captures
+          if (t >= 0 && t < 64 && b[t] === EMPTY) moves.push({ from: sq, to: t, special: 2 });
+        }
+      } else if (ty === BISHOP) { // Koul: one step diagonal, or one step straight forward
+        for (i = 0; i < 4; i++) {
+          t = shift(sq, DIAG_D[i][0], DIAG_D[i][1]);
+          if (t >= 0 && (b[t] === EMPTY || colorOf(b[t]) !== c)) moves.push({ from: sq, to: t, special: 0 });
+        }
+        t = shift(sq, 0, c === WHITE ? 1 : -1);
+        if (t >= 0 && (b[t] === EMPTY || colorOf(b[t]) !== c)) moves.push({ from: sq, to: t, special: 0 });
+      } else if (ty === KNIGHT) {
+        for (i = 0; i < 8; i++) {
+          t = shift(sq, KNIGHT_D[i][0], KNIGHT_D[i][1]);
+          if (t >= 0 && (b[t] === EMPTY || colorOf(b[t]) !== c)) moves.push({ from: sq, to: t, special: 0 });
+        }
+      } else if (ty === ROOK) {
+        for (i = 0; i < 4; i++) {
+          var df = ORTH_D[i][0], dr = ORTH_D[i][1];
+          t = shift(sq, df, dr);
+          while (t >= 0) {
+            if (b[t] === EMPTY) { moves.push({ from: sq, to: t, special: 0 }); }
+            else { if (colorOf(b[t]) !== c) moves.push({ from: sq, to: t, special: 0 }); break; }
+            t = shift(t, df, dr);
+          }
+        }
+      } else if (ty === PAWN) {
+        var dr2 = c === WHITE ? 1 : -1;
+        t = shift(sq, 0, dr2);
+        if (t >= 0 && b[t] === EMPTY) moves.push({ from: sq, to: t, special: 0 });
+        t = shift(sq, -1, dr2);
+        if (t >= 0 && b[t] !== EMPTY && colorOf(b[t]) !== c) moves.push({ from: sq, to: t, special: 0 });
+        t = shift(sq, 1, dr2);
+        if (t >= 0 && b[t] !== EMPTY && colorOf(b[t]) !== c) moves.push({ from: sq, to: t, special: 0 });
+      }
+    }
+    return moves;
+  }
+
+  function updateRookAlignment(S) {
+    for (var c = 0; c < 2; c++) {
+      if (S.kingJumpLostRook[c]) continue;
+      var k = kingSq(S, c);
+      if (k < 0) continue;
+      var kf = fileOf(k), kr = rankOf(k), enemyRook = mk(ROOK, 1 - c);
+      for (var i = 0; i < 64; i++) {
+        if (S.board[i] === enemyRook && (fileOf(i) === kf || rankOf(i) === kr)) {
+          S.kingJumpLostRook[c] = true; // permanent, even if the Tuuk moves away
+          break;
+        }
+      }
+    }
+  }
+
+  function makeMove(S, m) {
+    var c = colorOf(S.board[m.from]);
+    var u = {
+      m: m, moved: S.board[m.from], captured: S.board[m.to],
+      captureOccurred: S.captureOccurred,
+      kingMoved: S.kingMoved[c], queenMoved: S.queenMoved[c],
+      kjl0: S.kingJumpLostRook[0], kjl1: S.kingJumpLostRook[1],
+      counting: S.counting ? { side: S.counting.side, mode: S.counting.mode, count: S.counting.count, limit: S.counting.limit } : null,
+      result: S.result, color: c
+    };
+    var piece = u.moved, ty = typeOf(piece);
+    if (u.captured !== EMPTY) S.captureOccurred = true;
+    if (ty === KING) S.kingMoved[c] = true;
+    if (ty === QUEEN && !isProm(piece) && m.from === QUEEN_START[c]) S.queenMoved[c] = true;
+    var promote = (ty === PAWN && rankOf(m.to) === PROM_RANK[c]); // mandatory, immediate
+    S.board[m.to] = promote ? mk(QUEEN, c, true) : piece;
+    S.board[m.from] = EMPTY;
+    S.turn = 1 - S.turn;
+    updateRookAlignment(S);
+    if (S.counting && S.counting.side === c && !S.result) {
+      S.counting.count++;
+      if (S.counting.count >= S.counting.limit) S.result = { type: 'count-limit' }; // draw
+    }
+    return u;
+  }
+
+  function unmakeMove(S, u) {
+    var m = u.m, c = u.color;
+    S.board[m.from] = u.moved;
+    S.board[m.to] = u.captured;
+    S.turn = c;
+    S.captureOccurred = u.captureOccurred;
+    S.kingMoved[c] = u.kingMoved;
+    S.queenMoved[c] = u.queenMoved;
+    S.kingJumpLostRook[0] = u.kjl0;
+    S.kingJumpLostRook[1] = u.kjl1;
+    S.counting = u.counting;
+    S.result = u.result;
+  }
+
+  function genLegal(S, c) {
+    var ps = genPseudo(S, c), out = [];
+    for (var i = 0; i < ps.length; i++) {
+      var u = makeMove(S, ps[i]);
+      if (!inCheck(S, c)) out.push(ps[i]);
+      unmakeMove(S, u);
+    }
+    return out;
+  }
+
+  // status for side to move; null while game continues
+  function gameStatus(S) {
+    if (S.result) return S.result;
+    var legal = genLegal(S, S.turn);
+    if (legal.length === 0) {
+      return inCheck(S, S.turn)
+        ? { type: 'checkmate', winner: 1 - S.turn }
+        : { type: 'stalemate' }; // draw
+    }
+    return null;
+  }
+
+  // ---- counting rules ------------------------------------------------------
+  function countPieces(S, c) {
+    var n = 0;
+    for (var i = 0; i < 64; i++) if (S.board[i] !== EMPTY && colorOf(S.board[i]) === c) n++;
+    return n;
+  }
+  function anyUnpromotedPawns(S) {
+    for (var i = 0; i < 64; i++) if (typeOf(S.board[i]) === PAWN) return true;
+    return false;
+  }
+  function canCountBoard(S, side) {
+    return !S.result && !S.counting && countPieces(S, side) <= BOARD_HONOR.maxPieces &&
+           countPieces(S, 1 - side) > countPieces(S, side);
+  }
+  function canCountPiece(S, side) {
+    return !S.result && !S.counting && countPieces(S, side) === 1 && !anyUnpromotedPawns(S);
+  }
+  function pieceHonorLimit(S, strongSide) {
+    var counts = {};
+    for (var i = 0; i < 64; i++) {
+      var p = S.board[i];
+      if (p !== EMPTY && colorOf(p) === strongSide) {
+        var ty = isProm(p) ? QUEEN : typeOf(p); // promoted Trey counts as Neang
+        counts[ty] = (counts[ty] || 0) + 1;
+      }
+    }
+    for (var r = 0; r < PIECE_HONOR_TABLE.length; r++) {
+      var row = PIECE_HONOR_TABLE[r];
+      if ((counts[row.piece] || 0) >= row.count) return row.limit;
+    }
+    return PIECE_HONOR_DEFAULT_LIMIT;
+  }
+  function startCounting(S, side, mode) {
+    if (mode === 'board') {
+      if (!canCountBoard(S, side)) return false;
+      S.counting = { side: side, mode: 'board', count: BOARD_HONOR.start, limit: BOARD_HONOR.limit };
+    } else {
+      if (!canCountPiece(S, side)) return false;
+      var total = countPieces(S, WHITE) + countPieces(S, BLACK);
+      // limit is fixed now and never changes, even if pieces are captured later
+      S.counting = { side: side, mode: 'piece', count: total + 1, limit: pieceHonorLimit(S, 1 - side) };
+    }
+    return true;
+  }
+  function stopCounting(S) { S.counting = null; } // a restart later begins afresh
+
+  // ---- AI ------------------------------------------------------------------
+  var VAL = [0, 0, 180, 280, 420, 580, 100]; // -, K, Neang, Koul, Ses, Tuuk, Trey
+  var MATE = 100000;
+
+  function pieceVal(p) { return isProm(p) ? VAL[QUEEN] : VAL[typeOf(p)]; }
+
+  function evaluate(S, forColor) {
+    var score = 0, i, p, c, ty, r, f;
+    var kSq = [kingSq(S, WHITE), kingSq(S, BLACK)];
+    var nPieces = [0, 0];
+    for (i = 0; i < 64; i++) { p = S.board[i]; if (p !== EMPTY) nPieces[colorOf(p)]++; }
+    for (i = 0; i < 64; i++) {
+      p = S.board[i];
+      if (p === EMPTY) continue;
+      c = colorOf(p); ty = typeOf(p); r = rankOf(i); f = fileOf(i);
+      var s = pieceVal(p);
+      if (ty === PAWN && !isProm(p)) {
+        var adv = c === WHITE ? r - 2 : 5 - r;           // promotion proximity
+        if (adv > 0) s += adv * 12 + (adv === 2 ? 20 : 0);
+      } else if (ty === KNIGHT) {
+        s += 6 * (3 - Math.max(Math.abs(f - 3.5), Math.abs(r - 3.5)) | 0);
+      }
+      // king safety: enemy piece near a king
+      var ek = kSq[1 - c];
+      if (ek >= 0 && ty !== KING) {
+        var d = Math.max(Math.abs(fileOf(ek) - f), Math.abs(rankOf(ek) - r));
+        if (d <= 2) s += 8; // pressure on the enemy king
+      }
+      var ok = kSq[c];
+      if (ok >= 0 && ty !== KING && Math.max(Math.abs(fileOf(ok) - f), Math.abs(rankOf(ok) - r)) === 1)
+        s += 3; // shelter next to own king
+      score += (c === forColor) ? s : -s;
+    }
+    // mop-up: opponent down to a bare king -> drive it to the edge, approach
+    for (c = 0; c < 2; c++) {
+      if (nPieces[c] === 1 && nPieces[1 - c] > 1 && kSq[c] >= 0 && kSq[1 - c] >= 0) {
+        var lf = fileOf(kSq[c]), lr = rankOf(kSq[c]);
+        var edge = Math.min(lf, 7 - lf, lr, 7 - lr);           // 0 at edge
+        var dist = Math.max(Math.abs(fileOf(kSq[1 - c]) - lf), Math.abs(rankOf(kSq[1 - c]) - lr));
+        var mop = (3 - edge) * 25 + (7 - dist) * 12;
+        score += (c === forColor) ? -mop : mop;
+      }
+    }
+    return score;
+  }
+
+  function orderMoves(S, moves) {
+    for (var i = 0; i < moves.length; i++) {
+      var m = moves[i], cap = S.board[m.to];
+      m._s = cap !== EMPTY ? 10000 + pieceVal(cap) - (pieceVal(S.board[m.from]) >> 4) : 0;
+    }
+    moves.sort(function (a, b) { return b._s - a._s; });
+    return moves;
+  }
+
+  function qsearch(S, alpha, beta, color, depth) {
+    var stand = evaluate(S, color);
+    if (stand >= beta) return beta;
+    if (stand > alpha) alpha = stand;
+    if (depth <= 0) return alpha;
+    var moves = genPseudo(S, color);
+    orderMoves(S, moves);
+    for (var i = 0; i < moves.length; i++) {
+      if (S.board[moves[i].to] === EMPTY) continue; // captures only
+      var u = makeMove(S, moves[i]);
+      if (inCheck(S, color)) { unmakeMove(S, u); continue; }
+      var sc = -qsearch(S, -beta, -alpha, 1 - color, depth - 1);
+      unmakeMove(S, u);
+      if (sc >= beta) return beta;
+      if (sc > alpha) alpha = sc;
+    }
+    return alpha;
+  }
+
+  var _deadline = 0, _nodes = 0;
+  function TimeUp() { this.timeup = true; }
+
+  function search(S, depth, alpha, beta, color, ply) {
+    if (((++_nodes) & 1023) === 0 && _deadline && Date.now() > _deadline) throw new TimeUp();
+    if (depth === 0) return qsearch(S, alpha, beta, color, 6);
+    var moves = genPseudo(S, color);
+    orderMoves(S, moves);
+    var legal = 0;
+    for (var i = 0; i < moves.length; i++) {
+      var u = makeMove(S, moves[i]);
+      if (inCheck(S, color)) { unmakeMove(S, u); continue; }
+      legal++;
+      var sc = -search(S, depth - 1, -beta, -alpha, 1 - color, ply + 1);
+      unmakeMove(S, u);
+      if (sc > alpha) { alpha = sc; if (alpha >= beta) break; }
+    }
+    if (legal === 0) return inCheck(S, color) ? -(MATE - ply) : 0; // stalemate = draw
+    return alpha;
+  }
+
+  function searchRoot(S, depth, prevBest) {
+    var color = S.turn;
+    var moves = genLegal(S, color);
+    orderMoves(S, moves);
+    if (prevBest) {
+      for (var k = 0; k < moves.length; k++) {
+        if (moves[k].from === prevBest.from && moves[k].to === prevBest.to && moves[k].special === prevBest.special) {
+          moves.splice(0, 0, moves.splice(k, 1)[0]); break;
+        }
+      }
+    }
+    var best = null, bestScore = -Infinity, alpha = -Infinity;
+    for (var i = 0; i < moves.length; i++) {
+      var u = makeMove(S, moves[i]);
+      var sc = -search(S, depth - 1, -Infinity, -(alpha === -Infinity ? -Infinity : alpha), 1 - color, 1);
+      unmakeMove(S, u);
+      if (sc > bestScore) { bestScore = sc; best = moves[i]; if (sc > alpha) alpha = sc; }
+    }
+    return { move: best, score: bestScore };
+  }
+
+  // Five difficulty levels, weakest to strongest:
+  //  1: fully random legal move.
+  //  2: random legal move, weighted toward captures.
+  //  3: fixed shallow search (depth 2), small time budget.
+  //  4: iterative-deepening alpha-beta, moderate time budget (~0.9s).
+  //  5: iterative-deepening alpha-beta, full time budget (~1.7s, hardest).
+  function chooseAiMove(S, level) {
+    var legal = genLegal(S, S.turn);
+    if (legal.length === 0) return null;
+    _nodes = 0;
+    if (level === 1) {
+      return legal[(Math.random() * legal.length) | 0];
+    }
+    if (level === 2) {
+      var caps = legal.filter(function (m) { return S.board[m.to] !== EMPTY; });
+      var pool = (caps.length && Math.random() < 0.75) ? caps : legal;
+      return pool[(Math.random() * pool.length) | 0];
+    }
+    // levels 3-5 search on a working copy: a mid-search timeout must
+    // never leave the real game state mutated
+    var W = toJSON(S);
+    if (level === 3) {
+      _deadline = Date.now() + 1200;
+      try { var r3 = searchRoot(W, 2, null).move; return r3 || legal[0]; }
+      catch (e) { return legal[0]; }
+      finally { _deadline = 0; }
+    }
+    var budget = level === 4 ? 900 : 1700; // level 5 is the hardest, ~1.7s
+    _deadline = Date.now() + budget;
+    var best = null;
+    for (var d = 2; d <= 10; d++) {
+      try {
+        var r = searchRoot(W, d, best);
+        if (r.move) best = r.move;
+        if (r.score >= MATE - 100) break;
+      } catch (e) { break; }
+      if (Date.now() > _deadline - 150) break;
+    }
+    _deadline = 0;
+    return best || legal[0];
+  }
+
+  // ---- helpers for UI / tests ---------------------------------------------
+  function sqName(sq) { return 'abcdefgh'[fileOf(sq)] + (rankOf(sq) + 1); }
+  function sqIndex(name) { return (name.charCodeAt(1) - 49) * 8 + (name.charCodeAt(0) - 97); }
+
+  function emptyState(variant) {
+    var S = initialState(variant);
+    S.board = new Array(64).fill(EMPTY);
+    return S;
+  }
+
+  g.OukEngine = {
+    EMPTY: EMPTY, KING: KING, QUEEN: QUEEN, BISHOP: BISHOP, KNIGHT: KNIGHT, ROOK: ROOK, PAWN: PAWN,
+    WHITE: WHITE, BLACK: BLACK,
+    mk: mk, typeOf: typeOf, colorOf: colorOf, isProm: isProm,
+    fileOf: fileOf, rankOf: rankOf, sqName: sqName, sqIndex: sqIndex,
+    QUEEN_START: QUEEN_START, PROM_RANK: PROM_RANK,
+    PIECE_HONOR_TABLE: PIECE_HONOR_TABLE, PIECE_HONOR_DEFAULT_LIMIT: PIECE_HONOR_DEFAULT_LIMIT,
+    BOARD_HONOR: BOARD_HONOR,
+    initialState: initialState, emptyState: emptyState, toJSON: toJSON, fromJSON: fromJSON,
+    genPseudo: genPseudo, genLegal: genLegal, makeMove: makeMove, unmakeMove: unmakeMove,
+    isAttacked: isAttacked, inCheck: inCheck, gameStatus: gameStatus,
+    kingSq: kingSq, countPieces: countPieces,
+    canCountBoard: canCountBoard, canCountPiece: canCountPiece,
+    pieceHonorLimit: pieceHonorLimit, startCounting: startCounting, stopCounting: stopCounting,
+    kingJumpAvailable: kingJumpAvailable, queenJumpAvailable: queenJumpAvailable,
+    evaluate: evaluate, chooseAiMove: chooseAiMove
+  };
+})(typeof self !== 'undefined' ? self : globalThis);
+</script>
+
+<!-- ============ SELF-TESTS (run: runOukSelfTests() in the console) ============ -->
+<script id="tests-src">
+/* ============================================================
+   Ouk Chatrang engine self-tests.
+   Plain script: defines global OukSelfTests. Run in Node (vm)
+   or browser console: OukSelfTests.run(OukEngine)
+   ============================================================ */
+(function (g) {
+  'use strict';
+
+  function run(E) {
+    var results = [], pass = 0, fail = 0;
+    function T(name, fn) {
+      try {
+        fn();
+        results.push({ name: name, ok: true });
+        pass++;
+      } catch (e) {
+        results.push({ name: name, ok: false, err: String(e && e.message || e) });
+        fail++;
+      }
+    }
+    function assert(cond, msg) { if (!cond) throw new Error(msg || 'assertion failed'); }
+    function eq(a, b, msg) { if (a !== b) throw new Error((msg || 'eq') + ': expected ' + b + ', got ' + a); }
+    var sq = E.sqIndex;
+    function put(S, name, type, color, prom) { S.board[sq(name)] = E.mk(type, color, prom); }
+    function movesFrom(S, name) {
+      return E.genLegal(S, S.turn).filter(function (m) { return m.from === sq(name); });
+    }
+    function hasMove(list, from, to, special) {
+      return list.some(function (m) {
+        return m.from === sq(from) && m.to === sq(to) && (special === undefined || m.special === special);
+      });
+    }
+    function doMove(S, from, to, special) {
+      var legal = E.genLegal(S, S.turn);
+      var m = legal.filter(function (x) {
+        return x.from === sq(from) && x.to === sq(to) && (special === undefined || x.special === special);
+      })[0];
+      if (!m) throw new Error('move not legal: ' + from + '-' + to + (special !== undefined ? ' special ' + special : ''));
+      return E.makeMove(S, m);
+    }
+
+    // ---------- setup ----------
+    T('setup: kings offset (White Ke1, Black Kd8), queens opposite', function () {
+      var S = E.initialState();
+      eq(S.board[sq('e1')], E.mk(E.KING, E.WHITE), 'e1');
+      eq(S.board[sq('d8')], E.mk(E.KING, E.BLACK), 'd8');
+      eq(S.board[sq('d1')], E.mk(E.QUEEN, E.WHITE), 'd1');
+      eq(S.board[sq('e8')], E.mk(E.QUEEN, E.BLACK), 'e8');
+    });
+    T('setup: Trey on 3rd/6th ranks, back ranks R-N-B', function () {
+      var S = E.initialState();
+      for (var f = 0; f < 8; f++) {
+        eq(E.typeOf(S.board[16 + f]), E.PAWN, 'white pawn rank 3 file ' + f);
+        eq(E.typeOf(S.board[40 + f]), E.PAWN, 'black pawn rank 6 file ' + f);
+        eq(S.board[8 + f], E.EMPTY, 'rank 2 empty');
+      }
+      eq(E.typeOf(S.board[sq('a1')]), E.ROOK); eq(E.typeOf(S.board[sq('b1')]), E.KNIGHT);
+      eq(E.typeOf(S.board[sq('c1')]), E.BISHOP); eq(E.typeOf(S.board[sq('h8')]), E.ROOK);
+    });
+    T('movegen: initial position legal move count = 25 (incl. 2 king jumps)', function () {
+      var S = E.initialState();
+      var legal = E.genLegal(S, E.WHITE);
+      eq(legal.length, 25, 'white legal moves');
+      var kj = legal.filter(function (m) { return m.special === 1; });
+      eq(kj.length, 2, 'king knight-jumps (c2, g2)');
+      assert(hasMove(legal, 'e1', 'c2', 1) && hasMove(legal, 'e1', 'g2', 1), 'jump targets');
+      var qj = legal.filter(function (m) { return m.special === 2; });
+      eq(qj.length, 0, 'queen jump blocked by own Trey on d3 at start');
+    });
+
+    // ---------- Koul asymmetric movement ----------
+    T('Koul: diagonal 1 + straight forward 1 only (asymmetric)', function () {
+      var S = E.emptyState();
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'a8', E.KING, E.BLACK);
+      put(S, 'd4', E.BISHOP, E.WHITE);
+      var ms = movesFrom(S, 'd4');
+      eq(ms.length, 5, 'white Koul d4 move count');
+      ['c5', 'e5', 'c3', 'e3', 'd5'].forEach(function (t) { assert(hasMove(ms, 'd4', t), 'missing ' + t); });
+      assert(!hasMove(ms, 'd4', 'd3'), 'must not step straight backward');
+      S = E.emptyState(); S.turn = E.BLACK;
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'a8', E.KING, E.BLACK);
+      put(S, 'd5', E.BISHOP, E.BLACK);
+      ms = movesFrom(S, 'd5');
+      eq(ms.length, 5, 'black Koul d5 move count');
+      assert(hasMove(ms, 'd5', 'd4'), 'black forward is down');
+      assert(!hasMove(ms, 'd5', 'd6'), 'black must not step toward rank 8');
+    });
+
+    // ---------- Trey ----------
+    T('Trey: 1 forward non-capture, diagonal-forward capture, no double step', function () {
+      var S = E.emptyState();
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'a8', E.KING, E.BLACK);
+      put(S, 'd3', E.PAWN, E.WHITE); put(S, 'd4', E.PAWN, E.BLACK); put(S, 'e4', E.PAWN, E.BLACK);
+      var ms = movesFrom(S, 'd3');
+      assert(!hasMove(ms, 'd3', 'd4'), 'cannot capture straight ahead');
+      assert(!hasMove(ms, 'd3', 'd5'), 'no double step');
+      assert(hasMove(ms, 'd3', 'e4'), 'diagonal capture');
+      eq(ms.length, 1);
+    });
+    T('Trey promotes on the 6th rank, immediately, and then moves as Neang', function () {
+      var S = E.emptyState();
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'a8', E.KING, E.BLACK);
+      put(S, 'e5', E.PAWN, E.WHITE);
+      doMove(S, 'e5', 'e6');
+      var p = S.board[sq('e6')];
+      eq(E.typeOf(p), E.QUEEN, 'promoted type moves as Neang');
+      assert(E.isProm(p), 'promoted flag set');
+      S.turn = E.WHITE;
+      var ms = movesFrom(S, 'e6');
+      eq(ms.length, 4, 'promoted Trey: 4 diagonal steps');
+      assert(!hasMove(ms, 'e6', 'e7'), 'no straight step after promotion');
+    });
+
+    // ---------- special first moves ----------
+    T('Neang jump: 2 straight forward on first move, leaping over a piece, non-capture', function () {
+      var S = E.initialState();
+      doMove(S, 'd3', 'd4');           // clear d3
+      doMove(S, 'e6', 'e5');           // black reply
+      var ms = movesFrom(S, 'd1');
+      assert(hasMove(ms, 'd1', 'd3', 2), 'queen jump d1-d3 available');
+      // leap over occupied square: put something on d2
+      var S2 = E.emptyState();
+      put(S2, 'e1', E.KING, E.WHITE); put(S2, 'a8', E.KING, E.BLACK);
+      put(S2, 'd1', E.QUEEN, E.WHITE); put(S2, 'd2', E.KNIGHT, E.WHITE);
+      assert(hasMove(movesFrom(S2, 'd1'), 'd1', 'd3', 2), 'jump passes over occupied d2');
+      // non-capture: enemy piece on d3 blocks the jump
+      put(S2, 'd3', E.PAWN, E.BLACK);
+      assert(!hasMove(movesFrom(S2, 'd1'), 'd1', 'd3'), 'jump cannot capture');
+    });
+    T('Neang jump forfeited after the Neang has moved', function () {
+      var S = E.emptyState();
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'h8', E.KING, E.BLACK);
+      put(S, 'd1', E.QUEEN, E.WHITE); put(S, 'a6', E.PAWN, E.BLACK);
+      assert(hasMove(movesFrom(S, 'd1'), 'd1', 'd3', 2), 'available before moving');
+      doMove(S, 'd1', 'e2'); doMove(S, 'a6', 'a5'); doMove(S, 'e2', 'd1'); doMove(S, 'a5', 'a4');
+      assert(!hasMove(movesFrom(S, 'd1'), 'd1', 'd3'), 'gone after queen returned to d1');
+    });
+    T('capture variant (default): both jumps lost once ANY capture occurs', function () {
+      var S = E.emptyState('capture');
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'h8', E.KING, E.BLACK);
+      put(S, 'd1', E.QUEEN, E.WHITE);
+      put(S, 'a4', E.ROOK, E.WHITE); put(S, 'a7', E.PAWN, E.BLACK); put(S, 'b7', E.PAWN, E.BLACK);
+      assert(E.kingJumpAvailable(S, E.WHITE) && E.queenJumpAvailable(S, E.WHITE), 'both available initially');
+      doMove(S, 'a4', 'a7'); // white rook captures black pawn
+      assert(!E.kingJumpAvailable(S, E.WHITE), 'king jump lost after capture');
+      assert(!E.kingJumpAvailable(S, E.BLACK), 'black king jump lost too');
+      assert(!E.queenJumpAvailable(S, E.WHITE), 'queen jump lost after capture');
+      S.turn = E.WHITE;
+      var kms = movesFrom(S, 'e1').filter(function (m) { return m.special === 1; });
+      eq(kms.length, 0, 'no king jump generated');
+    });
+    T('rook variant: king jump permanently lost once enemy Tuuk aligns, even after it leaves', function () {
+      var S = E.emptyState('rook');
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'h8', E.KING, E.BLACK);
+      put(S, 'a5', E.ROOK, E.BLACK);
+      S.turn = E.BLACK;
+      assert(E.kingJumpAvailable(S, E.WHITE), 'available before alignment');
+      doMove(S, 'a5', 'e5');  // black rook aligns on the e-file (blocked or not: still forfeits)
+      assert(!E.kingJumpAvailable(S, E.WHITE), 'lost on alignment');
+      // second scenario: the rook aligns (behind a blocker, so no check) and then moves away
+      S = E.emptyState('rook');
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'h8', E.KING, E.BLACK);
+      put(S, 'a5', E.ROOK, E.BLACK); put(S, 'e3', E.PAWN, E.WHITE); put(S, 'h3', E.PAWN, E.WHITE);
+      S.turn = E.BLACK;
+      doMove(S, 'a5', 'e5');  // align on the e-file; e3 Trey blocks any check
+      doMove(S, 'h3', 'h4');  // white non-king move
+      doMove(S, 'e5', 'a5');  // rook moves away again
+      assert(!E.kingJumpAvailable(S, E.WHITE), 'still lost after the Tuuk moved away');
+      S.turn = E.WHITE;
+      eq(movesFrom(S, 'e1').filter(function (m) { return m.special === 1; }).length, 0, 'no jump generated');
+    });
+    T('rook variant: a capture does NOT forfeit the jumps', function () {
+      var S = E.emptyState('rook');
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'h8', E.KING, E.BLACK);
+      put(S, 'd1', E.QUEEN, E.WHITE);
+      put(S, 'b4', E.KNIGHT, E.WHITE); put(S, 'c6', E.PAWN, E.BLACK);
+      doMove(S, 'b4', 'c6'); // capture
+      assert(E.kingJumpAvailable(S, E.WHITE), 'king jump survives capture in rook variant');
+      assert(E.queenJumpAvailable(S, E.WHITE), 'queen jump survives capture in rook variant');
+    });
+    T('king jump: not allowed while in check, and never a capture', function () {
+      var S = E.emptyState();
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'h8', E.KING, E.BLACK);
+      put(S, 'e5', E.ROOK, E.BLACK); // checks the king on the e-file
+      assert(E.inCheck(S, E.WHITE), 'in check');
+      var jumps = E.genLegal(S, E.WHITE).filter(function (m) { return m.special === 1; });
+      eq(jumps.length, 0, 'no jump while in check');
+      var S2 = E.emptyState();
+      put(S2, 'e1', E.KING, E.WHITE); put(S2, 'h8', E.KING, E.BLACK);
+      put(S2, 'd3', E.PAWN, E.BLACK);   // occupies a jump-target square without giving check
+      var js = E.genLegal(S2, E.WHITE).filter(function (m) { return m.special === 1; });
+      assert(js.length > 0, 'jumps exist');
+      assert(!js.some(function (m) { return m.to === sq('d3'); }), 'occupied square not a jump target');
+    });
+    T('king jump forfeited after the king has moved (both variants)', function () {
+      var S = E.emptyState('rook');
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'h8', E.KING, E.BLACK); put(S, 'a3', E.PAWN, E.BLACK);
+      doMove(S, 'e1', 'e2'); doMove(S, 'a3', 'a2'); doMove(S, 'e2', 'e1'); doMove(S, 'h8', 'h7');
+      eq(E.genLegal(S, E.WHITE).filter(function (m) { return m.special === 1; }).length, 0, 'no jump after king moved');
+    });
+
+    // ---------- check / mate / stalemate ----------
+    T('checkmate detected (two-Tuuk ladder mate)', function () {
+      var S = E.emptyState();
+      put(S, 'a1', E.KING, E.WHITE); put(S, 'c8', E.KING, E.BLACK);
+      put(S, 'h1', E.ROOK, E.BLACK); put(S, 'h2', E.ROOK, E.BLACK);
+      S.kingMoved = [true, true]; S.turn = E.WHITE;
+      var st = E.gameStatus(S);
+      assert(st && st.type === 'checkmate', 'checkmate, got ' + JSON.stringify(st));
+      eq(st.winner, E.BLACK, 'black wins');
+    });
+    T('stalemate detected and is a draw (no winner)', function () {
+      var S = E.emptyState();
+      put(S, 'a1', E.KING, E.WHITE); put(S, 'b2', E.ROOK, E.BLACK); put(S, 'c3', E.KING, E.BLACK);
+      S.kingMoved = [true, true]; S.turn = E.WHITE;
+      assert(!E.inCheck(S, E.WHITE), 'not in check');
+      var st = E.gameStatus(S);
+      assert(st && st.type === 'stalemate', 'stalemate, got ' + JSON.stringify(st));
+      eq(st.winner, undefined, 'draw: no winner');
+    });
+    T('king may never move into check', function () {
+      var S = E.emptyState();
+      put(S, 'e1', E.KING, E.WHITE); put(S, 'h8', E.KING, E.BLACK);
+      put(S, 'd5', E.ROOK, E.BLACK);
+      S.kingMoved = [true, true];
+      var ms = movesFrom(S, 'e1');
+      assert(!hasMove(ms, 'e1', 'd1'), 'd-file is covered by the Tuuk');
+      assert(!hasMove(ms, 'e1', 'd2'), 'd2 covered');
+      assert(hasMove(ms, 'e1', 'e2'), 'e2 fine');
+    });
+
+    // ---------- counting rules ----------
+    T("piece's honor: lone Sdach vs 2 Tuuk -> start = pieces+1, limit 8", function () {
+      var S = E.emptyState();
+      put(S, 'e4', E.KING, E.WHITE); put(S, 'a1', E.ROOK, E.WHITE); put(S, 'h1', E.ROOK, E.WHITE);
+      put(S, 'e8', E.KING, E.BLACK);
+      assert(E.canCountPiece(S, E.BLACK), 'black (lone king) may count');
+      assert(!E.canCountPiece(S, E.WHITE), 'white may not');
+      assert(E.startCounting(S, E.BLACK, 'piece'), 'start');
+      eq(S.counting.count, 5, 'starts at pieces on board + 1 = 5');
+      eq(S.counting.limit, 8, 'two Tuuk -> limit 8');
+    });
+    T("piece's honor: limit table (1 Tuuk=16, 2 Koul=22, 2 Ses=32, 1 Koul=44, 1 Ses=64, Neang only=64)", function () {
+      function limitFor(types) {
+        var S = E.emptyState();
+        put(S, 'e4', E.KING, E.WHITE); put(S, 'e8', E.KING, E.BLACK);
+        var free = ['a1', 'h1', 'a2', 'h2'];
+        types.forEach(function (t, i) { put(S, free[i], t, E.WHITE); });
+        return E.pieceHonorLimit(S, E.WHITE);
+      }
+      eq(limitFor([E.ROOK]), 16, '1 Tuuk');
+      eq(limitFor([E.BISHOP, E.BISHOP]), 22, '2 Koul');
+      eq(limitFor([E.KNIGHT, E.KNIGHT]), 32, '2 Ses');
+      eq(limitFor([E.BISHOP]), 44, '1 Koul');
+      eq(limitFor([E.KNIGHT]), 64, '1 Ses');
+      eq(limitFor([E.QUEEN]), 64, 'Neang only');
+      eq(limitFor([E.ROOK, E.BISHOP, E.BISHOP]), 16, 'minimum applicable wins (Tuuk beats Koul pair)');
+    });
+    T("piece's honor: limit stays fixed after a later capture", function () {
+      var S = E.emptyState();
+      put(S, 'e4', E.KING, E.WHITE); put(S, 'c2', E.ROOK, E.WHITE); put(S, 'h1', E.ROOK, E.WHITE);
+      put(S, 'd1', E.KING, E.BLACK);
+      S.kingMoved = [true, true]; S.turn = E.BLACK;
+      E.startCounting(S, E.BLACK, 'piece');
+      eq(S.counting.limit, 8, 'limit 8 with two Tuuk');
+      var before = S.counting.count;
+      doMove(S, 'd1', 'c2'); // lone king captures a Tuuk
+      eq(S.counting.limit, 8, 'limit unchanged after capture (would be 16 if re-fixed)');
+      eq(S.counting.count, before + 1, 'count advanced on counting side move');
+    });
+    T("counting: draw when the count reaches the limit", function () {
+      var S = E.emptyState();
+      put(S, 'e4', E.KING, E.WHITE); put(S, 'a1', E.ROOK, E.WHITE); put(S, 'h1', E.ROOK, E.WHITE);
+      put(S, 'c6', E.KING, E.BLACK);
+      S.kingMoved = [true, true]; S.turn = E.BLACK;
+      E.startCounting(S, E.BLACK, 'piece');
+      S.counting.count = 7; // one counting move left
+      doMove(S, 'c6', 'c7');
+      eq(S.counting.count, 8);
+      var st = E.gameStatus(S);
+      assert(st && st.type === 'count-limit', 'draw by count, got ' + JSON.stringify(st));
+    });
+    T("counting: stop and restart begins afresh (limit re-fixed)", function () {
+      var S = E.emptyState();
+      put(S, 'e4', E.KING, E.WHITE); put(S, 'a1', E.ROOK, E.WHITE); put(S, 'h1', E.ROOK, E.WHITE);
+      put(S, 'c6', E.KING, E.BLACK);
+      E.startCounting(S, E.BLACK, 'piece');
+      eq(S.counting.limit, 8);
+      E.stopCounting(S);
+      assert(!S.counting, 'stopped');
+      S.board[E.sqIndex('a1')] = E.EMPTY; // a Tuuk disappears before the restart
+      E.startCounting(S, E.BLACK, 'piece');
+      eq(S.counting.limit, 16, 'restart re-fixes limit: one Tuuk -> 16');
+      eq(S.counting.count, 4, 'restart count = pieces(3) + 1');
+    });
+    T("board's honor: <=3 pieces may count, starts at 1, limit 64", function () {
+      var S = E.emptyState();
+      put(S, 'e4', E.KING, E.WHITE); put(S, 'a1', E.ROOK, E.WHITE); put(S, 'h1', E.ROOK, E.WHITE); put(S, 'b3', E.QUEEN, E.WHITE);
+      put(S, 'c6', E.KING, E.BLACK); put(S, 'c5', E.QUEEN, E.BLACK); put(S, 'd5', E.PAWN, E.BLACK);
+      assert(E.canCountBoard(S, E.BLACK), 'black (3 pieces vs 4) may board-count');
+      assert(!E.canCountBoard(S, E.WHITE), 'white (4 pieces) may not');
+      assert(!E.canCountPiece(S, E.BLACK), 'piece honor needs a lone king and no Trey');
+      E.startCounting(S, E.BLACK, 'board');
+      eq(S.counting.count, 1, 'starts at 1');
+      eq(S.counting.limit, 64, 'limit 64');
+    });
+    T("piece's honor unavailable while unpromoted Trey remain", function () {
+      var S = E.emptyState();
+      put(S, 'e4', E.KING, E.WHITE); put(S, 'a1', E.ROOK, E.WHITE); put(S, 'a3', E.PAWN, E.WHITE);
+      put(S, 'c6', E.KING, E.BLACK);
+      assert(!E.canCountPiece(S, E.BLACK), 'blocked by white Trey on the board');
+      S.board[E.sqIndex('a3')] = E.mk(E.QUEEN, E.WHITE, true); // promoted Trey does not block
+      assert(E.canCountPiece(S, E.BLACK), 'promoted Trey does not block counting');
+    });
+
+    // ---------- AI sanity ----------
+    T('AI: all 5 levels return a legal move from the initial position', function () {
+      for (var lvl = 1; lvl <= 5; lvl++) {
+        var S = E.initialState();
+        var m = E.chooseAiMove(S, lvl);
+        assert(m, 'level ' + lvl + ' returned a move');
+        var legal = E.genLegal(S, S.turn);
+        assert(legal.some(function (x) { return x.from === m.from && x.to === m.to && x.special === m.special; }),
+          'level ' + lvl + ' move is legal');
+      }
+    });
+    T('AI level 5 (hardest): replies within 2 s on a midgame position', function () {
+      var S = E.initialState();
+      // play out a handful of quick opening moves to reach a midgame-ish position
+      var seq = [['e3', 'e4'], ['d6', 'd5'], ['e4', 'd5'], ['e6', 'e5'], ['g1', 'f3'], ['b8', 'c6']];
+      seq.forEach(function (mv) {
+        var legal = E.genLegal(S, S.turn);
+        var m = legal.filter(function (x) { return x.from === sq(mv[0]) && x.to === sq(mv[1]); })[0];
+        if (m) E.makeMove(S, m);
+        else { var any = legal[0]; E.makeMove(S, any); }
+      });
+      var t0 = Date.now();
+      var m2 = E.chooseAiMove(S, 5);
+      var dt = Date.now() - t0;
+      assert(m2, 'returned a move');
+      assert(dt < 2000, 'took ' + dt + ' ms (budget 2000)');
+      results.push({ name: '    (level 5 search time: ' + dt + ' ms)', ok: true, info: true });
+      pass--; // informational line, not a test
+    });
+    T('AI: never moves illegally across a full random-vs-AI game (60 plies, levels 1-5 rotating)', function () {
+      var S = E.initialState();
+      for (var ply = 0; ply < 60; ply++) {
+        if (E.gameStatus(S)) break;
+        var lvl = (ply % 5) + 1;
+        var m = E.chooseAiMove(S, lvl);
+        if (!m) break;
+        var legal = E.genLegal(S, S.turn);
+        assert(legal.some(function (x) { return x.from === m.from && x.to === m.to && x.special === m.special; }),
+          'illegal AI move at ply ' + ply + ' (level ' + lvl + '): ' + E.sqName(m.from) + '-' + E.sqName(m.to));
+        E.makeMove(S, m);
+      }
+    });
+
+    return { pass: pass, fail: fail, results: results };
+  }
+
+  function format(r) {
+    var lines = r.results.map(function (t) {
+      if (t.info) return t.name;
+      return (t.ok ? 'PASS  ' : 'FAIL  ') + t.name + (t.err ? '  -- ' + t.err : '');
+    });
+    lines.push('');
+    lines.push(r.fail === 0 ? 'ALL ' + r.pass + ' TESTS PASSED' : r.fail + ' FAILED, ' + r.pass + ' passed');
+    return lines.join('\n');
+  }
+
+  g.OukSelfTests = { run: run, format: format };
+})(typeof self !== 'undefined' ? self : globalThis);
+</script>
+
+<script>
+  function runOukSelfTests() {
+    var r = OukSelfTests.run(OukEngine);
+    console.log(OukSelfTests.format(r));
+    return r.fail === 0 ? 'ALL ' + r.pass + ' TESTS PASSED' : r.fail + ' FAILED (see log above)';
+  }
+</script>
+
+<!-- ============ 3D UI ============ -->
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const E = OukEngine;
+
+const NAMES = {
+  [E.KING]:   { kh: 'ស្ដេច', tr: 'Sdach', en: 'King' },
+  [E.QUEEN]:  { kh: 'នាង',   tr: 'Neang', en: 'Queen' },
+  [E.BISHOP]: { kh: 'គោល',  tr: 'Koul',  en: 'Bishop' },
+  [E.KNIGHT]: { kh: 'សេះ',   tr: 'Ses',   en: 'Knight' },
+  [E.ROOK]:   { kh: 'ទូក',   tr: 'Tuuk',  en: 'Rook' },
+  [E.PAWN]:   { kh: 'ត្រី',   tr: 'Trey',  en: 'Pawn' }
+};
+
+// ---------- themes ----------
+const THEMES = {
+  wood: {
+    name: 'Classic Wood', style: 'traditional',
+    bg: 0x15100a, fog: [16, 42],
+    frame: 0x3d2410, tileLight: 0xdec48f, tileDark: 0x9a6633,
+    pieceW: 0xe9dabb, pieceB: 0x6d2a18, rough: 0.45, metal: 0.05,
+    labelInk: '#f4e6c8', tray: 0x2c1a0c
+  },
+  stone: {
+    name: 'Angkor Stone', style: 'carved',
+    bg: 0x1d241f, fog: [14, 36],
+    frame: 0x565248, tileLight: 0xbfb298, tileDark: 0x767061,
+    pieceW: 0xd9cdb0, pieceB: 0x3f3a33, rough: 0.85, metal: 0.0,
+    labelInk: '#efe7d2', tray: 0x44403a
+  },
+  night: {
+    name: 'Modern Night', style: 'minimal',
+    bg: 0x05070d, fog: [16, 40],
+    frame: 0x141a24, tileLight: 0xb9c2cc, tileDark: 0x3c4552,
+    pieceW: 0xf2f4f6, pieceB: 0x181d26, rough: 0.25, metal: 0.35,
+    labelInk: '#dfe6ee', tray: 0x0d1118
+  },
+  // 8-bit jungle-warfare palette (black sky, blue mountains, green canopy,
+  // tan/brick ground) with low-res pixelated rendering and blocky pieces.
+  pixel: {
+    name: 'Pixel Jungle', style: 'pixel',
+    bg: 0x070a10, fog: null,
+    frame: 0x2e3a1c, tileLight: 0xd7a463, tileDark: 0x8a5a2b,
+    pieceW: 0xe8dcb8, pieceB: 0x7a2e1d, rough: 0.95, metal: 0.0,
+    labelInk: '#ffffff', tray: 0x1c2410,
+    pixelated: true, skyline: true, brickTiles: true
+  },
+  // Same jungle color family as Pixel Jungle, but rendered smoothly with
+  // soft blurred brush-stroke textures for a watercolor/painting look.
+  painting: {
+    name: 'Painted Jungle', style: 'painting',
+    bg: 0x142234, fog: [9, 26],
+    frame: 0x5a4632, tileLight: 0xdcc79a, tileDark: 0x8a6a45,
+    pieceW: 0xede0c5, pieceB: 0x6b3b2a, rough: 0.85, metal: 0.0,
+    labelInk: '#fff6e0', tray: 0x3a2e20,
+    paintedBackdrop: true, paintedTiles: true
+  }
+};
+let themeKey = 'wood';
+const theme = () => THEMES[themeKey];
+// piece style is independent of the board theme; 'auto' follows the theme's own style
+let pieceStyleOverride = 'auto';
+const pieceStyle = () => pieceStyleOverride === 'auto' ? theme().style : pieceStyleOverride;
+
+// ---------- game state ----------
+let state = null;
+let history = [];        // {snap, entries, lastMove} snapshots before each move
+let moveEntries = [];
+let mode = 'ai3';        // hotseat | ai1 | ai2 | ai3 | ai4 | ai5
+let humanSide = E.WHITE;
+let gameOver = false;
+let aiBusy = false;
+let selected = -1;
+let legalForSelected = [];
+let lastMove = null;
+let baselineCounts = null;   // piece multiset at game/lesson start, for the captured trays
+let flashMsg = '';
+let gameStartTs = null;      // Date.now() when the current play-mode game began
+let frozenElapsed = null;    // ms captured once the game ends, so the HUD clock stops
+let pendingAiLevel = 3, pendingSide = E.WHITE; // choices being made in the mode-select screen
+let overlayOpen = true;      // start screen is up at load
+let trainEnterTs = null;     // Date.now() when a training excursion began, to pause the play clock
+
+// training
+let uiMode = 'play';         // 'play' | 'train'
+let savedPlay = null;        // play context stashed while training
+let lessonType = E.PAWN;
+let lessonLevel = 'basic';   // 'basic' | 'adv'
+
+const variantRadios = document.querySelectorAll('input[name=variant]');
+function currentVariant() { return document.querySelector('input[name=variant]:checked').value; }
+// both forfeit trackers are maintained in parallel, so the variant can be switched live
+variantRadios.forEach(r => r.addEventListener('change', () => { if (state) { state.variant = currentVariant(); refreshAll(); } }));
+
+// ---------- three.js scene ----------
+// The renderer is recreated (not just resized) when the pixel theme turns
+// on/off: MSAA and soft PCF shadows are WebGL-context-time choices that
+// smear color across the low internal resolution, which the crisp
+// nearest-neighbor upscale then enlarges into visible blur rather than
+// clean 8-bit blocks. A plain, non-antialiased context with hard shadows
+// is what actually looks sharp once magnified.
+const sceneDiv = document.getElementById('scene');
+function createRenderer(smooth) {
+  const r = new THREE.WebGLRenderer({ antialias: smooth, powerPreference: 'high-performance' });
+  r.shadowMap.enabled = true;
+  r.shadowMap.type = smooth ? THREE.PCFSoftShadowMap : THREE.BasicShadowMap;
+  return r;
+}
+function configureControls(c) {
+  c.target.set(0, 0, 0);
+  c.enablePan = false;
+  c.minDistance = 5; c.maxDistance = 22;
+  c.maxPolarAngle = 1.45;
+  c.enableDamping = true;
+}
+function attachPickingHandlers(el) {
+  el.addEventListener('pointerdown', (e) => { downXY = [e.clientX, e.clientY]; });
+  el.addEventListener('pointerup', (e) => {
+    if (!downXY) return;
+    const moved = Math.hypot(e.clientX - downXY[0], e.clientY - downXY[1]);
+    downXY = null;
+    if (moved > 6) return; // it was a camera drag
+    onBoardClick(e);
+  });
+}
+let downXY = null;
+let rendererSmooth = true;
+let renderer = createRenderer(rendererSmooth);
+sceneDiv.appendChild(renderer.domElement);
+attachPickingHandlers(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 100);
+camera.position.set(0, 10, 9.3);
+let controls = new OrbitControls(camera, renderer.domElement);
+configureControls(controls);
+
+const ambientLight = new THREE.AmbientLight(0xfff2dd, 0.75);
+scene.add(ambientLight);
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(6, 12, 5);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -7; sun.shadow.camera.right = 7;
+sun.shadow.camera.top = 7; sun.shadow.camera.bottom = -7;
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xbfd4ff, 0.35);
+fill.position.set(-5, 6, -6);
+scene.add(fill);
+
+// ---------- lighting direction / mood controls ----------
+let lightAzimuth = 35, lightElevation = 55;
+function updateSunPosition() {
+  const az = lightAzimuth * Math.PI / 180, el = lightElevation * Math.PI / 180, r = 13;
+  sun.position.set(r * Math.cos(el) * Math.sin(az), r * Math.sin(el), r * Math.cos(el) * Math.cos(az));
+}
+updateSunPosition();
+function setLightMood(m) {
+  lightAzimuth = m.azimuth; lightElevation = m.elevation;
+  document.getElementById('lightAzimuth').value = m.azimuth;
+  document.getElementById('lightElevation').value = m.elevation;
+  updateSunPosition();
+  sun.color.setHex(m.sunColor); sun.intensity = m.sunIntensity;
+  ambientLight.color.setHex(m.ambientColor); ambientLight.intensity = m.ambientIntensity;
+  fill.color.setHex(m.fillColor); fill.intensity = m.fillIntensity;
+}
+document.getElementById('lightDaytime').onclick = () => setLightMood({
+  azimuth: 35, elevation: 65, sunColor: 0xffffff, sunIntensity: 1.6,
+  ambientColor: 0xfff2dd, ambientIntensity: 0.75, fillColor: 0xbfd4ff, fillIntensity: 0.35
+});
+document.getElementById('lightSpotlight').onclick = () => setLightMood({
+  azimuth: 0, elevation: 82, sunColor: 0xffffff, sunIntensity: 2.4,
+  ambientColor: 0x201a14, ambientIntensity: 0.22, fillColor: 0xffffff, fillIntensity: 0.08
+});
+document.getElementById('lightEvening').onclick = () => setLightMood({
+  azimuth: 290, elevation: 18, sunColor: 0xffa550, sunIntensity: 1.5,
+  ambientColor: 0x3a2a1f, ambientIntensity: 0.5, fillColor: 0xff7744, fillIntensity: 0.3
+});
+document.getElementById('lightStudio').onclick = () => setLightMood({
+  azimuth: 150, elevation: 58, sunColor: 0xdfeeff, sunIntensity: 1.3,
+  ambientColor: 0xaad0ff, ambientIntensity: 0.85, fillColor: 0xffffff, fillIntensity: 0.4
+});
+document.getElementById('lightAzimuth').oninput = (e) => { lightAzimuth = +e.target.value; updateSunPosition(); };
+document.getElementById('lightElevation').oninput = (e) => { lightElevation = +e.target.value; updateSunPosition(); };
+
+function sqPos(sq) { return { x: E.fileOf(sq) - 3.5, z: 3.5 - E.rankOf(sq) }; }
+
+// board frame (deep enough to hold coordinate labels + captured-piece trays)
+const frameMat = new THREE.MeshStandardMaterial({ color: 0x3d2410, roughness: 0.8 });
+const frame = new THREE.Mesh(new THREE.BoxGeometry(9.4, 0.5, 11.9), frameMat);
+frame.position.y = -0.3;
+frame.receiveShadow = true;
+scene.add(frame);
+
+const tileGeom = new THREE.BoxGeometry(1, 0.12, 1);
+const squareMeshes = [];
+for (let sq = 0; sq < 64; sq++) {
+  const m = new THREE.Mesh(tileGeom, new THREE.MeshStandardMaterial({ roughness: 0.85 }));
+  const p = sqPos(sq);
+  m.position.set(p.x, -0.06, p.z);
+  m.receiveShadow = true;
+  m.userData.sq = sq;
+  scene.add(m);
+  squareMeshes.push(m);
+}
+
+// Thin grid-line overlay for the "Khmer board" style: a single wood-toned
+// board (no checkered squares) ruled off with a pinstripe grid, as on a
+// traditional Cambodian board.
+let khmerBoardStyle = false;
+const gridOverlayCache = {};
+function buildGridTexture(inkColor) {
+  if (gridOverlayCache[inkColor]) return gridOverlayCache[inkColor];
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 512;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, 512, 512);
+  ctx.strokeStyle = inkColor;
+  ctx.lineWidth = 2.5;
+  ctx.globalAlpha = 0.8;
+  for (let i = 0; i <= 8; i++) {
+    const p = i * 64;
+    ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, 512); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(512, p); ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  gridOverlayCache[inkColor] = tex;
+  return tex;
+}
+const gridOverlayMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false });
+const gridOverlayMesh = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), gridOverlayMat);
+gridOverlayMesh.rotation.x = -Math.PI / 2;
+gridOverlayMesh.position.y = 0.001;
+gridOverlayMesh.visible = false;
+scene.add(gridOverlayMesh);
+
+// ---------- Khmer coordinate labels on the frame ----------
+const KH_FILES = ['ក', 'ខ', 'គ', 'ឃ', 'ង', 'ច', 'ឆ', 'ជ'];
+const KH_RANKS = ['១', '២', '៣', '៤', '៥', '៦', '៧', '៨'];
+const LAT_FILES = 'abcdefgh';
+const labelGroup = new THREE.Group();
+scene.add(labelGroup);
+
+function makeLabelMesh(kh, latin) {
+  const t = theme();
+  const sharp = !!t.pixelated;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, 128, 128);
+  ctx.textAlign = 'center';
+  ctx.font = '600 60px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif';
+  if (sharp) { ctx.strokeStyle = '#000'; ctx.lineWidth = 7; ctx.lineJoin = 'round'; ctx.strokeText(kh, 64, 66); }
+  ctx.fillStyle = t.labelInk;
+  ctx.fillText(kh, 64, 66);
+  ctx.font = '30px "Segoe UI",sans-serif';
+  if (sharp) { ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeText(latin, 64, 108); }
+  ctx.globalAlpha = sharp ? 1 : 0.75;
+  ctx.fillText(latin, 64, 108);
+  const tex = new THREE.CanvasTexture(cv);
+  if (sharp) {
+    // avoid mip/linear blur at the pixel theme's low internal render resolution
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false;
+  }
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.6, 0.6),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = -0.045; // just above the frame surface
+  return mesh;
+}
+
+// Coordinates are marked on one side only (near edge for files, left edge
+// for ranks) — as on a real chess/Ouk board, not duplicated on all sides.
+function buildLabels() {
+  labelGroup.clear();
+  for (let f = 0; f < 8; f++) {
+    const near = makeLabelMesh(KH_FILES[f], LAT_FILES[f]);
+    near.position.x = f - 3.5; near.position.z = 4.32;
+    labelGroup.add(near);
+  }
+  for (let r = 0; r < 8; r++) {
+    const left = makeLabelMesh(KH_RANKS[r], String(r + 1));
+    left.position.x = -4.34; left.position.z = 3.5 - r;
+    labelGroup.add(left);
+  }
+}
+
+// ---------- pieces ----------
+const MAT_W = new THREE.MeshStandardMaterial({ color: 0xe9dabb, roughness: 0.45, metalness: 0.05 });
+const MAT_B = new THREE.MeshStandardMaterial({ color: 0x6d2a18, roughness: 0.45, metalness: 0.05 });
+const MAT_GOLD = new THREE.MeshStandardMaterial({ color: 0xd4a548, roughness: 0.3, metalness: 0.6 });
+
+// Three piece-set styles. 'traditional' = smooth turned wood; 'carved' =
+// faceted, angular like carved stone; 'minimal' = slender high-polish forms.
+function buildPiece(type, color, promoted) {
+  const style = pieceStyle();
+  const seg = style === 'carved' ? 6 : (style === 'minimal' ? 32 : 20);
+  const wide = style === 'carved' ? 1.12 : (style === 'minimal' ? 0.88 : 1);
+  const g = new THREE.Group();
+  const mat = color === E.WHITE ? MAT_W : MAT_B;
+  const add = (geom, y, m) => {
+    const mesh = new THREE.Mesh(geom, m || mat);
+    mesh.position.y = y;
+    mesh.castShadow = true;
+    g.add(mesh);
+    return mesh;
+  };
+  if (style === 'pixel') return buildVoxelPiece(g, add, type, promoted, color);
+  if (style === 'khmer') return buildKhmerPiece(g, add, type, promoted, color);
+  add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07); // base
+  if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18); // collar
+  switch (type) {
+    case E.KING:
+      add(new THREE.CylinderGeometry(0.2 * wide, 0.28 * wide, 0.5, seg), 0.39);
+      if (style === 'carved') { // stepped prang tower
+        add(new THREE.CylinderGeometry(0.17, 0.22, 0.14, seg), 0.68);
+        add(new THREE.CylinderGeometry(0.12, 0.17, 0.14, seg), 0.8);
+        add(new THREE.ConeGeometry(0.12, 0.3, seg), 1.0);
+      } else {
+        add(new THREE.TorusGeometry(0.17, 0.045, 10, seg), 0.68).rotation.x = Math.PI / 2;
+        add(new THREE.ConeGeometry(0.17 * wide, 0.34, seg), 0.85);
+        add(new THREE.SphereGeometry(0.05, 12, 10), 1.05);
+      }
+      break;
+    case E.QUEEN:
+      add(new THREE.ConeGeometry(0.24 * wide, 0.5, seg), 0.39);
+      add(new THREE.SphereGeometry(0.09, seg, 12), 0.68);
+      break;
+    case E.BISHOP:
+      add(new THREE.CylinderGeometry(0.14 * wide, 0.24 * wide, 0.4, seg), 0.34);
+      add(new THREE.ConeGeometry(0.15 * wide, 0.35, seg), 0.68);
+      add(new THREE.SphereGeometry(0.05, 12, 10), 0.88);
+      break;
+    case E.KNIGHT: {
+      add(new THREE.CylinderGeometry(0.16 * wide, 0.26 * wide, 0.4, seg), 0.34);
+      const head = add(new THREE.BoxGeometry(0.16, 0.42, 0.3), 0.66);
+      head.rotation.x = -0.5;
+      head.position.z = 0.04;
+      const ear = add(new THREE.ConeGeometry(0.05, 0.14, 8), 0.87);
+      ear.position.z = -0.06;
+      break;
+    }
+    case E.ROOK: { // Tuuk — a boat hull
+      const hull = add(new THREE.CylinderGeometry(0.16, 0.08, 0.62, style === 'minimal' ? 8 : 4, 1), 0.26);
+      hull.rotation.z = Math.PI / 2;
+      hull.rotation.y = Math.PI / 4;
+      hull.scale.set(1, 1, 0.55);
+      add(new THREE.BoxGeometry(0.1, 0.16, 0.12), 0.4);
+      break;
+    }
+    case E.PAWN:
+      add(new THREE.SphereGeometry(0.18 * wide, seg, 12), 0.28);
+      add(new THREE.ConeGeometry(0.1 * wide, 0.22, seg), 0.5);
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.22, 0.035, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// 8-bit / voxel piece set for the Pixel Jungle theme: flat, blocky forms
+// built entirely from boxes so each piece reads as a chunky sprite.
+function buildVoxelPiece(g, add, type, promoted, color) {
+  const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+  add(box(0.52, 0.16, 0.52), 0.08); // base
+  switch (type) {
+    case E.KING:
+      add(box(0.34, 0.52, 0.34), 0.42);
+      add(box(0.4, 0.12, 0.4), 0.7);
+      add(box(0.12, 0.22, 0.12), 0.85);
+      add(box(0.2, 0.06, 0.06), 0.99);
+      add(box(0.06, 0.06, 0.2), 0.99);
+      break;
+    case E.QUEEN:
+      add(box(0.3, 0.44, 0.3), 0.38);
+      add(box(0.16, 0.16, 0.16), 0.66);
+      break;
+    case E.BISHOP:
+      add(box(0.28, 0.4, 0.28), 0.36);
+      add(box(0.22, 0.22, 0.22), 0.62).rotation.y = Math.PI / 4;
+      break;
+    case E.KNIGHT:
+      add(box(0.3, 0.36, 0.3), 0.34);
+      add(box(0.34, 0.22, 0.18), 0.58).position.z = 0.08;
+      add(box(0.08, 0.14, 0.08), 0.74).position.z = -0.02;
+      break;
+    case E.ROOK:
+      add(box(0.5, 0.22, 0.34), 0.27);
+      add(box(0.18, 0.18, 0.18), 0.46);
+      break;
+    case E.PAWN:
+      add(box(0.32, 0.32, 0.32), 0.32);
+      add(box(0.2, 0.16, 0.2), 0.56);
+      break;
+  }
+  if (promoted) add(box(0.42, 0.06, 0.42), 0.22, MAT_GOLD);
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Khmer Traditional piece set: turned-wood spindles with graduated rings and
+// a carved horse-head knight, echoing hand-carved Cambodian sets — each
+// piece keeps a clearly different silhouette and height so they are never
+// confused for one another.
+function buildKhmerPiece(g, add, type, promoted, color) {
+  const ring = (rTop, rBot, h, y) => add(new THREE.CylinderGeometry(rTop, rBot, h, 24), y);
+  ring(0.32, 0.36, 0.1, 0.05);  // turned base disc
+  ring(0.26, 0.32, 0.06, 0.13); // base collar
+  switch (type) {
+    case E.KING:
+      ring(0.22, 0.24, 0.34, 0.34);
+      ring(0.28, 0.2, 0.08, 0.53);
+      ring(0.16, 0.22, 0.28, 0.72);
+      ring(0.22, 0.16, 0.07, 0.88);
+      add(new THREE.SphereGeometry(0.1, 16, 12), 1.0);
+      break;
+    case E.QUEEN:
+      ring(0.2, 0.24, 0.3, 0.32);
+      ring(0.24, 0.16, 0.06, 0.49);
+      ring(0.1, 0.18, 0.24, 0.64);
+      add(new THREE.ConeGeometry(0.1, 0.18, 16), 0.82);
+      break;
+    case E.BISHOP:
+      ring(0.18, 0.22, 0.26, 0.3);
+      ring(0.22, 0.14, 0.06, 0.45);
+      ring(0.08, 0.14, 0.2, 0.58);
+      add(new THREE.SphereGeometry(0.09, 14, 12), 0.72);
+      break;
+    case E.KNIGHT: {
+      ring(0.18, 0.22, 0.22, 0.28);
+      add(new THREE.CylinderGeometry(0.1, 0.15, 0.22, 14), 0.5);
+      const head = add(new THREE.BoxGeometry(0.15, 0.28, 0.34), 0.72);
+      head.rotation.x = -0.35; head.position.z = 0.05;
+      const muzzle = add(new THREE.BoxGeometry(0.11, 0.14, 0.16), 0.68);
+      muzzle.position.z = 0.22;
+      const ear1 = add(new THREE.ConeGeometry(0.045, 0.14, 8), 0.92);
+      ear1.position.set(-0.05, 0, -0.05);
+      const ear2 = add(new THREE.ConeGeometry(0.045, 0.14, 8), 0.92);
+      ear2.position.set(0.05, 0, -0.05);
+      break;
+    }
+    case E.ROOK:
+      ring(0.24, 0.26, 0.24, 0.27);
+      ring(0.27, 0.22, 0.06, 0.4);
+      ring(0.2, 0.24, 0.14, 0.5);
+      add(new THREE.CylinderGeometry(0.22, 0.22, 0.05, 8), 0.6);
+      break;
+    case E.PAWN:
+      ring(0.2, 0.24, 0.16, 0.24);
+      ring(0.14, 0.18, 0.08, 0.34);
+      add(new THREE.SphereGeometry(0.07, 14, 10), 0.42);
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.24, 0.03, 10, 22), 0.16, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+const pieceGroup = new THREE.Group();
+scene.add(pieceGroup);
+let pieceAt = {};
+
+// Piece-name billboards: a THREE.Sprite always faces the camera regardless
+// of how the board is orbited, and (since it's offset only along the local
+// Y axis) stays centered above a piece even when that piece's group is
+// rotated 180° for the black side.
+let showPieceNames = false;
+let pieceNamePosition = 'tip'; // 'tip' | 'base'
+let pieceNameLang = 'both'; // 'both' | 'kh' | 'en'
+const pieceLabelMats = {};
+// White and Black get distinct label color schemes (a light chip for
+// White, a dark chip for Black) so at a glance you can tell whose piece a
+// label belongs to; both are neutral cream/maroon tones, kept clear of the
+// board's own marker palette (green move dots, red capture rings, blue
+// selection, yellow last-move) so labels never get confused with markers.
+const LABEL_PALETTE = {
+  [E.WHITE]: { bg: 'rgba(228,235,240,0.9)', kh: '#1c3040', tr: '#334955', border: 'rgba(28,48,64,0.55)' },
+  [E.BLACK]: { bg: 'rgba(28,16,12,0.9)', kh: '#f0c987', tr: '#e8dcc0', border: 'rgba(240,201,135,0.5)' }
+};
+// Approximate local top-Y of each piece type's highest point (traditional
+// turned geometry), used to sit a "tip" label right above the piece
+// regardless of how tall that piece type is.
+const PIECE_TOP_Y = {
+  [E.KING]: 1.10,
+  [E.QUEEN]: 0.77,
+  [E.BISHOP]: 0.93,
+  [E.KNIGHT]: 0.94,
+  [E.ROOK]: 0.50,
+  [E.PAWN]: 0.61
+};
+function labelY(type) {
+  return pieceNamePosition === 'base' ? 0.2 : PIECE_TOP_Y[type] + 0.07;
+}
+function pieceLabelMaterial(type, color, lang) {
+  const key = type + '_' + color + '_' + lang;
+  if (pieceLabelMats[key]) return pieceLabelMats[key];
+  const n = NAMES[type];
+  const pal = LABEL_PALETTE[color];
+  const cv = document.createElement('canvas');
+  cv.width = 180; cv.height = 104;
+  const ctx = cv.getContext('2d');
+  ctx.textAlign = 'center';
+  ctx.fillStyle = pal.bg;
+  ctx.strokeStyle = pal.border;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(4, 4, 172, 96, 14); else ctx.rect(4, 4, 172, 96);
+  ctx.fill(); ctx.stroke();
+  if (lang === 'kh') {
+    ctx.fillStyle = pal.kh;
+    ctx.font = '600 56px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif';
+    ctx.fillText(n.kh, 90, 68);
+  } else if (lang === 'en') {
+    ctx.fillStyle = pal.tr;
+    ctx.font = '600 38px "Segoe UI",sans-serif';
+    ctx.fillText(n.tr, 90, 66);
+  } else {
+    ctx.fillStyle = pal.kh;
+    ctx.font = '600 46px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif';
+    ctx.fillText(n.kh, 90, 50);
+    ctx.fillStyle = pal.tr;
+    ctx.font = '600 30px "Segoe UI",sans-serif';
+    ctx.fillText(n.tr, 90, 86);
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false });
+  pieceLabelMats[key] = mat;
+  return mat;
+}
+function addPieceLabel(g, type, color) {
+  const sprite = new THREE.Sprite(pieceLabelMaterial(type, color, pieceNameLang));
+  sprite.scale.set(0.434, 0.25, 1);
+  sprite.position.set(0, labelY(type), 0);
+  sprite.renderOrder = 10;
+  g.add(sprite);
+}
+function rebuildPieces() {
+  pieceGroup.clear();
+  pieceAt = {};
+  for (let sq = 0; sq < 64; sq++) {
+    const p = state.board[sq];
+    if (p === E.EMPTY) continue;
+    const type = E.typeOf(p);
+    const color = E.colorOf(p);
+    const g = buildPiece(type, color, E.isProm(p));
+    if (showPieceNames) addPieceLabel(g, type, color);
+    const pos = sqPos(sq);
+    g.position.set(pos.x, 0, pos.z);
+    pieceGroup.add(g);
+    pieceAt[sq] = g;
+  }
+}
+
+// ---------- captured-piece trays (top and bottom of the board) ----------
+const trayGroup = new THREE.Group();
+scene.add(trayGroup);
+const trayMat = new THREE.MeshStandardMaterial({ color: 0x2c1a0c, roughness: 0.9 });
+for (const z of [5.25, -5.25]) {
+  const t = new THREE.Mesh(new THREE.BoxGeometry(8.6, 0.06, 0.9), trayMat);
+  t.position.set(0, -0.05, z);
+  t.receiveShadow = true;
+  trayGroup.add(t);
+}
+const capturedGroup = new THREE.Group();
+scene.add(capturedGroup);
+const CAP_ORDER = [E.ROOK, E.KNIGHT, E.BISHOP, E.QUEEN, E.PAWN];
+
+function countMultiset(board) {
+  const c = [{}, {}];
+  for (let i = 0; i < 64; i++) {
+    const p = board[i];
+    if (p === E.EMPTY) continue;
+    const t = E.isProm(p) ? E.PAWN : E.typeOf(p); // a promoted Trey is still a Trey by origin
+    c[E.colorOf(p)][t] = (c[E.colorOf(p)][t] || 0) + 1;
+  }
+  return c;
+}
+function capturedLists() {
+  if (!baselineCounts) return [[], []];
+  const cur = countMultiset(state.board);
+  const out = [[], []];
+  for (let c = 0; c < 2; c++)
+    for (const t of CAP_ORDER)
+      for (let k = (baselineCounts[c][t] || 0) - (cur[c][t] || 0); k > 0; k--) out[c].push(t);
+  return out; // out[c] = pieces of color c that have been captured
+}
+function rebuildCaptured() {
+  capturedGroup.clear();
+  const lists = capturedLists();
+  // bottom tray (White's side): black pieces White has captured; top tray: white pieces
+  const rows = [{ list: lists[E.BLACK], color: E.BLACK, z: 5.25 }, { list: lists[E.WHITE], color: E.WHITE, z: -5.25 }];
+  for (const row of rows) {
+    row.list.forEach((t, i) => {
+      const g = buildPiece(t, row.color, false);
+      g.scale.setScalar(0.55);
+      g.position.set(-3.75 + i * 0.5, -0.02, row.z);
+      capturedGroup.add(g);
+    });
+  }
+}
+
+// ---------- markers ----------
+const markerGroup = new THREE.Group();
+scene.add(markerGroup);
+const moveMarkGeom = new THREE.CylinderGeometry(0.16, 0.16, 0.04, 20);
+const capMarkGeom = new THREE.TorusGeometry(0.4, 0.045, 10, 26);
+const moveMarkMat = new THREE.MeshBasicMaterial({ color: 0x7fb069, transparent: true, opacity: 0.85 });
+const capMarkMat = new THREE.MeshBasicMaterial({ color: 0xe05d44, transparent: true, opacity: 0.9 });
+const checkMat = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 0.55 });
+let checkRing = null;
+
+function showMarkers() {
+  markerGroup.clear();
+  for (const m of legalForSelected) {
+    const p = sqPos(m.to);
+    let mesh;
+    if (state.board[m.to] !== E.EMPTY) {
+      mesh = new THREE.Mesh(capMarkGeom, capMarkMat);
+      mesh.rotation.x = Math.PI / 2;
+      mesh.position.set(p.x, 0.06, p.z);
+    } else {
+      mesh = new THREE.Mesh(moveMarkGeom, moveMarkMat);
+      mesh.position.set(p.x, 0.04, p.z);
+    }
+    mesh.userData.sq = m.to;
+    markerGroup.add(mesh);
+  }
+}
+function clearMarkers() { markerGroup.clear(); }
+
+function updateSquareTints() {
+  for (const m of squareMeshes) m.material.color.setHex(m.userData.baseColor);
+  if (lastMove) {
+    for (const s of [lastMove.from, lastMove.to])
+      squareMeshes[s].material.color.lerp(new THREE.Color(0xffe066), 0.45);
+  }
+  if (selected >= 0) squareMeshes[selected].material.color.lerp(new THREE.Color(0x66ccff), 0.5);
+  if (checkRing) { scene.remove(checkRing); checkRing = null; }
+  if (state && !gameOver && uiMode === 'play' && E.inCheck(state, state.turn)) {
+    const k = E.kingSq(state, state.turn);
+    checkRing = new THREE.Mesh(capMarkGeom, checkMat);
+    checkRing.rotation.x = Math.PI / 2;
+    const p = sqPos(k);
+    checkRing.position.set(p.x, 0.07, p.z);
+    scene.add(checkRing);
+  }
+}
+
+// ---------- pixel-theme textures ----------
+// A flat-shaded, hard-edged skyline (night sky, blue mountains, jungle
+// canopy) used as the scene background for the Pixel Jungle theme.
+let skylineTexCache = null;
+function buildSkylineTexture() {
+  if (skylineTexCache) return skylineTexCache;
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 144;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#05070c'; ctx.fillRect(0, 0, 256, 144);
+  ctx.fillStyle = '#3d7fb0';
+  ctx.beginPath();
+  ctx.moveTo(0, 90); ctx.lineTo(30, 55); ctx.lineTo(55, 75); ctx.lineTo(90, 30);
+  ctx.lineTo(120, 68); ctx.lineTo(150, 40); ctx.lineTo(185, 72); ctx.lineTo(215, 48);
+  ctx.lineTo(256, 80); ctx.lineTo(256, 144); ctx.lineTo(0, 144); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#cfe8f7';
+  [[90, 30], [150, 40], [215, 48]].forEach(([x, y]) => ctx.fillRect(x - 8, y, 16, 8));
+  ctx.fillStyle = '#1c4d24';
+  ctx.beginPath(); ctx.moveTo(0, 144); ctx.lineTo(0, 112);
+  for (let x = 0; x <= 256; x += 16) ctx.lineTo(x, 112 - (x % 32 === 0 ? 14 : 4));
+  ctx.lineTo(256, 144); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#2e8b3d';
+  ctx.beginPath(); ctx.moveTo(0, 144); ctx.lineTo(0, 124);
+  for (let x = 0; x <= 256; x += 12) ctx.lineTo(x, 124 - (x % 24 === 0 ? 10 : 2));
+  ctx.lineTo(256, 144); ctx.closePath(); ctx.fill();
+  const tex = new THREE.CanvasTexture(cv);
+  tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+  skylineTexCache = tex;
+  return tex;
+}
+// A small hard-edged brick/dirt pattern tinted to the tile's base color.
+const brickTexCache = {};
+function buildBrickTexture(hex, key) {
+  if (brickTexCache[key]) return brickTexCache[key];
+  const cv = document.createElement('canvas'); cv.width = cv.height = 16;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#' + hex.toString(16).padStart(6, '0');
+  ctx.fillRect(0, 0, 16, 16);
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(0, 7, 16, 1); ctx.fillRect(0, 15, 16, 1);
+  ctx.fillRect(7, 0, 1, 7); ctx.fillRect(3, 8, 1, 7); ctx.fillRect(11, 8, 1, 7);
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(0, 0, 16, 1);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+  brickTexCache[key] = tex;
+  return tex;
+}
+
+// Soft, blurred brush-stroke tile texture for the Painted Jungle theme
+// (smoothly filtered, unlike the pixel theme's hard-edged brick).
+const paintedTexCache = {};
+function buildPaintedTileTexture(hex, key) {
+  if (paintedTexCache[key]) return paintedTexCache[key];
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#' + hex.toString(16).padStart(6, '0');
+  ctx.fillRect(0, 0, 64, 64);
+  for (let i = 0; i < 5; i++) {
+    ctx.filter = 'blur(4px)';
+    ctx.fillStyle = 'rgba(255,255,255,' + (0.03 + Math.random() * 0.05).toFixed(3) + ')';
+    ctx.beginPath(); ctx.ellipse(Math.random() * 64, Math.random() * 64, 10 + Math.random() * 14, 8 + Math.random() * 10, Math.random() * Math.PI, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,' + (0.03 + Math.random() * 0.05).toFixed(3) + ')';
+    ctx.beginPath(); ctx.ellipse(Math.random() * 64, Math.random() * 64, 10 + Math.random() * 14, 8 + Math.random() * 10, Math.random() * Math.PI, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.filter = 'none';
+  const tex = new THREE.CanvasTexture(cv);
+  paintedTexCache[key] = tex;
+  return tex;
+}
+let paintingBackdropCache = null;
+function buildPaintingBackdrop() {
+  if (paintingBackdropCache) return paintingBackdropCache;
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 288;
+  const ctx = cv.getContext('2d');
+  const sky = ctx.createLinearGradient(0, 0, 0, 288);
+  sky.addColorStop(0, '#1c2f45'); sky.addColorStop(0.55, '#3a5570'); sky.addColorStop(1, '#7c8f6a');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, 512, 288);
+  ctx.filter = 'blur(10px)';
+  ctx.fillStyle = 'rgba(70,100,130,0.55)';
+  ctx.beginPath(); ctx.ellipse(140, 190, 160, 70, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(360, 200, 190, 80, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(60,100,55,0.6)';
+  ctx.beginPath(); ctx.ellipse(256, 270, 320, 90, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(40,75,40,0.5)';
+  ctx.beginPath(); ctx.ellipse(150, 285, 220, 60, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(400, 285, 220, 60, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.filter = 'none';
+  paintingBackdropCache = new THREE.CanvasTexture(cv);
+  return paintingBackdropCache;
+}
+
+// ---------- background picker: non-distracting Khmer-culture-themed
+// backdrops, independent of the board theme, with a brief fade on change.
+// These are simplified, stylized silhouettes/motifs (not literal
+// depictions of specific artworks or monuments), drawn as clear solid
+// shapes; the softness slider adds blur on top rather than the shapes
+// being undefined blobs to begin with, so the motif stays recognizable
+// even at low softness. ----------
+function skyGrad(ctx, c1, c2) {
+  const g = ctx.createLinearGradient(0, 0, 0, 288);
+  g.addColorStop(0, c1); g.addColorStop(1, c2);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 288);
+}
+function temple(ctx, cx, baseY, w, h, color) {
+  // a stepped, tapering tower: wide base, three shrinking tiers, pointed tip
+  ctx.fillStyle = color;
+  const tiers = 4;
+  for (let i = 0; i < tiers; i++) {
+    const t = i / tiers;
+    const tw = w * (1 - t * 0.72);
+    const ty = baseY - h * t;
+    const th = h / tiers + 2;
+    ctx.fillRect(cx - tw / 2, ty - th, tw, th);
+  }
+  ctx.beginPath();
+  ctx.moveTo(cx - w * 0.09, baseY - h);
+  ctx.lineTo(cx, baseY - h * 1.22);
+  ctx.lineTo(cx + w * 0.09, baseY - h);
+  ctx.closePath();
+  ctx.fill();
+}
+function softBlob(ctx, x, y, rx, ry, color) {
+  // (blur is applied uniformly to the whole canvas by the softness slider,
+  // in backgroundTexture() below — not per-shape here.)
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+}
+const BACKGROUNDS = {
+  angkor: { label: 'អង្គរវត្ត Angkor Silhouette', paint(ctx) {
+    skyGrad(ctx, '#1b2a3d', '#6b7f72');
+    softBlob(ctx, 420, 60, 46, 46, 'rgba(255,224,180,0.5)'); // moon
+    temple(ctx, 256, 236, 150, 128, '#12181f');
+    temple(ctx, 140, 236, 90, 78, '#161d24');
+    temple(ctx, 372, 236, 90, 78, '#161d24');
+    ctx.fillStyle = '#0d1218';
+    ctx.fillRect(0, 232, 512, 56);
+  } },
+  lotus: { label: 'ផ្កាឈូក Lotus Pond', paint(ctx) {
+    skyGrad(ctx, '#284b46', '#9db98f');
+    const cx = 256, cy = 200;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      ctx.save();
+      ctx.translate(cx, cy); ctx.rotate(a);
+      ctx.fillStyle = i % 2 ? '#e8a6c0' : '#f2c2d6';
+      ctx.beginPath();
+      ctx.ellipse(0, -48, 24, 52, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.fillStyle = '#f7dfe8';
+    ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(30,60,45,0.85)';
+    ctx.fillRect(0, 256, 512, 32);
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2;
+    for (let x = -20; x < 512; x += 70) { ctx.beginPath(); ctx.ellipse(x, 264, 26, 5, 0, 0, Math.PI * 2); ctx.stroke(); }
+  } },
+  naga: { label: 'នាគ Naga Motif', paint(ctx) {
+    skyGrad(ctx, '#221609', '#5a3a18');
+    ctx.strokeStyle = '#c99a4a'; ctx.lineWidth = 22; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(60, 250);
+    ctx.bezierCurveTo(140, 120, 220, 320, 300, 160);
+    ctx.bezierCurveTo(350, 60, 420, 140, 460, 90);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(40,25,10,0.55)'; ctx.lineWidth = 4;
+    for (let t = 0.1; t < 0.95; t += 0.08) {
+      const x = 60 + t * 400, y = 250 - Math.sin(t * 7) * 90;
+      ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI); ctx.stroke();
+    }
+    ctx.fillStyle = '#c99a4a';
+    ctx.beginPath(); ctx.moveTo(460, 90); ctx.lineTo(500, 70); ctx.lineTo(492, 110); ctx.closePath(); ctx.fill();
+    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(472 + i * 8, 82 - i * 6); ctx.lineTo(480 + i * 8, 60 - i * 6); ctx.lineTo(486 + i * 8, 84 - i * 6); ctx.closePath(); ctx.fill(); }
+  } },
+  krama: { label: 'ក្រម Krama Pattern', paint(ctx) {
+    ctx.fillStyle = '#7a2a20'; ctx.fillRect(0, 0, 512, 288);
+    const cell = 32;
+    for (let y = 0; y < 288; y += cell) for (let x = 0; x < 512; x += cell) {
+      if (((x / cell + y / cell) | 0) % 2 === 0) { ctx.fillStyle = '#e8dcc8'; ctx.fillRect(x, y, cell, cell); }
+    }
+    ctx.strokeStyle = 'rgba(40,15,10,0.4)'; ctx.lineWidth = 2;
+    for (let x = 0; x <= 512; x += cell) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 288); ctx.stroke(); }
+    for (let y = 0; y <= 288; y += cell) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke(); }
+  } },
+  apsara: { label: 'អប្សរា Apsara Motif', paint(ctx) {
+    skyGrad(ctx, '#3a2413', '#a06a3a');
+    const cx = 256;
+    ctx.fillStyle = '#1c130a';
+    ctx.beginPath(); ctx.arc(cx, 92, 22, 0, Math.PI * 2); ctx.fill(); // head
+    ctx.beginPath(); ctx.ellipse(cx, 84, 26, 30, 0, Math.PI, Math.PI * 2); ctx.fill(); // headdress point
+    ctx.beginPath(); // torso
+    ctx.moveTo(cx - 16, 112); ctx.quadraticCurveTo(cx, 150, cx - 10, 200);
+    ctx.lineTo(cx + 14, 200); ctx.quadraticCurveTo(cx + 18, 150, cx + 16, 112);
+    ctx.closePath(); ctx.fill();
+    ctx.lineWidth = 14; ctx.strokeStyle = '#1c130a'; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - 14, 118); ctx.quadraticCurveTo(cx - 70, 100, cx - 92, 60); ctx.stroke(); // raised arm
+    ctx.beginPath(); ctx.moveTo(cx + 14, 130); ctx.quadraticCurveTo(cx + 55, 160, cx + 40, 205); ctx.stroke(); // other arm
+    ctx.beginPath(); ctx.moveTo(cx - 8, 198); ctx.quadraticCurveTo(cx - 40, 230, cx - 30, 270); ctx.stroke(); // bent leg
+    ctx.beginPath(); ctx.moveTo(cx + 6, 198); ctx.lineTo(cx + 10, 270); ctx.stroke();
+    ctx.fillStyle = 'rgba(20,14,8,0.7)'; ctx.fillRect(0, 262, 512, 26);
+  } },
+  bamboo: { label: 'ព្រៃឫស្សី Bamboo Grove', paint(ctx) {
+    skyGrad(ctx, '#1c3320', '#7a9a5e');
+    const stalks = [40, 110, 175, 250, 320, 390, 460];
+    stalks.forEach((x, i) => {
+      const h = 150 + (i % 3) * 40, w = 16;
+      ctx.fillStyle = '#3a5a2c';
+      ctx.fillRect(x - w / 2, 288 - h, w, h);
+      ctx.strokeStyle = 'rgba(20,35,15,0.6)'; ctx.lineWidth = 3;
+      for (let y = 288 - 20; y > 288 - h; y -= 26) { ctx.beginPath(); ctx.moveTo(x - w / 2, y); ctx.lineTo(x + w / 2, y); ctx.stroke(); }
+      ctx.fillStyle = '#5c8a44';
+      ctx.beginPath(); ctx.ellipse(x - 14, 288 - h + 6, 22, 8, -0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x + 16, 288 - h + 16, 22, 8, 0.4, 0, Math.PI * 2); ctx.fill();
+    });
+  } },
+  paddy: { label: 'វាលស្រែ Rice Paddy Sunset', paint(ctx) {
+    skyGrad(ctx, '#5a3d2a', '#e8a24b');
+    ctx.fillStyle = 'rgba(255,214,140,0.8)';
+    ctx.beginPath(); ctx.arc(256, 150, 40, 0, Math.PI * 2); ctx.fill();
+    const bands = ['#8a6a2a', '#a3822f', '#bd9a36', '#d6b23e'];
+    bands.forEach((c, i) => {
+      const y = 190 + i * 26;
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.moveTo(0, y + 20);
+      ctx.quadraticCurveTo(256, y - 10, 512, y + 20);
+      ctx.lineTo(512, 288); ctx.lineTo(0, 288); ctx.closePath(); ctx.fill();
+    });
+  } },
+  silk: { label: 'សូត្រ Silk Weave', paint(ctx) {
+    // a genuine diagonal basket-weave (distinct from Krama's axis-aligned
+    // checker), alternating ribbon direction band by band
+    skyGrad(ctx, '#2a2436', '#6a5586');
+    const band = 30;
+    for (let i = -10; i < 20; i++) {
+      ctx.strokeStyle = i % 2 ? 'rgba(216,196,232,0.5)' : 'rgba(120,96,150,0.5)';
+      ctx.lineWidth = band * 0.7;
+      ctx.beginPath();
+      if (i % 2) { ctx.moveTo(i * band, -20); ctx.lineTo(i * band + 320, 308); }
+      else { ctx.moveTo(i * band, 308); ctx.lineTo(i * band + 320, -20); }
+      ctx.stroke();
+    }
+  } },
+  templegate: { label: 'ទ្វារវត្ត Temple Gate', paint(ctx) {
+    skyGrad(ctx, '#231a10', '#8a6a3a');
+    ctx.fillStyle = '#140f09';
+    ctx.fillRect(60, 60, 40, 200); ctx.fillRect(412, 60, 40, 200); // pillars
+    ctx.fillRect(40, 40, 432, 30); // lintel
+    ctx.beginPath(); // arch doorway
+    ctx.moveTo(170, 260); ctx.lineTo(170, 140);
+    ctx.quadraticCurveTo(170, 80, 256, 80);
+    ctx.quadraticCurveTo(342, 80, 342, 140);
+    ctx.lineTo(342, 260); ctx.closePath();
+    ctx.fillStyle = '#3a2c18'; ctx.fill();
+    ctx.fillStyle = 'rgba(20,15,9,0.7)'; ctx.fillRect(0, 250, 512, 38);
+  } },
+  plain: { label: 'ស្រទន់ Soft Gradient (minimal)', paint(ctx) {
+    skyGrad(ctx, '#171310', '#2c241a');
+  } }
+};
+// A light hatching pass standing in for a painting/sketch stroke texture:
+// short randomized diagonal strokes at low opacity over the whole scene.
+function drawPaintingStroke(ctx) {
+  ctx.save();
+  ctx.globalAlpha = 0.16;
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 260; i++) {
+    const x = Math.random() * 512, y = Math.random() * 288;
+    const len = 6 + Math.random() * 10, ang = -0.7 + Math.random() * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 0.1;
+  ctx.strokeStyle = '#fff';
+  for (let i = 0; i < 140; i++) {
+    const x = Math.random() * 512, y = Math.random() * 288;
+    const len = 5 + Math.random() * 8, ang = -0.7 + Math.random() * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+const bgTexCache = {};
+function backgroundTexture(key, blur, stroke) {
+  const cacheKey = key + '_' + blur + '_' + (stroke ? 1 : 0);
+  if (bgTexCache[cacheKey]) return bgTexCache[cacheKey];
+  const def = BACKGROUNDS[key];
+  if (!def) return null;
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 288;
+  const ctx = cv.getContext('2d');
+  ctx.filter = blur > 0 ? 'blur(' + blur + 'px)' : 'none';
+  def.paint(ctx);
+  ctx.filter = 'none';
+  if (stroke) drawPaintingStroke(ctx);
+  const tex = new THREE.CanvasTexture(cv);
+  bgTexCache[cacheKey] = tex;
+  return tex;
+}
+function populateBackgroundSelect() {
+  const sel = document.getElementById('bgSel');
+  const auto = document.createElement('option');
+  auto.value = 'auto'; auto.textContent = 'តាមរូបរាង Auto (theme default)';
+  sel.appendChild(auto);
+  Object.keys(BACKGROUNDS).forEach(key => {
+    const opt = document.createElement('option');
+    opt.value = key; opt.textContent = BACKGROUNDS[key].label;
+    sel.appendChild(opt);
+  });
+  sel.value = 'auto';
+}
+populateBackgroundSelect();
+let bgOverride = 'auto';
+let bgFadeInTimer = null, bgFadeOutTimer = null;
+function updateBackground() {
+  const t = theme();
+  let tex;
+  if (bgOverride !== 'auto') {
+    const blur = +document.getElementById('bgSoftness').value;
+    const stroke = document.getElementById('bgStrokeChk').checked;
+    tex = backgroundTexture(bgOverride, blur, stroke);
+  } else if (t.skyline) tex = buildSkylineTexture();
+  else if (t.paintedBackdrop) tex = buildPaintingBackdrop();
+  else tex = null;
+  const fadeEl = document.getElementById('bgFade');
+  // cancel any in-flight fade so rapid successive changes (theme, then
+  // background) never leave the overlay stuck mid-transition
+  if (bgFadeInTimer) clearTimeout(bgFadeInTimer);
+  if (bgFadeOutTimer) clearTimeout(bgFadeOutTimer);
+  fadeEl.classList.add('show');
+  bgFadeInTimer = setTimeout(() => {
+    scene.background = tex || new THREE.Color(t.bg);
+    bgFadeOutTimer = setTimeout(() => fadeEl.classList.remove('show'), 30);
+  }, 220);
+}
+document.getElementById('bgSel').onchange = (e) => { bgOverride = e.target.value; updateBackground(); };
+document.getElementById('bgSoftness').oninput = () => { if (bgOverride !== 'auto') updateBackground(); };
+document.getElementById('bgStrokeChk').onchange = () => { if (bgOverride !== 'auto') updateBackground(); };
+
+// ---------- retro pixelation (renders at a reduced resolution, then the
+// browser upscales it with crisp/pixelated edges) ----------
+let pixelActive = false;
+function recreateRenderer(smooth) {
+  const oldEl = renderer.domElement;
+  renderer.dispose();
+  sceneDiv.removeChild(oldEl);
+  renderer = createRenderer(smooth);
+  sceneDiv.appendChild(renderer.domElement);
+  attachPickingHandlers(renderer.domElement);
+  controls.dispose();
+  controls = new OrbitControls(camera, renderer.domElement);
+  configureControls(controls);
+  rendererSmooth = smooth;
+}
+function setPixelation(active) {
+  pixelActive = active;
+  const wantSmooth = !active;
+  if (wantSmooth !== rendererSmooth) recreateRenderer(wantSmooth); // MSAA/soft-shadow context option: only settable at renderer creation
+  renderer.domElement.classList.toggle('pixelated', active);
+  resize();
+}
+
+// ---------- theme application ----------
+function applyTheme(key) {
+  themeKey = key;
+  const t = theme();
+  updateBackground();
+  scene.fog = t.fog ? new THREE.Fog(t.bg, t.fog[0], t.fog[1]) : null;
+  frameMat.color.setHex(t.frame);
+  trayMat.color.setHex(t.tray);
+  MAT_W.color.setHex(t.pieceW); MAT_W.roughness = t.rough; MAT_W.metalness = t.metal;
+  MAT_B.color.setHex(t.pieceB); MAT_B.roughness = t.rough; MAT_B.metalness = t.metal;
+  const tiled = t.brickTiles || t.paintedTiles;
+  for (const m of squareMeshes) {
+    const light = (E.fileOf(m.userData.sq) + E.rankOf(m.userData.sq)) % 2 === 1;
+    // Khmer board style: every square shares one wood tone instead of the
+    // checkered pattern; the grid overlay below draws the square boundaries.
+    const hex = khmerBoardStyle ? t.tileDark : (light ? t.tileLight : t.tileDark);
+    m.userData.baseColor = tiled ? 0xffffff : hex;
+    m.material.color.setHex(m.userData.baseColor);
+    m.material.map = t.brickTiles
+      ? buildBrickTexture(hex, khmerBoardStyle ? 'K' : (light ? 'L' : 'D'))
+      : t.paintedTiles
+      ? buildPaintedTileTexture(hex, 'p' + (khmerBoardStyle ? 'K' : (light ? 'L' : 'D')))
+      : null;
+    m.material.needsUpdate = true;
+  }
+  gridOverlayMesh.visible = khmerBoardStyle;
+  gridOverlayMat.map = buildGridTexture(t.labelInk);
+  gridOverlayMat.needsUpdate = true;
+  buildLabels();
+  document.body.classList.toggle('theme-pixel', !!t.pixelated);
+  setPixelation(!!t.pixelated);
+  if (state) { rebuildPieces(); rebuildCaptured(); updateSquareTints(); }
+}
+document.getElementById('themeSel').onchange = (e) => applyTheme(e.target.value);
+document.getElementById('khmerBoardChk').onchange = (e) => { khmerBoardStyle = e.target.checked; applyTheme(themeKey); };
+document.getElementById('pieceNameChk').onchange = (e) => {
+  showPieceNames = e.target.checked;
+  document.getElementById('pieceNameOpts').style.display = showPieceNames ? 'block' : 'none';
+  if (state) rebuildPieces();
+};
+document.getElementById('pieceNamePosSel').onchange = (e) => {
+  pieceNamePosition = e.target.value;
+  if (state) rebuildPieces();
+};
+document.getElementById('pieceNameLangSel').onchange = (e) => {
+  pieceNameLang = e.target.value;
+  if (state) rebuildPieces();
+};
+document.getElementById('pieceStyleSel').onchange = (e) => {
+  pieceStyleOverride = e.target.value;
+  if (state) { rebuildPieces(); rebuildCaptured(); }
+};
+
+// ============ audio: sound effects + background music ============
+// Everything here is synthesized with the Web Audio API — no external
+// sound files — so the game stays a single self-contained HTML file.
+// (Real audio downloads were attempted and are blocked by this sandbox's
+// network policy; see the session notes. Music and effects have separate
+// volume controls and route through separate gain nodes.)
+let audioCtx = null, sfxGain = null, musicGain = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    sfxGain = audioCtx.createGain();
+    sfxGain.gain.value = +document.getElementById('sfxVolumeSlider').value;
+    sfxGain.connect(audioCtx.destination);
+    musicGain = audioCtx.createGain();
+    musicGain.gain.value = +document.getElementById('musicVolumeSlider').value;
+    musicGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function envOsc({ freq, type = 'sine', dur = 0.12, gain = 0.3, freqTo, delay = 0, bus, filterHz, attack = 0.008, detune = 0 }) {
+  const ctx = ensureAudio();
+  const t0 = ctx.currentTime + delay;
+  const osc = ctx.createOscillator();
+  osc.type = type;
+  osc.detune.value = detune;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (freqTo) osc.frequency.exponentialRampToValueAtTime(Math.max(freqTo, 1), t0 + dur);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(gain, t0 + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  let last = osc;
+  if (filterHz) {
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'lowpass'; filt.frequency.value = filterHz; filt.Q.value = 0.7;
+    osc.connect(filt); last = filt;
+  }
+  last.connect(g); g.connect(bus || sfxGain);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+function noiseBurst({ dur = 0.1, filterFreq = 1000, q = 1, gain = 0.25, delay = 0, filterType = 'bandpass', bus }) {
+  const ctx = ensureAudio();
+  const t0 = ctx.currentTime + delay;
+  const n = Math.max(1, Math.floor(ctx.sampleRate * dur));
+  const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const filt = ctx.createBiquadFilter();
+  filt.type = filterType; filt.frequency.value = filterFreq; filt.Q.value = q;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  src.connect(filt); filt.connect(g); g.connect(bus || sfxGain);
+  src.start(t0);
+}
+
+// ---- instrument "voices" for background music: distinct Web Audio
+// synthesis techniques standing in for different MIDI-style timbres, since
+// real instrument samples/soundfonts can't be fetched in this environment.
+// Each has the same (freq, dur, gain, filterHz, detune) signature so tracks
+// can mix and match; unused parameters are simply ignored by a given voice.
+function voicePad(freq, dur, gain, filterHz, detune) {
+  envOsc({ freq, type: 'triangle', dur, gain, bus: musicGain, filterHz, attack: dur * 0.35, detune: detune || 0 });
+  envOsc({ freq: freq * 0.5, type: 'triangle', dur: dur * 1.4, gain: gain * 0.4, bus: musicGain, filterHz: (filterHz || 1500) * 0.6, attack: dur * 0.5 });
+}
+function voiceFlute(freq, dur, gain, filterHz) {
+  envOsc({ freq, type: 'sine', dur, gain, bus: musicGain, filterHz: filterHz || 2600, attack: dur * 0.3 });
+  envOsc({ freq, type: 'sine', dur, gain: gain * 0.45, bus: musicGain, filterHz: filterHz || 2600, attack: dur * 0.34, detune: 9 });
+}
+function voicePiano(freq, dur, gain) {
+  envOsc({ freq, type: 'triangle', dur, gain, bus: musicGain, attack: 0.004, filterHz: 4200 });
+  envOsc({ freq: freq * 2, type: 'sine', dur: dur * 0.5, gain: gain * 0.22, bus: musicGain, attack: 0.003, filterHz: 6000 });
+  envOsc({ freq, type: 'sine', dur, gain: gain * 0.55, bus: musicGain, attack: 0.004, detune: 6 });
+}
+function voiceBell(freq, dur, gain) {
+  // FM-style inharmonic partials with a fast decay for a mallet/gong shimmer
+  envOsc({ freq, type: 'sine', dur, gain, bus: musicGain, attack: 0.003 });
+  envOsc({ freq: freq * 2.41, type: 'sine', dur: dur * 0.6, gain: gain * 0.32, bus: musicGain, attack: 0.002 });
+  envOsc({ freq: freq * 3.9, type: 'sine', dur: dur * 0.35, gain: gain * 0.16, bus: musicGain, attack: 0.002 });
+}
+function voicePluck(freq, dur, gain, filterHz) {
+  noiseBurst({ dur: Math.min(dur * 0.3, 0.08), filterFreq: freq * 2, q: 8, gain: gain * 0.6, bus: musicGain });
+  envOsc({ freq, type: 'triangle', dur, gain, bus: musicGain, attack: 0.004, filterHz: filterHz || 2500 });
+}
+const VOICES = { pad: voicePad, flute: voiceFlute, piano: voicePiano, bell: voiceBell, pluck: voicePluck };
+// One sound palette per board-theme style: wood thump, stone knock, soft
+// electronic tick, 8-bit blip — move/capture/check for each.
+const SFX = {
+  traditional(kind) {
+    if (kind === 'move') { envOsc({ freq: 180, dur: 0.09, gain: 0.35, freqTo: 110 }); noiseBurst({ dur: 0.05, filterFreq: 600, gain: 0.15 }); }
+    else if (kind === 'capture') { envOsc({ freq: 150, dur: 0.14, gain: 0.45, freqTo: 80 }); noiseBurst({ dur: 0.09, filterFreq: 500, gain: 0.3 }); }
+    else { envOsc({ freq: 520, type: 'triangle', dur: 0.14, gain: 0.3 }); envOsc({ freq: 660, type: 'triangle', dur: 0.18, gain: 0.3, delay: 0.14 }); }
+  },
+  carved(kind) {
+    if (kind === 'move') noiseBurst({ dur: 0.06, filterFreq: 1500, q: 6, gain: 0.35 });
+    else if (kind === 'capture') { noiseBurst({ dur: 0.05, filterFreq: 2200, q: 8, gain: 0.5 }); noiseBurst({ dur: 0.08, filterFreq: 900, q: 4, gain: 0.3, delay: 0.03 }); }
+    else { noiseBurst({ dur: 0.2, filterFreq: 1800, q: 2, gain: 0.35 }); envOsc({ freq: 300, type: 'square', dur: 0.2, gain: 0.15 }); }
+  },
+  minimal(kind) {
+    if (kind === 'move') envOsc({ freq: 700, dur: 0.08, gain: 0.25, freqTo: 900 });
+    else if (kind === 'capture') envOsc({ freq: 900, dur: 0.1, gain: 0.3, freqTo: 400 });
+    else { envOsc({ freq: 600, dur: 0.12, gain: 0.28 }); envOsc({ freq: 800, dur: 0.16, gain: 0.28, delay: 0.12 }); }
+  },
+  pixel(kind) {
+    if (kind === 'move') envOsc({ freq: 440, type: 'square', dur: 0.07, gain: 0.2 });
+    else if (kind === 'capture') { envOsc({ freq: 440, type: 'square', dur: 0.06, gain: 0.22 }); envOsc({ freq: 660, type: 'square', dur: 0.08, gain: 0.22, delay: 0.06 }); }
+    else { envOsc({ freq: 523, type: 'square', dur: 0.09, gain: 0.22 }); envOsc({ freq: 659, type: 'square', dur: 0.09, gain: 0.22, delay: 0.09 }); envOsc({ freq: 784, type: 'square', dur: 0.14, gain: 0.22, delay: 0.18 }); }
+  }
+};
+window.__oukSfxLog = [];
+function playMoveSound(kind) {
+  if (!document.getElementById('sfxChk').checked) return;
+  window.__oukSfxLog.push({ kind, style: theme().style });
+  const fn = SFX[theme().style] || SFX.traditional;
+  fn(kind);
+}
+
+// ---- background music: 10 soft, slow, procedurally-generated looping
+// tracks (5 general "relaxing lobby" style, 5 using a Khmer-flavored
+// pentatonic scale) — not literal recordings, synthesized so nothing needs
+// to be fetched. Kept quiet, slow-attacked, and free of harsh timbres so
+// they stay unobtrusive. A local-file queue covers real recordings.
+// Each track differs in more than just pitch: tempo (noteLen), timbre
+// (filterHz brightness + optional detune chorus), envelope (attack: slow
+// swell vs. plucky), texture (pad sub-tone on/off), and melodic shape
+// (drone, arpeggio, sparse-with-rests, skip pattern) — notes use `null`
+// for a silent beat.
+const MUSIC_TRACKS = {
+  relax1: { label: 'ភ្លេងសណ្ឋាគារ១ Lobby Lounge I (pad, solo)', instrument: 'pad', noteLen: 1450, gain: 0.09,
+    filterHz: 850, detune: 5,
+    notes: [261.63, 293.66, 329.63, 293.66] },
+  relax2: { label: 'ភ្លេងសណ្ឋាគារ២ Lobby Lounge II (flute, solo)', instrument: 'flute', noteLen: 460, gain: 0.09,
+    filterHz: 2600,
+    notes: [220.00, 261.63, 293.66, 329.63, 392.00, 440.00, null, null] },
+  relax3: { label: 'ភ្លេងសណ្ឋាគារ៣ Quiet Terrace (piano, solo)', instrument: 'piano', noteLen: 900, gain: 0.1,
+    sustain: 0.32,
+    notes: [392.00, null, 329.63, null, 349.23, null, 293.66, null] },
+  relax4: { label: 'ភ្លេងសណ្ឋាគារ៤ Evening Spa (pad + flute mix)', instrument: 'pad', instrument2: 'flute', noteLen: 1150, gain: 0.08,
+    filterHz: 1100, detune: 6,
+    notes: [349.23, 329.63, 293.66, 261.63] },
+  relax5: { label: 'ភ្លេងសណ្ឋាគារ៥ Still Water (pad, solo)', instrument: 'pad', noteLen: 1700, gain: 0.08,
+    filterHz: 700, detune: 4,
+    notes: [329.63, 329.63, 392.00, 349.23] },
+  khmer1: { label: 'ភ្លេងខ្មែរ១ Khmer Roneat (bell, solo)', instrument: 'bell', noteLen: 380, gain: 0.09,
+    notes: [293.66, 349.23, 392.00, 440.00, 523.25, 440.00, 392.00, 349.23] },
+  khmer2: { label: 'ភ្លេងខ្មែរ២ Khmer Kong Vong (pad, solo)', instrument: 'pad', noteLen: 1350, gain: 0.08,
+    filterHz: 950, detune: 5,
+    notes: [196.00, 220.00, 261.63] },
+  khmer3: { label: 'ភ្លេងខ្មែរ៣ Khmer Plucked String (pluck, solo)', instrument: 'pluck', noteLen: 640, gain: 0.1,
+    filterHz: 2200, sustain: 0.42,
+    notes: [220.00, null, 293.66, 261.63, null, 392.00, 329.63, null] },
+  khmer4: { label: 'ភ្លេងខ្មែរ៤ Mallet Ensemble (bell + pluck mix)', instrument: 'bell', instrument2: 'pluck', noteLen: 500, gain: 0.08,
+    filterHz: 2600,
+    notes: [329.63, 587.33, 392.00, 493.88, 349.23, 440.00] },
+  khmer5: { label: 'ភ្លេងខ្មែរ៥ Gong & Drone (pad + bell mix)', instrument: 'pad', instrument2: 'bell', noteLen: 1600, gain: 0.07,
+    filterHz: 900, detune: 6,
+    notes: [261.63, 293.66, 349.23] }
+};
+function populateMusicSelect() {
+  const sel = document.getElementById('musicSel');
+  const groups = sel.querySelectorAll('optgroup');
+  const relaxGroup = groups[0], khmerGroup = groups[1];
+  Object.keys(MUSIC_TRACKS).forEach(key => {
+    const t = MUSIC_TRACKS[key];
+    const opt = document.createElement('option');
+    opt.value = key; opt.textContent = t.label;
+    (key.startsWith('khmer') ? khmerGroup : relaxGroup).appendChild(opt);
+  });
+  sel.value = 'relax1';
+}
+populateMusicSelect();
+
+let musicTimer = null, musicStopFlag = true, musicPlaying = false, currentMusicKey = 'none';
+let playSource = 'builtin'; // 'builtin' | 'queue'
+function playTrackStep(track, idx) {
+  if (musicStopFlag) return;
+  const freq = track.notes[idx % track.notes.length];
+  if (freq) { // null = a silent beat, for tracks with a sparser rhythm
+    const sustain = track.sustain || 0.9;
+    const dur = track.noteLen * sustain / 1000;
+    VOICES[track.instrument](freq, dur, track.gain, track.filterHz, track.detune);
+    if (track.instrument2) VOICES[track.instrument2](freq, dur, track.gain * 0.7, track.filterHz, track.detune);
+  }
+  musicTimer = setTimeout(() => playTrackStep(track, idx + 1), track.noteLen);
+}
+function updateMusicButton() {
+  document.getElementById('musicPlayBtn').textContent = musicPlaying ? '⏸ Pause' : '▶ Play';
+}
+function stopMusic() {
+  musicStopFlag = true;
+  if (musicTimer) { clearTimeout(musicTimer); musicTimer = null; }
+  if (queueAudioEl) queueAudioEl.pause();
+  musicPlaying = false;
+  updateMusicButton();
+}
+function startMusic(key) {
+  stopMusic();
+  playSource = 'builtin';
+  currentMusicKey = key;
+  if (key === 'none') return;
+  ensureAudio();
+  const track = MUSIC_TRACKS[key];
+  if (!track) return;
+  musicStopFlag = false;
+  playTrackStep(track, 0);
+  musicPlaying = true;
+  updateMusicButton();
+}
+
+// ---- playback queue: the user's own local audio files ----
+let musicQueue = [], queueIndex = -1, queueAudioEl = null, queueSrcNode = null;
+function renderQueueList() {
+  const holder = document.getElementById('queueList');
+  holder.innerHTML = musicQueue.map((item, i) =>
+    '<div class="' + (playSource === 'queue' && i === queueIndex ? 'playing' : '') + '" data-i="' + i + '">' +
+    '<span class="qname">' + (i + 1) + '. ' + item.name + '</span>' +
+    '<button class="qremove" data-i="' + i + '">✕</button></div>').join('');
+  holder.querySelectorAll('.qname').forEach(el => {
+    el.parentElement.onclick = (e) => { if (e.target.classList.contains('qremove')) return; playQueueIndex(+el.parentElement.dataset.i); };
+  });
+  holder.querySelectorAll('.qremove').forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); removeFromQueue(+btn.dataset.i); };
+  });
+}
+function ensureQueueAudioEl() {
+  ensureAudio();
+  if (!queueAudioEl) {
+    queueAudioEl = new Audio();
+    queueSrcNode = audioCtx.createMediaElementSource(queueAudioEl);
+    queueSrcNode.connect(musicGain);
+    queueAudioEl.addEventListener('ended', () => { if (musicQueue.length) playQueueIndex((queueIndex + 1) % musicQueue.length); });
+  }
+}
+function playQueueIndex(i) {
+  if (!musicQueue.length) return;
+  i = ((i % musicQueue.length) + musicQueue.length) % musicQueue.length;
+  stopMusic();
+  ensureQueueAudioEl();
+  queueIndex = i;
+  playSource = 'queue';
+  currentMusicKey = 'queue';
+  queueAudioEl.src = musicQueue[i].url;
+  queueAudioEl.currentTime = 0;
+  queueAudioEl.play().catch(() => {});
+  musicStopFlag = false;
+  musicPlaying = true;
+  updateMusicButton();
+  renderQueueList();
+}
+function removeFromQueue(i) {
+  const wasPlaying = playSource === 'queue' && i === queueIndex && musicPlaying;
+  URL.revokeObjectURL(musicQueue[i].url);
+  musicQueue.splice(i, 1);
+  if (i < queueIndex) queueIndex--;
+  if (wasPlaying) { stopMusic(); if (musicQueue.length) playQueueIndex(queueIndex); }
+  renderQueueList();
+}
+document.getElementById('queueFile').onchange = (e) => {
+  const files = Array.from(e.target.files || []);
+  files.forEach(f => musicQueue.push({ name: f.name, url: URL.createObjectURL(f) }));
+  e.target.value = '';
+  renderQueueList();
+};
+document.getElementById('musicSel').onchange = (e) => {
+  const v = e.target.value;
+  if (musicPlaying || v === 'none') startMusic(v);
+  else { playSource = 'builtin'; currentMusicKey = v; }
+};
+document.getElementById('musicPlayBtn').onclick = () => {
+  ensureAudio();
+  if (musicPlaying) { stopMusic(); return; }
+  if (playSource === 'queue' && musicQueue.length) {
+    if (queueAudioEl && queueAudioEl.src) { queueAudioEl.play().catch(() => {}); musicPlaying = true; updateMusicButton(); }
+    else playQueueIndex(Math.max(queueIndex, 0));
+  } else {
+    startMusic(document.getElementById('musicSel').value);
+  }
+};
+document.getElementById('musicStopBtn').onclick = () => startMusic('none');
+document.getElementById('musicNextBtn').onclick = () => { if (musicQueue.length) playQueueIndex(queueIndex + 1); };
+document.getElementById('musicPrevBtn').onclick = () => { if (musicQueue.length) playQueueIndex(queueIndex - 1); };
+document.getElementById('sfxVolumeSlider').oninput = (e) => {
+  if (sfxGain) sfxGain.gain.value = +e.target.value;
+};
+document.getElementById('musicVolumeSlider').oninput = (e) => {
+  if (musicGain) musicGain.gain.value = +e.target.value;
+};
+// unlock the AudioContext on the very first user gesture and play the
+// selected track as the game's starting music
+document.getElementById('startBtn').addEventListener('click', () => {
+  ensureAudio();
+  startMusic(document.getElementById('musicSel').value);
+}, { once: true });
+// default to full screen on a mobile phone in portrait — this must happen
+// inside the same click handler as the Fullscreen API requires a live
+// user gesture, and the Start button is the first one the player makes
+document.getElementById('startBtn').addEventListener('click', () => {
+  const mobile = window.innerWidth <= 820 || window.innerHeight <= 560;
+  if (mobile && window.__oukActions.currentOrientation() === 'portrait') {
+    window.__oukActions.requestFullscreen();
+  }
+}, { once: true });
+
+// ---------- UI elements ----------
+const statusEl = document.getElementById('status');
+const countPanel = document.getElementById('countPanel');
+const movelistEl = document.getElementById('movelist');
+const thinkingEl = document.getElementById('thinking');
+const bannerEl = document.getElementById('banner');
+const undoBtn = document.getElementById('undoBtn');
+
+function sideName(c) { return c === E.WHITE ? 'White ស' : 'Black ខ្មៅ'; }
+
+function describeStatus() {
+  const st = E.gameStatus(state);
+  if (st) {
+    gameOver = true;
+    if (st.type === 'checkmate')
+      return { text: 'Checkmate! ' + sideName(st.winner) + ' wins', banner: 'អុកងាប់ — Checkmate<br>' + sideName(st.winner) + ' wins' };
+    if (st.type === 'stalemate')
+      return { text: 'Stalemate — draw', banner: 'Stalemate — អាប់<br>Draw ស្មើគ្នា' };
+    if (st.type === 'count-limit')
+      return { text: 'Count reached its limit — draw', banner: 'Counting limit reached<br>Draw ស្មើគ្នា' };
+  }
+  gameOver = false;
+  let t = sideName(state.turn) + ' to move';
+  if (E.inCheck(state, state.turn)) t += ' — <span class="check">Check! អុក</span>';
+  return { text: t, banner: null };
+}
+
+function refreshStatus() {
+  if (uiMode === 'train') {
+    const n = NAMES[lessonType];
+    statusEl.innerHTML = 'រៀន Training — ' + n.kh + ' ' + n.tr +
+      (flashMsg ? ' <span class="flash">' + flashMsg + '</span>' : '');
+    bannerEl.style.display = 'none';
+    return;
+  }
+  const d = describeStatus();
+  statusEl.innerHTML = d.text;
+  if (d.banner) { bannerEl.innerHTML = d.banner + '<small>Press “New game” to play again</small>'; bannerEl.style.display = 'block'; }
+  else bannerEl.style.display = 'none';
+}
+
+function refreshCountPanel() {
+  let html = '';
+  if (uiMode === 'play') {
+    if (state.counting) {
+      const c = state.counting;
+      html = 'Counting — ' + (c.mode === 'board' ? "board's honor" : "piece's honor") + '<br>' +
+        sideName(c.side) + ': <span class="big">' + c.count + ' / ' + c.limit + '</span><br>' +
+        '<button id="stopCount">Stop counting</button>';
+    } else if (!gameOver) {
+      const btns = [];
+      for (const side of [E.WHITE, E.BLACK]) {
+        if (mode !== 'hotseat' && side !== humanSide) continue; // the computer counts for itself
+        if (E.canCountPiece(state, side))
+          btns.push('<button data-side="' + side + '" data-mode="piece">Start count — piece\'s honor (' + sideName(side) + ')</button>');
+        else if (E.canCountBoard(state, side))
+          btns.push('<button data-side="' + side + '" data-mode="board">Start count — board\'s honor (' + sideName(side) + ')</button>');
+      }
+      if (btns.length) html = 'Counting available:<br>' + btns.join('<br>');
+    }
+  }
+  countPanel.innerHTML = html;
+  countPanel.style.display = html ? 'block' : 'none';
+  const stop = document.getElementById('stopCount');
+  if (stop) stop.onclick = () => { E.stopCounting(state); refreshAll(); };
+  countPanel.querySelectorAll('button[data-mode]').forEach(b => {
+    b.onclick = () => { E.startCounting(state, +b.dataset.side, b.dataset.mode); refreshAll(); };
+  });
+}
+
+function refreshMoveList() {
+  movelistEl.innerHTML = moveEntries.map((e, i) =>
+    '<div><span class="no">' + (i % 2 === 0 ? (i / 2 + 1) + '.' : '…') + '</span>' + e + '</div>').join('');
+  movelistEl.scrollTop = movelistEl.scrollHeight;
+}
+
+function refreshAll() {
+  rebuildPieces();
+  rebuildCaptured();
+  updateSquareTints();
+  refreshStatus();
+  refreshCountPanel();
+  refreshMoveList();
+  undoBtn.disabled = uiMode === 'train' || history.length === 0 || aiBusy;
+  tickHud();
+}
+
+function notation(m, moverPiece, captured, promoted) {
+  const n = NAMES[E.typeOf(moverPiece)] || NAMES[E.QUEEN];
+  let s = n.kh + ' ' + n.tr + ' ' + E.sqName(m.from) + (captured !== E.EMPTY ? '×' : '–') + E.sqName(m.to);
+  if (m.special === 1) s += ' (Sdach jump)';
+  if (m.special === 2) s += ' (Neang leap)';
+  if (promoted) s += ' =នាង Neang';
+  return s;
+}
+
+// ---------- moves ----------
+function applyMove(m) {
+  history.push({ snap: E.toJSON(state), entries: moveEntries.length, lastMove });
+  const mover = state.board[m.from], captured = state.board[m.to];
+  const wasPawn = E.typeOf(mover) === E.PAWN;
+  E.makeMove(state, m);
+  const promoted = wasPawn && E.isProm(state.board[m.to]);
+  moveEntries.push(notation(m, mover, captured, promoted));
+  lastMove = m;
+  selected = -1; legalForSelected = [];
+  clearMarkers();
+  refreshAll();
+  playMoveSound(E.inCheck(state, state.turn) ? 'check' : (captured !== E.EMPTY ? 'capture' : 'move'));
+  maybeAutoCountForAI();
+  scheduleAI();
+}
+
+// training: free exploration — White keeps the move, promotion is celebrated
+function applyTrainingMove(m) {
+  const mover = state.board[m.from];
+  const wasPawn = E.typeOf(mover) === E.PAWN;
+  const captured = state.board[m.to];
+  E.makeMove(state, m);
+  state.turn = E.WHITE;
+  const promoted = wasPawn && E.isProm(state.board[m.to]);
+  flashMsg = promoted ? 'ត្រីឡើងនាងហើយ! Promoted to Neang!' : '';
+  lastMove = m;
+  // keep teaching: re-select the moved piece and show its new moves
+  selected = m.to;
+  legalForSelected = E.genLegal(state, E.WHITE).filter(x => x.from === m.to);
+  refreshAll();
+  showMarkers();
+  playMoveSound(captured !== E.EMPTY ? 'capture' : 'move');
+}
+
+function maybeAutoCountForAI() {
+  if (uiMode === 'train' || mode === 'hotseat' || gameOver || state.counting) return;
+  const aiSide = 1 - humanSide;
+  if (E.canCountPiece(state, aiSide)) {
+    E.startCounting(state, aiSide, 'piece');
+    refreshCountPanel();
+  }
+}
+
+// ---------- AI (web worker, synchronous fallback) ----------
+let worker = null, workerOk = false;
+try {
+  const src = document.getElementById('engine-src').textContent +
+    ';self.onmessage=function(e){var S=OukEngine.fromJSON(e.data.state);' +
+    'var m=OukEngine.chooseAiMove(S,e.data.level);self.postMessage(m);};';
+  worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+  workerOk = true;
+} catch (err) {
+  console.warn('Web worker unavailable, AI will run on the main thread:', err);
+}
+
+function scheduleAI() {
+  if (uiMode === 'train' || mode === 'hotseat' || gameOver || state.turn === humanSide || aiBusy) return;
+  aiBusy = true;
+  thinkingEl.style.display = 'block';
+  undoBtn.disabled = true;
+  const level = +mode.slice(2);
+  const t0 = Date.now();
+  const finish = (m) => {
+    const wait = Math.max(0, 450 - (Date.now() - t0));
+    setTimeout(() => {
+      aiBusy = false;
+      thinkingEl.style.display = 'none';
+      if (m && uiMode === 'play' && !gameOver && state.turn !== humanSide) {
+        const legal = E.genLegal(state, state.turn);
+        const mv = legal.find(x => x.from === m.from && x.to === m.to && x.special === m.special);
+        if (mv) applyMove(mv);
+      }
+      undoBtn.disabled = uiMode === 'train' || history.length === 0;
+    }, wait);
+  };
+  if (workerOk) {
+    worker.onmessage = (e) => finish(e.data);
+    worker.postMessage({ state: E.toJSON(state), level });
+  } else {
+    setTimeout(() => finish(E.chooseAiMove(state, level)), 30);
+  }
+}
+
+// ---------- picking ----------
+const ray = new THREE.Raycaster();
+// (downXY, and the pointerdown/pointerup handlers, are set up above via
+// attachPickingHandlers — reattached whenever the renderer is recreated)
+
+function pickSquare(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  const v = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(v, camera);
+  const hits = ray.intersectObjects([...squareMeshes, ...pieceGroup.children], true);
+  for (const h of hits) {
+    let o = h.object;
+    while (o && o.userData.sq === undefined && o.parent) o = o.parent;
+    if (o && o.userData.sq !== undefined) return o.userData.sq;
+    let g = h.object;
+    while (g && g.parent !== pieceGroup) g = g.parent;
+    if (g) for (const [sq, grp] of Object.entries(pieceAt)) if (grp === g) return +sq;
+  }
+  return -1;
+}
+
+function onBoardClick(e) {
+  if (uiMode === 'play') {
+    if (gameOver || aiBusy) return;
+    if (mode !== 'hotseat' && state.turn !== humanSide) return;
+  }
+  const sq = pickSquare(e);
+  if (sq < 0) { selected = -1; legalForSelected = []; clearMarkers(); updateSquareTints(); return; }
+  const target = legalForSelected.find(m => m.to === sq);
+  if (selected >= 0 && target) {
+    if (uiMode === 'train') applyTrainingMove(target); else applyMove(target);
+    return;
+  }
+  const p = state.board[sq];
+  const movableColor = uiMode === 'train' ? E.WHITE : state.turn;
+  if (p !== E.EMPTY && E.colorOf(p) === movableColor) {
+    selected = sq;
+    legalForSelected = E.genLegal(state, movableColor).filter(m => m.from === sq);
+    showMarkers();
+    updateSquareTints();
+  } else {
+    selected = -1; legalForSelected = [];
+    clearMarkers(); updateSquareTints();
+  }
+}
+
+// ---------- training lessons ----------
+const LESSONS = {
+  [E.PAWN]: {
+    basic: {
+      kh: 'ត្រីដើរទៅមុខត្រង់មួយក្រឡា ហើយស៊ីកូនអុកសត្រូវដោយដើរបញ្ឆិតទៅមុខមួយក្រឡា។ ត្រីមិនអាចដើរពីរក្រឡាក្នុងមួយលើក ហើយមិនអាចស៊ីត្រង់មុខបានទេ។ ចុចលើត្រី ដើម្បីមើលក្រឡាដែលអាចដើរបាន។',
+      en: 'The Trey moves one square straight forward and captures one square diagonally forward. It never moves two squares at once and cannot capture straight ahead. Click the Trey to see its moves.',
+      setup(S, put) { put('a1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('d4', E.PAWN, E.WHITE); put('c5', E.PAWN, E.BLACK); put('e5', E.PAWN, E.BLACK); return 'd4'; }
+    },
+    adv: {
+      kh: 'ពេលត្រីទៅដល់ជួរទី៦ (ជួរទី៣របស់សត្រូវ) ត្រីត្រូវឡើងជានាងភ្លាមជាកាតព្វកិច្ច ហើយបន្ទាប់មកដើរដូចនាង។ សាកល្បង៖ ដើរត្រីនេះទៅមុខ ឬស៊ីបញ្ឆិត ដើម្បីឡើងនាង!',
+      en: 'On reaching the sixth rank (the opponent’s third) the Trey immediately and mandatorily becomes a Neang, and moves like one from then on. Try it: push this Trey forward, or capture diagonally, to promote.',
+      setup(S, put) { put('a1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('d5', E.PAWN, E.WHITE); put('e6', E.PAWN, E.BLACK); return 'd5'; }
+    }
+  },
+  [E.ROOK]: {
+    basic: {
+      kh: 'ទូកដើរត្រង់តាមជួរឈរ ឬជួរដេក បានប៉ុន្មានក្រឡាក៏បាន ប៉ុន្តែមិនអាចលោតរំលងកូនអុកផ្សេងទេ។ ទូកជាកូនអុកខ្លាំងបំផុតក្នុងអុកចត្រង្គ។',
+      en: 'The Tuuk slides any number of squares along a rank or file but cannot jump over other pieces. It is the strongest piece in Ouk Chatrang.',
+      setup(S, put) { put('a1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('d4', E.ROOK, E.WHITE); put('d7', E.PAWN, E.BLACK); put('g4', E.PAWN, E.BLACK); return 'd4'; }
+    },
+    adv: {
+      kh: 'ទូកពីរអាចដេញស្ដេចសត្រូវទៅគែមក្ដារជាជណ្ដើរ ដើម្បីធ្វើអុកងាប់។ សាកល្បងដេញស្ដេចខ្មៅទៅជួរទី៨ ដោយប្រើទូកម្ដងមួយជួរៗ!',
+      en: 'Two Tuuk can ladder the enemy Sdach to the edge for checkmate: cut off one rank with each boat in turn. Try driving the black Sdach to the eighth rank.',
+      setup(S, put) { put('a1', E.KING, E.WHITE); put('e6', E.KING, E.BLACK); put('a4', E.ROOK, E.WHITE); put('h3', E.ROOK, E.WHITE); S.kingMoved = [true, true]; return 'a4'; }
+    }
+  },
+  [E.KNIGHT]: {
+    basic: {
+      kh: 'សេះដើរជារាងអក្សរ L៖ ពីរក្រឡាត្រង់ រួចមួយក្រឡាបញ្ឆិត។ សេះអាចលោតរំលងកូនអុកដទៃបាន ដូចអុកអន្តរជាតិ។',
+      en: 'The Ses moves in an L: two squares straight, then one square sideways — exactly like a chess knight, and it may jump over other pieces.',
+      setup(S, put) { put('a1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('d4', E.KNIGHT, E.WHITE); put('f5', E.PAWN, E.BLACK); put('b3', E.PAWN, E.BLACK); return 'd4'; }
+    },
+    adv: {
+      kh: 'សេះនៅកណ្ដាលក្ដារទៅបាន ៨ ក្រឡា តែនៅជ្រុងបានតែ ២ ក្រឡា។ ដោយសារកូនអុកភាគច្រើនដើរខ្លីៗ សេះខ្លាំងណាស់ក្នុងអុកខ្មែរ — សូម្បីតែត្រូវព័ទ្ធជុំវិញ ក៏សេះលោតរំលងបានដែរ។ សាកល្បងចុចសេះនេះមើល!',
+      en: 'A central Ses reaches 8 squares; a cornered one only 2. Because most Khmer pieces move short distances, the Ses is very strong here — it leaps out even when completely surrounded. Click this surrounded Ses.',
+      setup(S, put) { put('a1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('d4', E.KNIGHT, E.WHITE); put('c4', E.PAWN, E.WHITE); put('e4', E.PAWN, E.WHITE); put('d3', E.PAWN, E.WHITE); put('d5', E.PAWN, E.WHITE); return 'd4'; }
+    }
+  },
+  [E.BISHOP]: {
+    basic: {
+      kh: 'គោលដើរបញ្ឆិតមួយក្រឡាទៅទិសទាំងបួន ឬដើរត្រង់ទៅមុខមួយក្រឡា។ គោលដើររាងដូចមេអំបៅហើរ។',
+      en: 'The Koul moves one square diagonally in any of the four directions, or one square straight forward.',
+      setup(S, put) { put('a1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('d4', E.BISHOP, E.WHITE); put('e5', E.PAWN, E.BLACK); return 'd4'; }
+    },
+    adv: {
+      kh: 'គោលមិនអាចថយក្រោយត្រង់បានទេ — អាចថយបានតែបញ្ឆិត។ ដូច្នេះត្រូវគិតមុនពេលដើរគោលទៅមុខ។ មើល៖ ត្រីខ្មៅនៅ d3 (ក្រោយត្រង់) ស៊ីមិនបាន តែត្រីនៅ c3 (ក្រោយបញ្ឆិត) ស៊ីបាន។',
+      en: 'The Koul can never step straight backward — it retreats only diagonally, so advance it with care. See: the black Trey on d3 (straight behind) cannot be taken, but the one on c3 (diagonally behind) can.',
+      setup(S, put) { put('a1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('d4', E.BISHOP, E.WHITE); put('d3', E.PAWN, E.BLACK); put('c3', E.PAWN, E.BLACK); return 'd4'; }
+    }
+  },
+  [E.QUEEN]: {
+    basic: {
+      kh: 'នាងដើរបញ្ឆិតមួយក្រឡាប៉ុណ្ណោះ ទៅទិសទាំងបួន។ នាងជាកូនអុកតូចជាងគេ ប៉ុន្តែមានប្រយោជន៍ខ្លាំងក្នុងការការពារស្ដេច។',
+      en: 'The Neang moves exactly one square diagonally, in any of the four directions. It is the weakest piece, but very useful for defending the Sdach.',
+      setup(S, put) { put('a1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('d4', E.QUEEN, E.WHITE); put('c5', E.PAWN, E.BLACK); return 'd4'; }
+    },
+    adv: {
+      kh: 'ក្នុងការដើរលើកដំបូង នាងអាចលោតទៅមុខត្រង់ពីរក្រឡា (មិនមែនស៊ី ហើយអាចលោតរំលងក្រឡាដែលមានកូនអុក)។ មើល៖ នាងនៅ d1 អាចលោតរំលងត្រី d2 ទៅ d3 បាន។ តាមច្បាប់លំនាំដើម សិទ្ធិនេះបាត់ បន្ទាប់ពីមានការស៊ីកូនអុកណាមួយ។',
+      en: 'On its first move the Neang may leap two squares straight forward — never a capture, and it may pass over an occupied square. See: the Neang on d1 leaps over the Trey on d2 to d3. Under the default rule this right is lost once any piece has been captured.',
+      setup(S, put) { put('a1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('d1', E.QUEEN, E.WHITE); put('d2', E.PAWN, E.WHITE); return 'd1'; }
+    }
+  },
+  [E.KING]: {
+    basic: {
+      kh: 'ស្ដេចដើរមួយក្រឡាទៅគ្រប់ទិស។ ស្ដេចមិនអាចដើរចូលក្រឡាដែលសត្រូវអាចស៊ីបានទេ។ ពេលស្ដេចជាប់អុក ហើយគ្មានផ្លូវរត់ គឺអុកងាប់ — ចាញ់ហើយ!',
+      en: 'The Sdach moves one square in any direction and may never step onto an attacked square. When it is in check with no escape, it is checkmate — the game is lost.',
+      setup(S, put) { put('d4', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); put('c5', E.PAWN, E.BLACK); S.kingMoved = [true, true]; return 'd4'; }
+    },
+    adv: {
+      kh: 'ក្នុងការដើរលើកដំបូង (ពេលមិនជាប់អុក) ស្ដេចអាចលោតដូចសេះម្ដង ដោយមិនស៊ីកូនអុក។ តាមច្បាប់លំនាំដើម សិទ្ធិនេះបាត់បន្ទាប់ពីមានការស៊ីកូនអុក; តាមច្បាប់ជម្រើស វាបាត់ពេលទូកសត្រូវតម្រង់ជួរ ឬជួរឈរមកស្ដេច។',
+      en: 'On its first move, while not in check, the Sdach may leap once like a Ses — never capturing. Default rule: the right is lost after any capture; alternative rule: it is lost once an enemy Tuuk aligns on the Sdach’s rank or file.',
+      setup(S, put) { put('e1', E.KING, E.WHITE); put('h8', E.KING, E.BLACK); return 'e1'; }
+    }
+  }
+};
+const LESSON_ORDER = [E.PAWN, E.ROOK, E.KNIGHT, E.BISHOP, E.QUEEN, E.KING];
+
+function loadLesson() {
+  const l = LESSONS[lessonType][lessonLevel];
+  state = E.emptyState(currentVariant());
+  const put = (name, t, c) => { state.board[E.sqIndex(name)] = E.mk(t, c); };
+  const focus = l.setup(state, put);
+  state.turn = E.WHITE;
+  baselineCounts = countMultiset(state.board);
+  history = []; moveEntries = []; lastMove = null; flashMsg = '';
+  gameOver = false;
+  selected = E.sqIndex(focus);
+  legalForSelected = E.genLegal(state, E.WHITE).filter(m => m.from === selected);
+  document.getElementById('lessonText').innerHTML = l.kh + '<span class="en">' + l.en + '</span>';
+  refreshAll();
+  showMarkers();
+}
+
+function buildTrainButtons() {
+  const holder = document.getElementById('pieceBtns');
+  holder.innerHTML = '';
+  for (const t of LESSON_ORDER) {
+    const b = document.createElement('button');
+    b.innerHTML = NAMES[t].kh + '<br>' + NAMES[t].tr;
+    b.dataset.type = t;
+    b.onclick = () => { lessonType = t; markTrainButtons(); loadLesson(); };
+    holder.appendChild(b);
+  }
+  markTrainButtons();
+}
+function markTrainButtons() {
+  document.querySelectorAll('#pieceBtns button').forEach(b =>
+    b.classList.toggle('active', +b.dataset.type === lessonType));
+  document.getElementById('subBasic').classList.toggle('active', lessonLevel === 'basic');
+  document.getElementById('subAdv').classList.toggle('active', lessonLevel === 'adv');
+}
+document.getElementById('subBasic').onclick = () => { lessonLevel = 'basic'; markTrainButtons(); loadLesson(); };
+document.getElementById('subAdv').onclick = () => { lessonLevel = 'adv'; markTrainButtons(); loadLesson(); };
+document.getElementById('lessonReset').onclick = () => loadLesson();
+
+// ---------- play/train mode switching ----------
+function setUiMode(m) {
+  if (m === uiMode || aiBusy) return;
+  uiMode = m;
+  document.getElementById('tabPlay').classList.toggle('active', m === 'play');
+  document.getElementById('tabTrain').classList.toggle('active', m === 'train');
+  document.getElementById('playPanel').style.display = m === 'play' ? 'block' : 'none';
+  document.getElementById('variantPanel').style.display = m === 'play' ? 'block' : 'none';
+  document.getElementById('movelist').style.display = m === 'play' ? 'block' : 'none';
+  document.getElementById('trainPanel').style.display = m === 'train' ? 'flex' : 'none';
+  if (m === 'train') {
+    savedPlay = { snap: E.toJSON(state), history, moveEntries, lastMove, mode, humanSide, gameOver, baselineCounts };
+    trainEnterTs = Date.now(); // the play-time clock pauses for the duration of the training excursion
+    buildTrainButtons();
+    loadLesson();
+  } else {
+    if (savedPlay) {
+      state = E.fromJSON(savedPlay.snap);
+      history = savedPlay.history; moveEntries = savedPlay.moveEntries;
+      lastMove = savedPlay.lastMove; mode = savedPlay.mode; humanSide = savedPlay.humanSide;
+      gameOver = savedPlay.gameOver; baselineCounts = savedPlay.baselineCounts;
+      savedPlay = null;
+      if (trainEnterTs && gameStartTs) gameStartTs += Date.now() - trainEnterTs;
+      trainEnterTs = null;
+    }
+    selected = -1; legalForSelected = []; flashMsg = '';
+    clearMarkers();
+    refreshAll();
+    scheduleAI();
+  }
+}
+document.getElementById('tabPlay').onclick = () => setUiMode('play');
+document.getElementById('tabTrain').onclick = () => setUiMode('train');
+
+// ---------- controls ----------
+document.getElementById('newBtn').onclick = newGame;
+undoBtn.onclick = () => {
+  if (uiMode === 'train' || aiBusy || history.length === 0) return;
+  let steps = 1;
+  if (mode !== 'hotseat' && history.length >= 2 && state.turn === humanSide) steps = 2;
+  if (mode !== 'hotseat' && state.turn !== humanSide) steps = 1;
+  for (let i = 0; i < steps && history.length; i++) {
+    const h = history.pop();
+    state = E.fromJSON(h.snap);
+    moveEntries.length = h.entries;
+    lastMove = h.lastMove;
+  }
+  selected = -1; legalForSelected = [];
+  clearMarkers();
+  gameOver = false;
+  refreshAll();
+};
+document.getElementById('rulesBtn').onclick =
+document.getElementById('rulesLink').onclick = (e) => { e.preventDefault(); document.getElementById('modal').style.display = 'flex'; };
+
+// resets the board using whatever mode/humanSide are currently set; both
+// "New game" and a confirmed mode-select pick funnel through this
+function resetGame() {
+  state = E.initialState(currentVariant());
+  baselineCounts = countMultiset(state.board);
+  history = []; moveEntries = []; lastMove = null;
+  selected = -1; legalForSelected = []; gameOver = false; aiBusy = false;
+  gameStartTs = Date.now(); frozenElapsed = null;
+  clearMarkers();
+  refreshAll();
+  refreshModeReadout();
+  scheduleAI(); // in case the human plays Black
+}
+function newGame() { resetGame(); }
+function startGameWithMode(modeStr, side) {
+  mode = modeStr; humanSide = side;
+  resetGame();
+}
+function refreshModeReadout() {
+  const el = document.getElementById('modeReadoutText');
+  el.textContent = mode === 'hotseat'
+    ? '2 Player ២នាក់'
+    : 'vs Computer L' + mode.slice(2) + ' (' + (humanSide === E.WHITE ? 'White' : 'Black') + ')';
+}
+
+// ---------- start screen + mode-select overlay ----------
+function buildLevelButtons() {
+  const holder = document.getElementById('levelBtns');
+  const labels = [['1', 'ស្រួល', 'Easy'], ['2', 'ធម្មតា', 'Normal'], ['3', 'មធ្យម', 'Medium'],
+                  ['4', 'ពិបាក', 'Hard'], ['5', 'ជំនាញ', 'Expert']];
+  holder.innerHTML = '';
+  labels.forEach(([n, kh, en]) => {
+    const lvl = +n;
+    const b = document.createElement('button');
+    b.innerHTML = n + '<br>' + kh + '<br>' + en;
+    b.dataset.level = lvl;
+    b.onclick = () => { pendingAiLevel = lvl; markLevelButtons(); };
+    holder.appendChild(b);
+  });
+  markLevelButtons();
+}
+function markLevelButtons() {
+  document.querySelectorAll('#levelBtns button').forEach(b => b.classList.toggle('active', +b.dataset.level === pendingAiLevel));
+}
+document.querySelectorAll('.sidebtn').forEach(b => {
+  b.onclick = () => {
+    pendingSide = +b.dataset.side;
+    document.querySelectorAll('.sidebtn').forEach(x => x.classList.toggle('active', x === b));
+  };
+});
+buildLevelButtons();
+
+function openModeScreen() {
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('aiOptions').style.display = 'none';
+  document.getElementById('modeScreen').style.display = 'flex';
+  overlayOpen = true;
+  tickHud();
+}
+function hideOverlays() {
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('modeScreen').style.display = 'none';
+  overlayOpen = false;
+  tickHud();
+}
+document.getElementById('startBtn').onclick = openModeScreen;
+document.getElementById('changeModeBtn').onclick = openModeScreen;
+document.getElementById('pick2p').onclick = () => { startGameWithMode('hotseat', E.WHITE); hideOverlays(); };
+document.getElementById('pickAi').onclick = () => { document.getElementById('aiOptions').style.display = 'block'; };
+document.getElementById('confirmAi').onclick = () => { startGameWithMode('ai' + pendingAiLevel, pendingSide); hideOverlays(); };
+document.getElementById('modeCancel').onclick = hideOverlays;
+function showStartScreen() {
+  document.getElementById('modeScreen').style.display = 'none';
+  document.getElementById('startScreen').style.display = 'flex';
+  overlayOpen = true;
+  tickHud();
+}
+document.getElementById('cancelGameBtn').onclick = showStartScreen;
+
+// ---------- save / load game (localStorage) ----------
+const SAVE_KEY = 'oukChatrangSave';
+function showSaveStatus(msg) {
+  const el = document.getElementById('saveStatus');
+  el.textContent = msg;
+  setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3000);
+}
+function saveGame() {
+  if (uiMode !== 'play') { showSaveStatus('ត្រូវនៅរបៀបលេង Switch to Play mode first'); return; }
+  const payload = {
+    v: 1, state: E.toJSON(state), mode, humanSide,
+    history, moveEntries, lastMove, baselineCounts, gameOver,
+    elapsed: frozenElapsed !== null ? frozenElapsed : (gameStartTs ? Date.now() - gameStartTs : 0),
+    themeKey, pieceStyleOverride, khmerBoardStyle, variant: currentVariant()
+  };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+    showSaveStatus('រក្សាទុករួច Saved!');
+  } catch (e) { showSaveStatus('Save failed: ' + e.message); }
+}
+function loadGame() {
+  let raw;
+  try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { raw = null; }
+  if (!raw) { showSaveStatus('គ្មានហ្គេមរក្សាទុក No saved game'); return; }
+  let payload;
+  try { payload = JSON.parse(raw); } catch (e) { showSaveStatus('ឯកសារខូច Corrupt save'); return; }
+  mode = payload.mode; humanSide = payload.humanSide;
+  state = E.fromJSON(payload.state);
+  history = payload.history || [];
+  moveEntries = payload.moveEntries || [];
+  lastMove = payload.lastMove || null;
+  baselineCounts = payload.baselineCounts || countMultiset(state.board);
+  gameOver = !!payload.gameOver;
+  gameStartTs = Date.now() - (payload.elapsed || 0);
+  frozenElapsed = gameOver ? (payload.elapsed || 0) : null;
+  if (payload.variant) {
+    const radio = document.querySelector('input[name=variant][value="' + payload.variant + '"]');
+    if (radio) radio.checked = true;
+  }
+  if (typeof payload.khmerBoardStyle === 'boolean') {
+    khmerBoardStyle = payload.khmerBoardStyle;
+    document.getElementById('khmerBoardChk').checked = khmerBoardStyle;
+  }
+  if (payload.pieceStyleOverride) {
+    pieceStyleOverride = payload.pieceStyleOverride;
+    document.getElementById('pieceStyleSel').value = pieceStyleOverride;
+  }
+  if (payload.themeKey && THEMES[payload.themeKey]) {
+    document.getElementById('themeSel').value = payload.themeKey;
+    applyTheme(payload.themeKey); // also reapplies khmerBoardStyle tiling
+  }
+  hideOverlays();
+  // land squarely in Play mode with the loaded state as the source of truth
+  // (bypass setUiMode's training-excursion restore, which would clobber it)
+  savedPlay = null;
+  uiMode = 'play';
+  document.getElementById('tabPlay').classList.add('active');
+  document.getElementById('tabTrain').classList.remove('active');
+  document.getElementById('playPanel').style.display = 'block';
+  document.getElementById('variantPanel').style.display = 'block';
+  document.getElementById('movelist').style.display = 'block';
+  document.getElementById('trainPanel').style.display = 'none';
+  selected = -1; legalForSelected = []; flashMsg = '';
+  clearMarkers();
+  refreshAll();
+  refreshModeReadout();
+  scheduleAI();
+  showSaveStatus('ផ្ទុករួច Loaded!');
+}
+document.getElementById('saveBtn').onclick = saveGame;
+document.getElementById('loadBtn').onclick = loadGame;
+
+// ---------- top-left HUD: move count + played time ----------
+function tickHud() {
+  const hud = document.getElementById('hud');
+  if (uiMode !== 'play' || overlayOpen || !gameStartTs) { hud.style.display = 'none'; return; }
+  hud.style.display = 'block';
+  if (gameOver) { if (frozenElapsed === null) frozenElapsed = Date.now() - gameStartTs; }
+  else frozenElapsed = null;
+  const elapsed = frozenElapsed !== null ? frozenElapsed : Date.now() - gameStartTs;
+  const secs = Math.floor(elapsed / 1000);
+  const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+  const ss = String(secs % 60).padStart(2, '0');
+  hud.innerHTML = 'ចលនា MOVES <b>' + moveEntries.length + '</b><br>ពេលវេលា TIME <b>' + mm + ':' + ss + '</b>';
+}
+setInterval(tickHud, 500);
+
+// Bridge for the mobile React toolbar (a plain classic script, not a
+// module, so it cannot see these module-scoped functions directly).
+window.__oukActions = {
+  newGame: () => newGame(),
+  undo: () => document.getElementById('undoBtn').click(),
+  changeMode: () => openModeScreen(),
+  save: () => saveGame(),
+  load: () => loadGame(),
+  togglePanel: () => { document.body.classList.toggle('panel-hidden'); resize(); },
+  isPanelOpen: () => !document.body.classList.contains('panel-hidden'),
+  // Fullscreen is only requested once, automatically, from within the
+  // Start button's click (a real user gesture) — there is no manual
+  // toggle button, since on iOS this page can only be opened inside a
+  // third-party document-viewer app's browser (e.g. Documents by Readdle),
+  // where tapping a fullscreen toggle just flickers that app's own chrome.
+  requestFullscreen: () => {
+    const el = document.documentElement;
+    if (!document.fullscreenElement && el.requestFullscreen) return el.requestFullscreen().catch(() => {});
+    return Promise.resolve();
+  },
+  // Orientation lock only works in a handful of browsers (mainly Android
+  // Chrome) and typically only while in fullscreen; iOS Safari does not
+  // support it in a regular tab at all, so this is best-effort and
+  // silently no-ops where unsupported.
+  toggleOrientationLock: () => {
+    const so = screen.orientation;
+    if (!so || !so.lock) return Promise.resolve(false);
+    const current = (so.type || '').startsWith('portrait') ? 'portrait' : 'landscape';
+    const next = current === 'portrait' ? 'landscape' : 'portrait';
+    return so.lock(next).then(() => true).catch(() => false);
+  },
+  currentOrientation: () => {
+    const so = screen.orientation;
+    if (so && so.type) return so.type.startsWith('portrait') ? 'portrait' : 'landscape';
+    return window.innerHeight >= window.innerWidth ? 'portrait' : 'landscape';
+  }
+};
+
+// console/debug hook (also used by the scripted browser test)
+window.__ouk = {
+  state: () => state,
+  moves: () => moveEntries.slice(),
+  gameOver: () => gameOver,
+  aiBusy: () => aiBusy,
+  uiMode: () => uiMode,
+  theme: () => themeKey,
+  labelCount: () => labelGroup.children.length,
+  captured: () => capturedLists(),
+  capturedMeshCount: () => capturedGroup.children.length,
+  lessonText: () => document.getElementById('lessonText').textContent,
+  pixelated: () => pixelActive,
+  hudText: () => document.getElementById('hud').textContent,
+  hudVisible: () => document.getElementById('hud').style.display === 'block',
+  overlayOpen: () => overlayOpen,
+  currentMode: () => mode,
+  currentSide: () => humanSide,
+  camDistance: () => camera.position.distanceTo(controls.target),
+  camTarget: () => controls.target.clone(),
+  camPolarAngle: () => controls.getPolarAngle(),
+  camPosition: () => camera.position.clone(),
+  panelHidden: () => document.body.classList.contains('panel-hidden'),
+  pieceLabelCount: () => pieceGroup.children.reduce((n, g) => n + g.children.filter(c => c.isSprite).length, 0),
+  showPieceNames: () => showPieceNames,
+  pieceNamePosition: () => pieceNamePosition,
+  pieceNameLang: () => pieceNameLang,
+  pieceLabelInfo: () => pieceGroup.children.map(g => {
+    const sprite = g.children.find(c => c.isSprite);
+    if (!sprite) return null;
+    return { y: sprite.position.y, scaleX: sprite.scale.x, scaleY: sprite.scale.y };
+  }).filter(Boolean),
+  pieceLabelTypeAt: (sq) => {
+    const g = pieceAt[sq];
+    if (!g) return null;
+    const sprite = g.children.find(c => c.isSprite);
+    return sprite ? { y: sprite.position.y, scaleX: sprite.scale.x } : null;
+  },
+  pieceLabelBgColors: () => {
+    const out = {};
+    for (const key in pieceLabelMats) {
+      const cv = pieceLabelMats[key].map.image;
+      const d = cv.getContext('2d').getImageData(20, 20, 1, 1).data;
+      out[key] = [d[0], d[1], d[2], d[3]];
+    }
+    return out;
+  },
+  backgroundOverride: () => bgOverride,
+  backgroundIsTexture: () => scene.background && scene.background.isTexture === true,
+  backgroundCanvasDataURL: () => (scene.background && scene.background.image) ? scene.background.image.toDataURL() : null,
+  sunPosition: () => sun.position.clone(),
+  sunIntensity: () => sun.intensity,
+  sunColor: () => sun.color.getHex(),
+  ambientIntensity: () => ambientLight.intensity,
+  lightAzEl: () => ({ azimuth: lightAzimuth, elevation: lightElevation }),
+  tileColorsUniform: () => new Set(squareMeshes.map(m => m.userData.baseColor)).size === 1,
+  gridVisible: () => gridOverlayMesh.visible,
+  pieceStyle: () => pieceStyleOverride,
+  audioReady: () => !!audioCtx,
+  musicPlaying: () => musicPlaying,
+  currentMusicKey: () => currentMusicKey,
+  sfxVolume: () => sfxGain ? sfxGain.gain.value : null,
+  musicVolume: () => musicGain ? musicGain.gain.value : null,
+  sfxLog: () => window.__oukSfxLog.slice(),
+  musicTracks: () => MUSIC_TRACKS,
+  queue: () => musicQueue.map(q => q.name),
+  queueIndex: () => queueIndex,
+  playSource: () => playSource,
+  screenXY: (sq) => {
+    const p = sqPos(sq);
+    const v = new THREE.Vector3(p.x, 0.05, p.z).project(camera);
+    const r = renderer.domElement.getBoundingClientRect();
+    return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - (v.y + 1) / 2) * r.height };
+  }
+};
+
+// ---------- render loop ----------
+function resize() {
+  const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight;
+  if (pixelActive) {
+    const scale = 0.32;
+    const iw = Math.max(120, Math.round(w * scale)), ih = Math.max(90, Math.round(h * scale));
+    renderer.setPixelRatio(1);
+    renderer.setSize(iw, ih, false);
+    renderer.domElement.style.width = w + 'px';
+    renderer.domElement.style.height = h + 'px';
+  } else {
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(w, h, true);
+  }
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+
+// ---------- camera zoom (dollies toward/away from the fixed board-center
+// target, so the board always stays centered no matter the zoom level) ----------
+const DEFAULT_CAM_POS = new THREE.Vector3(0, 10, 9.3);
+function zoomBy(factor) {
+  const dir = camera.position.clone().sub(controls.target);
+  const dist = dir.length() * factor;
+  const clamped = Math.min(controls.maxDistance, Math.max(controls.minDistance, dist));
+  dir.setLength(clamped);
+  camera.position.copy(controls.target).add(dir);
+  controls.update();
+}
+function resetView() {
+  camera.position.copy(DEFAULT_CAM_POS);
+  controls.target.set(0, 0, 0);
+  controls.update();
+}
+function topView() {
+  const dist = camera.position.distanceTo(controls.target) || DEFAULT_CAM_POS.length();
+  controls.target.set(0, 0, 0);
+  // x must be exactly 0 (not a matching tiny epsilon on both axes — that
+  // gave atan2(x,z) a 45° azimuth, which is why the board looked rotated
+  // diagonally instead of square to the screen). A small positive z keeps
+  // the same 0° azimuth as the default view, just orbited to look straight down.
+  camera.position.set(0, dist, 0.001);
+  controls.update();
+}
+document.getElementById('zoomInBtn').onclick = () => zoomBy(0.8);
+document.getElementById('zoomOutBtn').onclick = () => zoomBy(1.25);
+document.getElementById('zoomResetBtn').onclick = resetView;
+document.getElementById('topViewBtn').onclick = topView;
+
+// ---------- hide/show the settings panel ----------
+document.getElementById('panelToggle').onclick = () => {
+  document.body.classList.toggle('panel-hidden');
+  resize();
+};
+
+let clock = new THREE.Clock();
+function loop() {
+  requestAnimationFrame(loop);
+  controls.update();
+  if (checkRing) checkRing.material.opacity = 0.35 + 0.3 * Math.abs(Math.sin(clock.getElapsedTime() * 3));
+  renderer.render(scene, camera);
+}
+
+applyTheme('wood');
+resize();
+newGame();
+loop();
+</script>
+
+<!-- ============ Mobile touch UI (React) ============
+     A small React app renders a touch-friendly bottom (portrait) / side
+     (landscape) toolbar on phones, and owns the settings-sheet open/closed
+     state; it drives the vanilla game underneath entirely through the
+     window.__oukActions bridge above, defined by the module script. This
+     is `defer`red (like the module script above) so it runs after that
+     bridge exists, while still executing in document order relative to
+     other deferred scripts. -->
+<script defer>
+(function () {
+  var e = React.createElement;
+  var enteredMobileOnce = false;
+
+  function isMobileViewport() {
+    return window.innerWidth <= 820 || window.innerHeight <= 560;
+  }
+
+  // The manual fullscreen toggle button was removed: on iOS, when this page
+  // is opened inside a third-party document-viewer app's built-in browser
+  // (the only way to open a local HTML file on iOS, e.g. Documents by
+  // Readdle), tapping it just flickers that app's own chrome on/off rather
+  // than doing anything useful. The one-time automatic fullscreen request
+  // on the Start button tap (a real user gesture, not a repeated toggle)
+  // is unaffected and still requested where supported.
+  function MobileToolbar() {
+    var _s = React.useState(function () { return window.__oukActions.isPanelOpen(); });
+    var open = _s[0], setOpen = _s[1];
+    var act = function (fn) { return function () { window.__oukActions[fn](); }; };
+    var toggleSettings = function () {
+      window.__oukActions.togglePanel();
+      setOpen(window.__oukActions.isPanelOpen());
+    };
+    var toggleOrientation = function () { window.__oukActions.toggleOrientationLock(); };
+    return e('div', { id: 'mobileToolbar' },
+      e('button', { onClick: act('newGame'), title: 'New game', 'aria-label': 'New game' }, '🆕'),
+      e('button', { onClick: act('undo'), title: 'Undo', 'aria-label': 'Undo' }, '↩️'),
+      e('button', { onClick: act('changeMode'), title: 'Change mode', 'aria-label': 'Change mode' }, '🎮'),
+      e('button', { onClick: act('save'), title: 'Save', 'aria-label': 'Save' }, '💾'),
+      e('button', { onClick: act('load'), title: 'Load', 'aria-label': 'Load' }, '📂'),
+      e('button', {
+        onClick: toggleOrientation, title: 'Rotate portrait/landscape (where supported)', 'aria-label': 'Rotate orientation'
+      }, '🔄'),
+      e('button', {
+        onClick: toggleSettings, title: 'Settings', 'aria-label': 'Settings',
+        className: open ? 'active' : ''
+      }, '⚙️')
+    );
+  }
+
+  var reactRoot = null;
+  function mountIfMobile() {
+    var mobile = isMobileViewport();
+    document.body.classList.toggle('is-mobile', mobile);
+    if (mobile) {
+      if (!enteredMobileOnce) {
+        // start with the board full-screen; the user opens the sheet on demand
+        document.body.classList.add('panel-hidden');
+        enteredMobileOnce = true;
+      }
+      var host = document.getElementById('mobileToolbarRoot');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'mobileToolbarRoot';
+        document.body.appendChild(host);
+      }
+      if (!reactRoot) reactRoot = ReactDOM.createRoot(host);
+      reactRoot.render(e(MobileToolbar));
+    } else if (reactRoot) {
+      reactRoot.unmount();
+      reactRoot = null;
+      var oldHost = document.getElementById('mobileToolbarRoot');
+      if (oldHost) oldHost.remove();
+      document.body.classList.remove('panel-hidden');
+      enteredMobileOnce = false;
+    }
+  }
+  // The main game lives in a <script type="module"> that imports Three.js
+  // from a CDN; module execution waits on those network fetches, so it is
+  // not safe to assume this classic deferred script runs after it just
+  // because it appears later in the document. Poll briefly instead.
+  function whenActionsReady(cb) {
+    if (window.__oukActions) cb();
+    else setTimeout(function () { whenActionsReady(cb); }, 20);
+  }
+  whenActionsReady(function () {
+    window.addEventListener('resize', mountIfMobile);
+    window.addEventListener('orientationchange', mountIfMobile);
+    mountIfMobile();
+  });
+})();
+</script>
+</body>
+</html>
