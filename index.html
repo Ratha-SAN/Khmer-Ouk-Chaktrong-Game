@@ -37,6 +37,20 @@
     text-shadow: 0 1px 3px #000, 0 0 6px rgba(0,0,0,.8), 2px 2px 0 rgba(0,0,0,.6);
   }
   #hud b { color: #ffd23f; }
+  /* Move list: a borderless, transparent overlay directly under the HUD's
+     move-count/time readout (not a boxed panel section) whose top and
+     bottom edges fade via a mask rather than clipping abruptly. */
+  #movelist {
+    position: absolute; top: 66px; left: 16px; z-index: 3;
+    width: 190px; max-height: 26vh; overflow-y: auto; overflow-x: hidden;
+    background: transparent; padding: 6px 0; font-size: 12px; line-height: 1.7;
+    color: #fff; text-shadow: 0 1px 3px #000, 0 0 6px rgba(0,0,0,.7);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+    scrollbar-width: none;
+  }
+  #movelist::-webkit-scrollbar { display: none; }
+  #movelist div span.no { color: #cdbfa0; display: inline-block; min-width: 2.2em; }
   #banner {
     position: absolute; top: 40%; left: 50%; transform: translate(-50%,-50%);
     background: rgba(20,14,8,.92); border: 2px solid var(--accent); border-radius: 12px;
@@ -50,8 +64,8 @@
   /* Without this, flexbox shrinks every section proportionally to fit the
      container instead of letting #panel scroll — so opening one accordion
      (or several at once) would squash the others below their content
-     height. #movelist is deliberately the one flexible/scrollable area. */
-  #panel > *:not(#movelist) { flex-shrink: 0; }
+     height. */
+  #panel > * { flex-shrink: 0; }
   h1 { font-size: 20px; color: var(--accent); font-weight: 600; }
   h1 small { display: block; font-size: 12px; color: #b7a687; font-weight: 400; }
   #tabs { display: flex; gap: 8px; }
@@ -134,6 +148,10 @@
   select { width: 100%; margin: 3px 0; }
   button:hover:not(:disabled) { background: #4a3a20; border-color: var(--accent); }
   button:disabled { opacity: .45; cursor: default; }
+  /* guest-tier locked controls: dimmed but still clickable (a real
+     disabled attribute would swallow the click, so a popup could never be
+     shown) -- clicking one pops up the sign-in prompt instead of acting. */
+  button.locked { opacity: .5; }
   .btnrow { display: flex; gap: 8px; flex-wrap: wrap; }
   .btnrow button { flex: 1 1 auto; }
   #countPanel {
@@ -142,11 +160,6 @@
   }
   #countPanel .big { font-size: 20px; color: var(--accent); }
   #countPanel button { margin-top: 6px; }
-  #movelist {
-    flex: 1 1 120px; min-height: 90px; overflow-y: auto; border: 1px solid var(--line);
-    border-radius: 8px; padding: 8px 12px; font-size: 13px; line-height: 1.7; background: #1c1610;
-  }
-  #movelist div span.no { color: #8a785c; display: inline-block; min-width: 2.2em; }
   /* training */
   #trainPanel { display: none; flex-direction: column; gap: 10px; }
   .piecebtns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
@@ -159,8 +172,6 @@
     padding: 10px 12px; font-size: 14px; line-height: 1.9; min-height: 120px;
   }
   #lessonText .en { display: block; margin-top: 8px; font-size: 12px; color: #b7a687; line-height: 1.5; }
-  #panel footer { font-size: 11px; color: #8a785c; line-height: 1.5; }
-  #panel footer a { color: var(--accent-dim); }
   /* modal */
   #modal {
     position: fixed; inset: 0; background: rgba(0,0,0,.65); display: none;
@@ -222,6 +233,7 @@
     #camControls { top: 12px; }
     #boardTitle { font-size: 20px; top: 68px; }
     #hud { font-size: 11px; }
+    #movelist { top: 54px; width: 150px; font-size: 11px; }
     #mobileToolbar {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 16; max-height: 100%;
       display: flex; justify-content: space-around; align-items: center;
@@ -262,10 +274,30 @@
 <script>
   window.__oukTrack = function () {};
   window.__oukEndSession = function () {};
+  // One persistent object for the whole page lifetime: getState/onChange
+  // stay valid and keep working across the handoff below from this stub
+  // (sign-in rejects immediately) to the real Firebase-backed
+  // implementation once firebase-auth-compat.js finishes loading --
+  // onChange subscribers registered early are not lost in that handoff,
+  // since _setState (not a fresh listener array) is what changes.
+  window.__oukAuth = (function () {
+    var listeners = [];
+    var state = { signedIn: false, method: null, uid: null };
+    return {
+      getState: function () { return state; },
+      onChange: function (cb) { listeners.push(cb); cb(state); },
+      _setState: function (s) { state = s; listeners.forEach(function (cb) { try { cb(state); } catch (e) {} }); },
+      signInGuest: function () { return Promise.reject(new Error('Firebase unavailable')); },
+      signInGoogle: function () { return Promise.reject(new Error('Firebase unavailable')); },
+      signInApple: function () { return Promise.reject(new Error('Firebase unavailable')); },
+      signOut: function () { return Promise.resolve(); }
+    };
+  })();
 </script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
 (function () {
   // Anonymous gameplay analytics + per-visit session tracking (Firebase
@@ -312,6 +344,42 @@
           startTime: firebase.firestore.FieldValue.serverTimestamp(),
           userAgent: navigator.userAgent
         }).catch(function (err) { console.warn('Firestore session start failed:', err); });
+      }
+      if (firebase.auth) {
+        var auth = firebase.auth();
+        // Upgrade the persistent window.__oukAuth in place (see the stub
+        // above): only its sign-in methods and state source change, so
+        // onChange subscribers registered before this point keep working.
+        auth.onAuthStateChanged(function (user) {
+          window.__oukAuth._setState(user ? {
+            signedIn: true,
+            // Firebase marks anonymous auth with isAnonymous; Google/Apple
+            // sign-ins carry a providerId on their providerData entry.
+            method: user.isAnonymous ? 'guest' : ((user.providerData[0] && user.providerData[0].providerId) || 'unknown'),
+            uid: user.uid
+          } : { signedIn: false, method: null, uid: null });
+        });
+        window.__oukAuth.signInGuest = function () {
+          return auth.signInAnonymously().catch(function (err) {
+            console.warn('Guest sign-in failed:', err); throw err;
+          });
+        };
+        window.__oukAuth.signInGoogle = function () {
+          var provider = new firebase.auth.GoogleAuthProvider();
+          return auth.signInWithPopup(provider).catch(function (err) {
+            console.warn('Google sign-in failed:', err); throw err;
+          });
+        };
+        // Apple's real sign-in product is "Sign in with Apple" (tied to the
+        // user's Apple ID/iCloud account) -- there is no separate "iCloud
+        // sign-in" API, so this is the correct implementation of that request.
+        window.__oukAuth.signInApple = function () {
+          var provider = new firebase.auth.OAuthProvider('apple.com');
+          return auth.signInWithPopup(provider).catch(function (err) {
+            console.warn('Apple sign-in failed:', err); throw err;
+          });
+        };
+        window.__oukAuth.signOut = function () { return auth.signOut(); };
       }
     }
   } catch (err) {
@@ -369,6 +437,7 @@
   <div id="bgFade"></div>
   <div id="boardTitle">អុកចត្រង្គ<small>OUK CHATRANG</small></div>
   <div id="hud"></div>
+  <div id="movelist"></div>
   <div id="thinking">កំពុងគិត… Computer is thinking…</div>
   <div id="banner"></div>
   <button id="panelToggle" title="Hide/show settings panel">◧</button>
@@ -380,7 +449,21 @@
   </div>
 </div>
 
-<div id="startScreen" class="fullOverlay">
+<div id="loginScreen" class="fullOverlay">
+  <div class="box">
+    <h1>អុកចត្រង្គ<br>Ouk Chatrang</h1>
+    <p>ចូលគណនី — Sign in to sync your settings, or continue as a guest</p>
+    <div class="btnrow" style="flex-direction:column;gap:10px">
+      <button id="loginGoogleBtn">ចូលដោយ Google — Sign in with Google</button>
+      <button id="loginAppleBtn"> Sign in with Apple</button>
+      <button id="loginGuestBtn">បន្តជាភ្ញៀវ — Continue as Guest</button>
+    </div>
+    <p id="loginError" style="display:none;color:var(--danger);font-size:12px;margin-top:12px"></p>
+    <p style="font-size:11px;color:#8a785c;margin-top:14px">Guest access unlocks the top 2 options in Theme, Background, Music, and Lighting. Sign in to unlock everything.</p>
+  </div>
+</div>
+
+<div id="startScreen" class="fullOverlay" style="display:none">
   <div class="box">
     <h1>អុកចត្រង្គ<br>Ouk Chatrang</h1>
     <p>ល្បែងអុកខ្មែរបែបប្រពៃណី — Traditional Cambodian chess</p>
@@ -582,13 +665,16 @@
     </div>
   </details>
 
-  <div id="movelist"></div>
+</div>
 
-  <footer>
-    Sources conflict on some details (special-move forfeiture, counting limits);
-    see <a href="#" id="rulesLink">Rules</a> for what this implementation follows.
-    Self-tests: open the console and run <code>runOukSelfTests()</code>.
-  </footer>
+<div id="lockPopup" class="fullOverlay" style="display:none;z-index:25">
+  <div class="box" style="max-width:320px">
+    <p>🔒 Sign in to unlock all features</p>
+    <div class="btnrow" style="margin-top:14px;justify-content:center">
+      <button id="lockPopupSignIn">ចូល Sign In</button>
+      <button id="lockPopupClose">បិទ Close</button>
+    </div>
+  </div>
 </div>
 
 <div id="modal"><div class="box">
@@ -2727,7 +2813,16 @@ function voicePluck(freq, dur, gain, filterHz) {
   noiseBurst({ dur: Math.min(dur * 0.3, 0.08), filterFreq: freq * 2, q: 8, gain: gain * 0.6, bus: musicGain });
   envOsc({ freq, type: 'triangle', dur, gain, bus: musicGain, attack: 0.004, filterHz: filterHz || 2500 });
 }
-const VOICES = { pad: voicePad, flute: voiceFlute, piano: voicePiano, bell: voiceBell, pluck: voicePluck };
+function voiceGuitar(freq, dur, gain, filterHz) {
+  // Nylon-string-style pluck: a brief pick-noise transient, a sawtooth
+  // fundamental darkened by a low-pass for warmth, and a quiet detuned
+  // octave partial for body -- softer and more harmonic than voicePluck's
+  // brighter mallet transient, so it reads as a strummed/plucked guitar.
+  noiseBurst({ dur: Math.min(dur * 0.15, 0.04), filterFreq: freq * 3, q: 4, gain: gain * 0.35, bus: musicGain });
+  envOsc({ freq, type: 'sawtooth', dur, gain, bus: musicGain, attack: 0.006, filterHz: filterHz || 1800 });
+  envOsc({ freq: freq * 2.003, type: 'sine', dur: dur * 0.7, gain: gain * 0.18, bus: musicGain, attack: 0.008 });
+}
+const VOICES = { pad: voicePad, flute: voiceFlute, piano: voicePiano, bell: voiceBell, pluck: voicePluck, guitar: voiceGuitar };
 // One sound palette per board-theme style: wood thump, stone knock, soft
 // electronic tick, 8-bit blip — move/capture/check for each.
 const SFX = {
@@ -2771,20 +2866,20 @@ function playMoveSound(kind) {
 // (drone, arpeggio, sparse-with-rests, skip pattern) — notes use `null`
 // for a silent beat.
 const MUSIC_TRACKS = {
-  relax1: { label: 'ភ្លេងសណ្ឋាគារ១ Lobby Lounge I (pad, solo)', instrument: 'pad', noteLen: 1450, gain: 0.09,
-    filterHz: 850, detune: 5,
+  relax1: { label: 'ភ្លេងសណ្ឋាគារ១ Lobby Lounge I (piano, solo)', instrument: 'piano', noteLen: 1450, gain: 0.09,
+    sustain: 0.3,
     notes: [261.63, 293.66, 329.63, 293.66] },
-  relax2: { label: 'ភ្លេងសណ្ឋាគារ២ Lobby Lounge II (flute, solo)', instrument: 'flute', noteLen: 460, gain: 0.09,
-    filterHz: 2600,
+  relax2: { label: 'ភ្លេងសណ្ឋាគារ២ Lobby Lounge II (guitar, solo)', instrument: 'guitar', noteLen: 460, gain: 0.09,
+    filterHz: 2000,
     notes: [220.00, 261.63, 293.66, 329.63, 392.00, 440.00, null, null] },
   relax3: { label: 'ភ្លេងសណ្ឋាគារ៣ Quiet Terrace (piano, solo)', instrument: 'piano', noteLen: 900, gain: 0.1,
     sustain: 0.32,
     notes: [392.00, null, 329.63, null, 349.23, null, 293.66, null] },
-  relax4: { label: 'ភ្លេងសណ្ឋាគារ៤ Evening Spa (pad + flute mix)', instrument: 'pad', instrument2: 'flute', noteLen: 1150, gain: 0.08,
-    filterHz: 1100, detune: 6,
+  relax4: { label: 'ភ្លេងសណ្ឋាគារ៤ Evening Spa (piano + guitar mix)', instrument: 'piano', instrument2: 'guitar', noteLen: 1150, gain: 0.08,
+    filterHz: 1600,
     notes: [349.23, 329.63, 293.66, 261.63] },
-  relax5: { label: 'ភ្លេងសណ្ឋាគារ៥ Still Water (pad, solo)', instrument: 'pad', noteLen: 1700, gain: 0.08,
-    filterHz: 700, detune: 4,
+  relax5: { label: 'ភ្លេងសណ្ឋាគារ៥ Still Water (guitar, solo)', instrument: 'guitar', noteLen: 1700, gain: 0.08,
+    filterHz: 1400,
     notes: [329.63, 329.63, 392.00, 349.23] },
   khmer1: { label: 'ភ្លេងខ្មែរ១ Khmer Roneat (bell, solo)', instrument: 'bell', noteLen: 380, gain: 0.09,
     notes: [293.66, 349.23, 392.00, 440.00, 523.25, 440.00, 392.00, 349.23] },
@@ -3353,8 +3448,7 @@ undoBtn.onclick = () => {
   gameOver = false;
   refreshAll();
 };
-document.getElementById('rulesBtn').onclick =
-document.getElementById('rulesLink').onclick = (e) => { e.preventDefault(); document.getElementById('modal').style.display = 'flex'; };
+document.getElementById('rulesBtn').onclick = (e) => { e.preventDefault(); document.getElementById('modal').style.display = 'flex'; };
 
 // resets the board using whatever mode/humanSide are currently set; both
 // "New game" and a confirmed mode-select pick funnel through this
@@ -3562,11 +3656,123 @@ window.__oukActions = {
   }
 };
 
+// ---------- sign-in (login screen) ----------
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function finishLogin() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('startScreen').style.display = 'flex';
+}
+document.getElementById('loginGuestBtn').onclick = () => {
+  // Even if anonymous auth itself fails (offline, blocked network), still
+  // let the player continue locally as an unauthenticated guest -- signing
+  // in is only ever needed to unlock full settings, never to play at all.
+  window.__oukAuth.signInGuest().then(finishLogin).catch(finishLogin);
+};
+document.getElementById('loginGoogleBtn').onclick = () => {
+  window.__oukAuth.signInGoogle().then(finishLogin).catch(() => {
+    showLoginError('Google sign-in needs this page to be hosted on an https site (not a local file). Continuing as guest.');
+    finishLogin();
+  });
+};
+document.getElementById('loginAppleBtn').onclick = () => {
+  window.__oukAuth.signInApple().then(finishLogin).catch(() => {
+    showLoginError('Apple sign-in needs this page to be hosted on an https site (not a local file). Continuing as guest.');
+    finishLogin();
+  });
+};
+
+// ---------- guest feature gating ----------
+// A real Google/Apple sign-in unlocks every option; anonymous/guest (or no
+// sign-in at all) is capped to the first two real choices in Theme,
+// Background, Music, and Lighting. A neutral/free choice ('auto' / 'none')
+// doesn't count as one of the two, since it isn't really "a feature."
+let accessTier = 'guest'; // 'guest' | 'full'
+const GUEST_SELECT_LIMITS = {
+  themeSel: { free: [], allowed: 2 },
+  bgSel: { free: ['auto'], allowed: 2 },
+  musicSel: { free: ['none'], allowed: 2 }
+};
+const GUEST_LOCKED_BUTTONS = ['lightEvening', 'lightStudio'];
+
+function isSelectValueLocked(selId, value) {
+  if (accessTier !== 'guest') return false;
+  const rule = GUEST_SELECT_LIMITS[selId];
+  if (!rule || rule.free.includes(value)) return false;
+  const sel = document.getElementById(selId);
+  const realValues = Array.from(sel.options).map(o => o.value).filter(v => !rule.free.includes(v));
+  return realValues.indexOf(value) >= rule.allowed;
+}
+function decorateOptionLabel(opt, locked) {
+  if (!opt.dataset.baseLabel) opt.dataset.baseLabel = opt.textContent;
+  opt.textContent = locked ? opt.dataset.baseLabel + ' 🔒' : opt.dataset.baseLabel;
+}
+function decorateButtonLabel(btn, locked) {
+  if (!btn.dataset.baseLabel) btn.dataset.baseLabel = btn.textContent;
+  btn.textContent = locked ? btn.dataset.baseLabel + ' 🔒' : btn.dataset.baseLabel;
+  btn.classList.toggle('locked', locked);
+}
+function applyAccessTier() {
+  Object.keys(GUEST_SELECT_LIMITS).forEach(selId => {
+    const sel = document.getElementById(selId);
+    Array.from(sel.options).forEach(opt => decorateOptionLabel(opt, isSelectValueLocked(selId, opt.value)));
+  });
+  GUEST_LOCKED_BUTTONS.forEach(id => decorateButtonLabel(document.getElementById(id), accessTier === 'guest'));
+}
+function showLockPopup() { document.getElementById('lockPopup').style.display = 'flex'; }
+document.getElementById('lockPopupClose').onclick = () => { document.getElementById('lockPopup').style.display = 'none'; };
+document.getElementById('lockPopupSignIn').onclick = () => {
+  document.getElementById('lockPopup').style.display = 'none';
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('modeScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+};
+// Wrap each control's already-assigned handler rather than editing it in
+// place: the wrapper decides, on every interaction, whether to call
+// through to the original behavior or block it with the lock popup --
+// this stays correct even as accessTier changes later (sign-in mid-session).
+function gateSelect(selId) {
+  const sel = document.getElementById(selId);
+  const original = sel.onchange;
+  let lastGood = sel.value;
+  sel.onchange = function (e) {
+    if (isSelectValueLocked(selId, sel.value)) {
+      sel.value = lastGood;
+      showLockPopup();
+      return;
+    }
+    lastGood = sel.value;
+    return original.call(this, e);
+  };
+}
+function gateButton(btnId) {
+  const btn = document.getElementById(btnId);
+  const original = btn.onclick;
+  btn.onclick = function (e) {
+    if (accessTier === 'guest' && GUEST_LOCKED_BUTTONS.includes(btnId)) { showLockPopup(); return; }
+    return original.call(this, e);
+  };
+}
+Object.keys(GUEST_SELECT_LIMITS).forEach(gateSelect);
+GUEST_LOCKED_BUTTONS.forEach(gateButton);
+applyAccessTier();
+window.__oukAuth.onChange((s) => {
+  accessTier = (s.signedIn && s.method !== 'guest') ? 'full' : 'guest';
+  applyAccessTier();
+});
+
 // console/debug hook (also used by the scripted browser test)
 window.__ouk = {
   state: () => state,
   refreshStatus: () => refreshStatus(),
   moves: () => moveEntries.slice(),
+  accessTier: () => accessTier,
+  isOptionLocked: (selId, value) => isSelectValueLocked(selId, value),
+  isButtonLocked: (btnId) => document.getElementById(btnId).classList.contains('locked'),
+  lockPopupVisible: () => document.getElementById('lockPopup').style.display === 'flex',
   gameOver: () => gameOver,
   aiBusy: () => aiBusy,
   uiMode: () => uiMode,
