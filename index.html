@@ -795,6 +795,12 @@
     <label>Height (elevation) កម្ពស់
       <input type="range" id="lightElevation" min="10" max="85" step="1" value="55" style="width:100%">
     </label>
+    <label style="margin-top:6px">Brightness ពន្លឺភ្លឺ
+      <input type="range" id="lightBrightness" min="40" max="200" step="5" value="100" style="width:100%">
+    </label>
+    <label>Luminescent Pieces ត្បកភ្លឺរះ
+      <input type="range" id="pieceLuminescence" min="0" max="100" step="5" value="0" style="width:100%">
+    </label>
     </div>
   </details>
 
@@ -1962,10 +1968,15 @@ variantRadios.forEach(r => r.addEventListener('change', () => { if (state) { sta
 // clean 8-bit blocks. A plain, non-antialiased context with hard shadows
 // is what actually looks sharp once magnified.
 const sceneDiv = document.getElementById('scene');
+// overall scene brightness, applied as a renderer exposure multiplier so it
+// stays independent of the azimuth/elevation/mood lighting controls
+let sceneBrightness = 1, pieceLuminescence = 0;
 function createRenderer(smooth) {
   const r = new THREE.WebGLRenderer({ antialias: smooth, powerPreference: 'high-performance' });
   r.shadowMap.enabled = true;
   r.shadowMap.type = smooth ? THREE.PCFSoftShadowMap : THREE.BasicShadowMap;
+  r.toneMapping = THREE.LinearToneMapping;
+  r.toneMappingExposure = sceneBrightness;
   return r;
 }
 function configureControls(c) {
@@ -2043,6 +2054,14 @@ document.getElementById('lightStudio').onclick = () => setLightMood({
 });
 document.getElementById('lightAzimuth').oninput = (e) => { lightAzimuth = +e.target.value; updateSunPosition(); };
 document.getElementById('lightElevation').oninput = (e) => { lightElevation = +e.target.value; updateSunPosition(); };
+document.getElementById('lightBrightness').oninput = (e) => {
+  sceneBrightness = +e.target.value / 100; // 100 = neutral (exposure 1.0)
+  renderer.toneMappingExposure = sceneBrightness;
+};
+document.getElementById('pieceLuminescence').oninput = (e) => {
+  pieceLuminescence = (+e.target.value / 100) * 2; // 0..100 slider -> 0..2 emissiveIntensity
+  applyPieceLuminescence();
+};
 
 function sqPos(sq) { return { x: E.fileOf(sq) - 3.5, z: 3.5 - E.rankOf(sq) }; }
 
@@ -2154,6 +2173,24 @@ function buildLabels() {
 const MAT_W = new THREE.MeshStandardMaterial({ color: 0xe9dabb, roughness: 0.45, metalness: 0.05 });
 const MAT_B = new THREE.MeshStandardMaterial({ color: 0x6d2a18, roughness: 0.45, metalness: 0.05 });
 const MAT_GOLD = new THREE.MeshStandardMaterial({ color: 0xd4a548, roughness: 0.3, metalness: 0.6 });
+// "Luminescent Pieces": each piece glows in its own hue, from off (0) up to
+// a strong inner glow -- reapplied whenever the theme (and so the piece
+// colors) changes, so the glow color always tracks the current set. A
+// saturation/lightness floor keeps the glow visible even for themes whose
+// "black side" color is nearly black itself (it would otherwise multiply
+// out to an invisible glow).
+const fxGlowHSL = { h: 0, s: 0, l: 0 };
+function glowTint(baseColor) {
+  baseColor.getHSL(fxGlowHSL);
+  return new THREE.Color().setHSL(fxGlowHSL.h, Math.max(fxGlowHSL.s, 0.55), Math.max(fxGlowHSL.l, 0.5));
+}
+function applyPieceLuminescence() {
+  MAT_W.emissive.copy(glowTint(MAT_W.color));
+  MAT_B.emissive.copy(glowTint(MAT_B.color));
+  MAT_W.emissiveIntensity = pieceLuminescence;
+  MAT_B.emissiveIntensity = pieceLuminescence;
+}
+applyPieceLuminescence();
 
 // Three piece-set styles. 'traditional' = smooth turned wood; 'carved' =
 // faceted, angular like carved stone; 'minimal' = slender high-polish forms.
@@ -2888,6 +2925,7 @@ function applyTheme(key) {
   trayMat.color.setHex(t.tray);
   MAT_W.color.setHex(t.pieceW); MAT_W.roughness = t.rough; MAT_W.metalness = t.metal;
   MAT_B.color.setHex(t.pieceB); MAT_B.roughness = t.rough; MAT_B.metalness = t.metal;
+  applyPieceLuminescence();
   const tiled = t.brickTiles || t.paintedTiles;
   for (const m of squareMeshes) {
     const light = (E.fileOf(m.userData.sq) + E.rankOf(m.userData.sq)) % 2 === 1;
@@ -4886,6 +4924,11 @@ window.__ouk = {
   sunColor: () => sun.color.getHex(),
   ambientIntensity: () => ambientLight.intensity,
   lightAzEl: () => ({ azimuth: lightAzimuth, elevation: lightElevation }),
+  sceneBrightness: () => sceneBrightness,
+  rendererExposure: () => renderer.toneMappingExposure,
+  pieceLuminescence: () => pieceLuminescence,
+  pieceEmissiveIntensity: () => ({ w: MAT_W.emissiveIntensity, b: MAT_B.emissiveIntensity }),
+  pieceEmissiveColor: () => ({ w: MAT_W.emissive.getHex(), b: MAT_B.emissive.getHex() }),
   tileColorsUniform: () => new Set(squareMeshes.map(m => m.userData.baseColor)).size === 1,
   gridVisible: () => gridOverlayMesh.visible,
   pieceStyle: () => pieceStyleOverride,
