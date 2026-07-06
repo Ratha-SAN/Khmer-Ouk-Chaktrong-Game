@@ -414,6 +414,124 @@
   @media (prefers-reduced-motion: reduce) {
     #scene.fx-shake { animation: none; }
   }
+
+  /* ---- Pawn promotion ("Trey Bork") transformation: an expanding golden
+     ring plus a handful of rising sparks at the square the pawn just
+     transformed on. ---- */
+  .fx-promote-ring {
+    position: absolute; width: 10px; height: 10px; left: -5px; top: -5px;
+    border-radius: 50%; border: 3px solid var(--fxcol, #ffd700);
+    box-shadow: 0 0 16px var(--fxcol, #ffd700);
+    animation: fxPromoteRing 560ms ease-out forwards;
+  }
+  @keyframes fxPromoteRing {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(14); opacity: 0; }
+  }
+  .fx-promote-spark {
+    position: absolute; width: 6px; height: 6px; left: -3px; top: -3px; border-radius: 50%;
+    background: var(--fxcol, #ffd700); box-shadow: 0 0 8px var(--fxcol, #ffd700);
+    animation: fxPromoteSpark 570ms ease-out forwards;
+  }
+  @keyframes fxPromoteSpark {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--mx, 0), var(--my, -60px)) scale(.2); opacity: 0; }
+  }
+
+  /* ---- "Giant slayer": a small piece capturing a bigger one gets a
+     sharper shockwave ring layered on top of its normal capture effect,
+     plus a shorter, lighter reuse of the check-effect board shake. ---- */
+  .fx-upset-ring {
+    position: absolute; width: 6px; height: 6px; left: -3px; top: -3px;
+    border-radius: 50%; border: 4px solid var(--fxcol, #ff3d3d);
+    box-shadow: 0 0 22px var(--fxcol, #ff3d3d), inset 0 0 14px var(--fxcol, #ff3d3d);
+    animation: fxUpsetRing 480ms cubic-bezier(.2,.8,.3,1) forwards;
+  }
+  @keyframes fxUpsetRing {
+    0% { transform: scale(1); opacity: 1; }
+    60% { opacity: .9; }
+    100% { transform: scale(22); opacity: 0; }
+  }
+
+  /* ---- Opponent "casting" flourish: a brief rotating rune at the origin
+     square, fired only for the AI opponent's own moves (not the human's),
+     so an opponent move reads as a distinct conjuring rather than just a
+     differently-colored version of the human's own move trail. ---- */
+  .fx-cast-rune {
+    position: absolute; width: 46px; height: 46px; left: -23px; top: -23px;
+    border-radius: 50%; border: 2px dashed var(--fxcol, #7ef2ff);
+    box-shadow: 0 0 12px var(--fxcol, #7ef2ff);
+    animation: fxCastRune 420ms linear forwards;
+  }
+  @keyframes fxCastRune {
+    0% { transform: rotate(0deg) scale(.4); opacity: 0; }
+    30% { opacity: 1; }
+    100% { transform: rotate(200deg) scale(1.15); opacity: 0; }
+  }
+
+  /* ============ Magic II: louder, more extreme skill effects ============
+     Reuses the same DOM/CSS primitives as Magic (.fx-fx, .fx-ring,
+     .fx-mote, .fx-slash, .fx-beam, .fx-crescent, .fx-spark, .fx-diamond,
+     .fx-glint, .fx-surge, .fx-simple-flash) at bigger inline sizes and in
+     greater numbers; only genuinely new shapes get new CSS below. */
+  #fxPortalLayer { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+  /* legal-move indicator (both Magic and Magic II): a pulsing ring only --
+     the ring polygon's points are already real screen coordinates (see
+     fxRingPolygonPoints in the skill-effects JS), so the wrapper/SVG just
+     need to cover the layer, no per-instance left/top/width/height */
+  .fx-portal { position: absolute; inset: 0; }
+  .fx-portal-svg { position: absolute; inset: 0; overflow: visible; }
+  .fx-portal-ring-poly {
+    fill: none; stroke: var(--portalcol); stroke-width: 3;
+    filter: drop-shadow(0 0 8px var(--portalcol));
+    transform-box: fill-box; transform-origin: 50% 50%;
+    animation: fxPortalPulse 1100ms ease-in-out infinite;
+  }
+  .fx-portal.move { --portalcol: #7fe6a0; }
+  .fx-portal.cap { --portalcol: #ff5a6a; }
+  @keyframes fxPortalPulse { 0%, 100% { opacity: .55; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.08); } }
+  body.fx-reduced-motion .fx-portal-ring-poly { animation: none; opacity: .85; }
+
+  /* checkmate stage 1: a jagged lightning-bolt flash onto the mated king's square */
+  .fx2-bolt-flash { position: absolute; left: 0; top: 0; overflow: visible; animation: fx2BoltFlash 220ms steps(1, end) forwards; }
+  @keyframes fx2BoltFlash { 0% { opacity: 0; } 10% { opacity: 1; } 35% { opacity: .2; } 55% { opacity: 1; } 80% { opacity: .3; } 100% { opacity: 0; } }
+
+  /* checkmate stage 2: one giant shockwave ring sweeping across the whole board */
+  .fx2-megaring {
+    position: absolute; width: 900px; height: 900px; left: -450px; top: -450px; border-radius: 50%;
+    border: 4px solid #ffdca0; box-shadow: 0 0 24px #ffdca0, inset 0 0 24px #ffdca0;
+    animation: fx2MegaRingExpand 480ms ease-out forwards;
+  }
+  @keyframes fx2MegaRingExpand { 0% { opacity: 1; transform: scale(.15); } 100% { opacity: 0; transform: scale(1); } }
+
+  /* Magic II check (tier 3): a brighter neon vignette flash */
+  #fxCheckVignette.go2 {
+    animation: fx2CheckFlash 460ms ease-out forwards;
+    background: radial-gradient(ellipse at center, transparent 35%, rgba(255, 60, 220, .5) 70%, rgba(255, 220, 90, .35) 100%);
+  }
+  @keyframes fx2CheckFlash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* checkmate stage 3: a screen-wide gold/violet flash */
+  #fxCheckVignette.mategoflash {
+    animation: fx2MateFlash 420ms ease-out forwards;
+    background: radial-gradient(ellipse at center, rgba(255, 230, 160, .9) 0%, rgba(255, 180, 80, .75) 55%, rgba(120, 20, 140, .6) 100%);
+  }
+  @keyframes fx2MateFlash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* Magic II check/checkmate shake: bigger amplitude than the base .fx-shake */
+  #scene.fx-shake-big { animation: fxShakeBig 500ms ease-in-out; }
+  @keyframes fxShakeBig {
+    0%, 100% { transform: translate(0, 0); }
+    15% { transform: translate(-14px, 8px); }
+    30% { transform: translate(12px, -10px); }
+    45% { transform: translate(-10px, -6px); }
+    60% { transform: translate(9px, 8px); }
+    75% { transform: translate(-6px, 5px); }
+    90% { transform: translate(4px, -3px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #scene.fx-shake-big { animation: none; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -610,6 +728,7 @@
   <div id="thinking">កំពុងគិត… Computer is thinking…</div>
   <div id="banner"></div>
   <div id="fxLayer" aria-hidden="true"></div>
+  <div id="fxPortalLayer" aria-hidden="true"></div>
   <button id="panelToggle" title="Hide/show settings panel">◧</button>
   <div id="camControls">
     <button id="zoomInBtn" title="Zoom In">＋</button>
@@ -747,6 +866,9 @@
       <option value="pixel">Pixel Jungle — ព្រៃភីកសែល</option>
       <option value="painting">Painted Jungle — គំនូរព្រៃ</option>
       <option value="magic">Magic — វេទមន្ត</option>
+      <option value="magic2">Magic II — វេទមន្តខ្លាំង</option>
+      <option value="glass">Glass — កញ្ចក់</option>
+      <option value="marble">Marble — ថ្មម៉ាបល</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -1859,27 +1981,38 @@ const NAMES = {
 };
 
 // ---------- themes ----------
+// fog is always null: it used to fade distant board squares/pieces toward
+// the theme's background color, but at typical zoomed-out camera distances
+// this ended up heavily darkening the far (opponent) side of the board --
+// exactly the "hard to see" complaint -- so board-depth fog is disabled
+// for every theme; the atmospheric depth cue wasn't worth the visibility cost.
 const THEMES = {
   wood: {
     name: 'Classic Wood', style: 'traditional',
-    bg: 0x15100a, fog: [16, 42],
+    bg: 0x15100a, fog: null,
     frame: 0x3d2410, tileLight: 0xdec48f, tileDark: 0x9a6633,
     pieceW: 0xe9dabb, pieceB: 0x6d2a18, rough: 0.45, metal: 0.05,
     labelInk: '#f4e6c8', tray: 0x2c1a0c
   },
   stone: {
+    // pieceB was a near-neutral grayish-tan only marginally darker than
+    // pieceW -- both read as the same "stone" color under this theme's
+    // strong ambient fill, making White and Black pieces hard to tell
+    // apart. A properly dark charcoal (not just "a bit darker beige")
+    // fixes that; pieceBFloor is left low since this needs to go darker,
+    // not lighter.
     name: 'Angkor Stone', style: 'carved',
-    bg: 0x1d241f, fog: [14, 36],
+    bg: 0x1d241f, fog: null,
     frame: 0x565248, tileLight: 0xbfb298, tileDark: 0x767061,
-    pieceW: 0xd9cdb0, pieceB: 0x3f3a33, rough: 0.85, metal: 0.0,
+    pieceW: 0xd9cdb0, pieceB: 0x201d1a, rough: 0.85, metal: 0.0,
     labelInk: '#efe7d2', tray: 0x44403a
   },
   night: {
     name: 'Modern Night', style: 'minimal',
-    bg: 0x05070d, fog: [16, 40],
+    bg: 0x05070d, fog: null,
     frame: 0x141a24, tileLight: 0xb9c2cc, tileDark: 0x3c4552,
     pieceW: 0xf2f4f6, pieceB: 0x181d26, rough: 0.25, metal: 0.35,
-    labelInk: '#dfe6ee', tray: 0x0d1118
+    labelInk: '#dfe6ee', tray: 0x0d1118, pieceBFloor: 0.22
   },
   // 8-bit jungle-warfare palette (black sky, blue mountains, green canopy,
   // tan/brick ground) with low-res pixelated rendering and blocky pieces.
@@ -1895,7 +2028,7 @@ const THEMES = {
   // soft blurred brush-stroke textures for a watercolor/painting look.
   painting: {
     name: 'Painted Jungle', style: 'painting',
-    bg: 0x142234, fog: [9, 26],
+    bg: 0x142234, fog: null,
     frame: 0x5a4632, tileLight: 0xdcc79a, tileDark: 0x8a6a45,
     pieceW: 0xede0c5, pieceB: 0x6b3b2a, rough: 0.85, metal: 0.0,
     labelInk: '#fff6e0', tray: 0x3a2e20,
@@ -1906,11 +2039,132 @@ const THEMES = {
   // below) which only fires while this theme is active.
   magic: {
     name: 'Magic', style: 'minimal',
-    bg: 0x0a0518, fog: [15, 38],
-    frame: 0x1c1030, tileLight: 0x4a3a72, tileDark: 0x201640,
-    pieceW: 0xe8def5, pieceB: 0x2a1840, rough: 0.2, metal: 0.5,
+    bg: 0x0a0518, fog: null,
+    // tileLight/tileDark were both fairly deep, similarly-muted purples --
+    // low checkerboard contrast -- so tileLight is brighter/more saturated
+    // here, widening the gap while keeping the arcane violet identity.
+    frame: 0x1c1030, tileLight: 0x6551a0, tileDark: 0x1c1338,
+    // A shinier, more chrome-like piece body (higher metalness, lower
+    // roughness than before) plus a slim gold accent ring near every
+    // piece's base (goldAccents, see buildPiece) reads as "enchanted
+    // metal", and clearcoat/envMapIntensity on the board itself (reusing
+    // the same procedural studio environment map the Glass/Marble themes
+    // use) makes the polished floor visibly reflect the pieces standing on it.
+    pieceW: 0xe8def5, pieceB: 0x2a1840, rough: 0.12, metal: 0.78,
     labelInk: '#e6d9ff', tray: 0x160c28,
-    magicFx: true
+    clearcoat: 0.6, clearcoatRoughness: 0.25, envMapIntensity: 1.0,
+    goldAccents: true,
+    magicFx: true, pieceBFloor: 0.22
+  },
+  // Magic II: a louder, more extreme skill-effect theme layered on top of
+  // the same infrastructure as Magic (see "skill effects" below) -- more
+  // particles, bigger bursts, a screen-level checkmate sequence, and
+  // "portal" glyphs on legal-move squares instead of the plain 3D markers.
+  // magicFxTier selects the escalated Magic II effect set in
+  // triggerSkillEffect(); Magic (above) has no tier and uses the base set.
+  magic2: {
+    name: 'Magic II', style: 'minimal',
+    bg: 0x05010a, fog: null,
+    frame: 0x260a30, tileLight: 0x5a1a56, tileDark: 0x150414,
+    // Louder than Magic in every dimension here too: even shinier chrome
+    // pieces, a glossier reflective floor.
+    pieceW: 0xfff0c2, pieceB: 0x3a0a3a, rough: 0.08, metal: 0.85,
+    labelInk: '#ffe9b0', tray: 0x1c0620,
+    clearcoat: 0.75, clearcoatRoughness: 0.15, envMapIntensity: 1.4,
+    goldAccents: true,
+    magicFx: true, magicFxTier: 2, pieceBFloor: 0.22
+  },
+  // Acrylic/crystal chess set: near-clear "white" pieces and smoky-charcoal
+  // "black" pieces, a glass-tiled board. A touch of metalness (a common
+  // stylized-glass trick -- pure dielectric Fresnel reflectivity is only a
+  // few percent at head-on angles, too subtle to read clearly at
+  // chess-piece scale) plus a boosted pull from the procedural studio
+  // environment map above gives the facets a clearly visible reflective
+  // sheen. Deliberately fully opaque, not using alpha transparency or
+  // MeshPhysicalMaterial's `transmission` -- both render correctly in
+  // principle, but a chess piece is built from several small overlapping
+  // parts sharing one material, and transparency sort ordering between
+  // those parts proved visibly unstable (parts randomly appearing to
+  // vanish) on this project's software (SwiftShader) test renderer, with no
+  // clearly different look to show for the added instability anyway.
+  glass: {
+    name: 'Glass', style: 'crystal',
+    bg: 0xc7cdd4, fog: null,
+    // A real glass/acrylic board (per the reference set) alternates clear
+    // and black glass squares, not two shades of the same tinted pane, so
+    // the light/dark tiles get genuinely different treatments below
+    // (boardTransmissionLight/Dark) rather than just two colors of the
+    // same flat material.
+    frame: 0xd7dadd, tileLight: 0xeef3f6, tileDark: 0x121417,
+    // frameRough/frameMetal make the rail actually read as a metal (chrome)
+    // frame holding the glass panes, instead of the matte painted-wood
+    // roughness every other theme's frame uses.
+    frameRough: 0.15, frameMetal: 0.9,
+    pieceW: 0xf3f6f9, pieceB: 0x2a2d33, rough: 0.04, metal: 0.12,
+    ior: 1.5, clearcoat: 1, clearcoatRoughness: 0.03,
+    // transmission/thickness/pieceOpacity are piece-only (see the
+    // piece-transmission block in applyTheme): they make the pieces
+    // genuinely see-through/refractive instead of just a glossy opaque
+    // solid. pieceOpacity is an extra, independent translucency layer on
+    // top of transmission -- belt-and-suspenders so the pieces still read
+    // as see-through even in renderers/lighting setups where physically
+    // simulated transmission alone is subtle. A little residual metalness
+    // + clearcoat keeps a crisp specular reflection visible throughout.
+    transmission: 0.85, thickness: 0.9, pieceOpacity: 0.6,
+    // boardTransmissionLight/Dark are the board-tile equivalent: the light
+    // squares are genuinely see-through clear glass (high transmission),
+    // the dark squares are a much less transparent smoked/black glass
+    // (barely any transmission, mostly reflective) -- exactly the
+    // alternating clear/black-glass checker look of the reference set,
+    // rather than one uniform "glassy" material painted two colors.
+    // Plain transmission alone renders as crystal-clear regardless of the
+    // material's own color (three.js only tints it via attenuationColor/
+    // attenuationDistance, i.e. Beer-Lambert absorption) -- without that,
+    // even a low-transmission "black glass" square lets the bright
+    // background straight through and washes out toward gray instead of
+    // reading as black. boardAttenuationDark is a short absorption
+    // distance so the dark squares stay convincingly dark; the light
+    // squares get a long distance so they stay clear/bright.
+    boardTransmissionLight: 0.55, boardTransmissionDark: 0.12, boardThickness: 0.5,
+    boardAttenuationLight: 4, boardAttenuationDark: 0.12,
+    // A sharp, mirror-smooth clearcoat (this theme's own clearcoatRoughness
+    // of 0.03) reflects the bright studio environment so strongly at
+    // envMapIntensity 2.2 that it washes a near-black square toward gray --
+    // physically correct for a literal mirror, but it stops the black
+    // square from reading as black. Light (clear-glass) squares keep the
+    // sharp mirror coat for sparkle; dark (black-glass) squares get a much
+    // rougher coat -- still glossy, but scattering instead of mirroring --
+    // plus a lower envMapIntensity of their own, so they stay convincingly
+    // dark rather than reflecting the whole room.
+    boardClearcoatRoughnessDark: 0.4, boardEnvMapIntensityDark: 0.9,
+    labelInk: '#20242a', tray: 0xe8ebee,
+    envMapIntensity: 2.2, pieceBFloor: 0.18
+  },
+  // Polished marble chess set: black and white marble pieces + a checkered
+  // marble board, both textured with procedural veining (buildMarbleTexture)
+  // and a glassy clearcoat so the environment map reads as a real gloss finish.
+  marble: {
+    name: 'Marble', style: 'crystal',
+    bg: 0xcac6bd, fog: null,
+    frame: 0x121214, tileLight: 0xf0ede6, tileDark: 0x111113,
+    pieceW: 0xf1eee6, pieceB: 0x1b1b1d, rough: 0.2, metal: 0.0,
+    labelInk: '#f5f2ea', tray: 0x1b1b1d,
+    clearcoat: 1, clearcoatRoughness: 0.15, envMapIntensity: 1.0,
+    // Same washout as Glass's dark squares: a sharp clearcoat mirroring
+    // the studio environment lifts a near-black polished-stone tile
+    // toward gray. Dark squares get a rougher coat and a dimmer env pull
+    // than the theme's own (light-square) values so the "black marble"
+    // dark squares actually read as dark.
+    boardClearcoatRoughnessDark: 0.35, boardEnvMapIntensityDark: 0.5,
+    marbleTiles: true, marblePieces: true,
+    // The black marble piece's base hex is nearly identical to the dark
+    // tile's, so with only the usual low safety floor the black pieces
+    // read as almost the same color as the dark squares behind them. A
+    // much higher floor here (vs. e.g. 0.12 elsewhere) lightens the piece's
+    // marble-texture base fill (buildMarbleTexture reads MAT_B.color AFTER
+    // this floor is applied) to a clearly distinct charcoal, while the
+    // tile itself is nudged a touch darker for extra separation.
+    pieceBFloor: 0.27
   }
 };
 let themeKey = 'wood';
@@ -2009,6 +2263,15 @@ configureControls(controls);
 
 const ambientLight = new THREE.AmbientLight(0xfff2dd, 0.75);
 scene.add(ambientLight);
+// A constant soft sky/ground hemisphere light on top of the ambient light
+// above -- the classic cheap trick for a "beautiful natural" look, since a
+// flat ambient light alone reads as flat/artificial. Independent of the
+// lighting-mood presets below (Daytime/Spotlight/Evening/Studio only tune
+// ambientLight/sun/fill) so it doesn't fight a deliberately moody preset
+// like Spotlight, while still giving every theme's dark ("black side")
+// pieces a soft base fill so they're never rendered into pure shadow.
+const hemiLight = new THREE.HemisphereLight(0xdbe9ff, 0x3a2f22, 0.55);
+scene.add(hemiLight);
 const sun = new THREE.DirectionalLight(0xffffff, 1.6);
 sun.position.set(6, 12, 5);
 sun.castShadow = true;
@@ -2019,6 +2282,47 @@ scene.add(sun);
 const fill = new THREE.DirectionalLight(0xbfd4ff, 0.35);
 fill.position.set(-5, 6, -6);
 scene.add(fill);
+
+// ---------- procedural studio environment (for reflections) ----------
+// A single generated (not downloaded) soft studio-style gradient, run
+// through PMREMGenerator so PBR materials get real specular/reflected
+// highlights -- this is what makes the Glass and Marble themes' polish
+// actually read as glass/marble instead of flat color. Applied globally at
+// a low default intensity so it also subtly benefits every existing theme
+// without changing their look; Glass/Marble opt into a much stronger
+// envMapIntensity per-material in applyTheme().
+function buildStudioEnvironment() {
+  const w = 512, h = 256;
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, '#ffffff');
+  grad.addColorStop(0.45, '#dde1e6');
+  grad.addColorStop(0.5, '#aab0b8');
+  grad.addColorStop(1, '#3d4046');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+  // soft vertical "softbox" bands, a classic product-photography trick that
+  // gives glossy/transmissive materials a believable specular highlight
+  ctx.globalAlpha = 0.4;
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect((i / 6) * w, h * 0.12, w * 0.045, h * 0.55);
+  }
+  ctx.globalAlpha = 1;
+  const tex = new THREE.CanvasTexture(cv);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envRT = pmrem.fromEquirectangular(tex);
+  tex.dispose();
+  pmrem.dispose();
+  return envRT.texture;
+}
+try {
+  scene.environment = buildStudioEnvironment();
+} catch (err) {
+  console.warn('procedural environment map failed (reflections will be flat):', err);
+}
 
 // ---------- lighting direction / mood controls ----------
 let lightAzimuth = 35, lightElevation = 55;
@@ -2066,7 +2370,10 @@ document.getElementById('pieceLuminescence').oninput = (e) => {
 function sqPos(sq) { return { x: E.fileOf(sq) - 3.5, z: 3.5 - E.rankOf(sq) }; }
 
 // board frame (deep enough to hold coordinate labels + captured-piece trays)
-const frameMat = new THREE.MeshStandardMaterial({ color: 0x3d2410, roughness: 0.8 });
+// MeshPhysicalMaterial (a superset of MeshStandardMaterial) so the
+// Glass/Marble themes can turn on transmission/clearcoat/envMapIntensity;
+// every other theme just leaves those at their neutral no-op defaults.
+const frameMat = new THREE.MeshPhysicalMaterial({ color: 0x3d2410, roughness: 0.8 });
 const frame = new THREE.Mesh(new THREE.BoxGeometry(9.4, 0.5, 11.9), frameMat);
 frame.position.y = -0.3;
 frame.receiveShadow = true;
@@ -2075,7 +2382,7 @@ scene.add(frame);
 const tileGeom = new THREE.BoxGeometry(1, 0.12, 1);
 const squareMeshes = [];
 for (let sq = 0; sq < 64; sq++) {
-  const m = new THREE.Mesh(tileGeom, new THREE.MeshStandardMaterial({ roughness: 0.85 }));
+  const m = new THREE.Mesh(tileGeom, new THREE.MeshPhysicalMaterial({ roughness: 0.85 }));
   const p = sqPos(sq);
   m.position.set(p.x, -0.06, p.z);
   m.receiveShadow = true;
@@ -2170,8 +2477,8 @@ function buildLabels() {
 }
 
 // ---------- pieces ----------
-const MAT_W = new THREE.MeshStandardMaterial({ color: 0xe9dabb, roughness: 0.45, metalness: 0.05 });
-const MAT_B = new THREE.MeshStandardMaterial({ color: 0x6d2a18, roughness: 0.45, metalness: 0.05 });
+const MAT_W = new THREE.MeshPhysicalMaterial({ color: 0xe9dabb, roughness: 0.45, metalness: 0.05 });
+const MAT_B = new THREE.MeshPhysicalMaterial({ color: 0x6d2a18, roughness: 0.45, metalness: 0.05 });
 const MAT_GOLD = new THREE.MeshStandardMaterial({ color: 0xd4a548, roughness: 0.3, metalness: 0.6 });
 // "Luminescent Pieces": each piece glows in its own hue, from off (0) up to
 // a strong inner glow -- reapplied whenever the theme (and so the piece
@@ -2183,6 +2490,13 @@ const fxGlowHSL = { h: 0, s: 0, l: 0 };
 function glowTint(baseColor) {
   baseColor.getHSL(fxGlowHSL);
   return new THREE.Color().setHSL(fxGlowHSL.h, Math.max(fxGlowHSL.s, 0.55), Math.max(fxGlowHSL.l, 0.5));
+}
+// mutates color in place, nudging its lightness up to at least minL while
+// keeping its hue/saturation (used to keep dark "black side" theme colors
+// readable without changing their character)
+function raiseMinLightness(color, minL) {
+  color.getHSL(fxGlowHSL);
+  if (fxGlowHSL.l < minL) color.setHSL(fxGlowHSL.h, fxGlowHSL.s, minL);
 }
 function applyPieceLuminescence() {
   MAT_W.emissive.copy(glowTint(MAT_W.color));
@@ -2209,8 +2523,13 @@ function buildPiece(type, color, promoted) {
   };
   if (style === 'pixel') return buildVoxelPiece(g, add, type, promoted, color);
   if (style === 'khmer') return buildKhmerPiece(g, add, type, promoted, color);
+  if (style === 'crystal') return buildCrystalPiece(g, add, type, promoted, color);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07); // base
   if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18); // collar
+  // Magic/Magic II's chrome-and-gold look: a slim gold trim ring around
+  // every piece's base collar, independent of (and in addition to) the
+  // separate gold ring a promoted piece already gets higher up.
+  if (theme().goldAccents) add(new THREE.TorusGeometry(0.31 * wide, 0.022, 8, seg), 0.14, MAT_GOLD).rotation.x = Math.PI / 2;
   switch (type) {
     case E.KING:
       add(new THREE.CylinderGeometry(0.2 * wide, 0.28 * wide, 0.5, seg), 0.39);
@@ -2296,6 +2615,46 @@ function buildVoxelPiece(g, add, type, promoted, color) {
       break;
   }
   if (promoted) add(box(0.42, 0.06, 0.42), 0.22, MAT_GOLD);
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Abstract faceted "crystal" piece set for the Glass and Marble themes:
+// simple modern primitives (box/cone/cylinder towers), generic geometric
+// forms rather than any specific commercial design, low-poly enough that
+// their flat facets catch the environment reflection clearly.
+function buildCrystalPiece(g, add, type, promoted, color) {
+  const seg = 8;
+  add(new THREE.CylinderGeometry(0.3, 0.32, 0.1, seg), 0.05); // plinth base
+  switch (type) {
+    case E.KING: // tallest: a tower, a pyramid cap, and a small cube finial
+      add(new THREE.BoxGeometry(0.34, 0.7, 0.34), 0.45);
+      add(new THREE.ConeGeometry(0.26, 0.3, 4), 0.95).rotation.y = Math.PI / 4;
+      add(new THREE.BoxGeometry(0.12, 0.12, 0.12), 1.16);
+      break;
+    case E.QUEEN: // a tower with a pyramid cap, no finial
+      add(new THREE.BoxGeometry(0.3, 0.62, 0.3), 0.41);
+      add(new THREE.ConeGeometry(0.24, 0.3, 4), 0.86).rotation.y = Math.PI / 4;
+      break;
+    case E.BISHOP: // a tall sharp cone
+      add(new THREE.CylinderGeometry(0.05, 0.22, 0.15, seg), 0.18);
+      add(new THREE.ConeGeometry(0.16, 0.62, seg), 0.56);
+      break;
+    case E.KNIGHT: { // a stepped hexagonal column
+      add(new THREE.CylinderGeometry(0.2, 0.24, 0.5, 6), 0.35);
+      add(new THREE.CylinderGeometry(0.12, 0.16, 0.2, 6), 0.7);
+      add(new THREE.ConeGeometry(0.1, 0.16, 6), 0.86);
+      break;
+    }
+    case E.ROOK: // a squat block tower with a small notch on top
+      add(new THREE.BoxGeometry(0.32, 0.42, 0.32), 0.31);
+      add(new THREE.BoxGeometry(0.18, 0.1, 0.18), 0.57);
+      break;
+    case E.PAWN: // shortest: a simple cone
+      add(new THREE.ConeGeometry(0.17, 0.36, seg), 0.28);
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.22, 0.035, 10, 22), 0.16, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -2432,9 +2791,47 @@ function pieceLabelMaterial(type, color, lang) {
 function addPieceLabel(g, type, color) {
   const sprite = new THREE.Sprite(pieceLabelMaterial(type, color, pieceNameLang));
   sprite.scale.set(0.434, 0.25, 1);
-  sprite.position.set(0, labelY(type), 0);
+  const y = labelY(type);
+  sprite.position.set(0, y, 0);
+  // the intended world-space height, kept stable across frames so
+  // retrackPieceLabels() below always corrects from the same anchor
+  // instead of drifting frame-to-frame off its own last correction.
+  sprite.userData.baseY = y;
   sprite.renderOrder = 10;
   g.add(sprite);
+}
+// A label elevated straight above its piece in world Y still drifts
+// horizontally on screen under perspective projection, because a camera
+// looking down at an angle maps "higher up" to "closer to the vanishing
+// point" -- the further a piece sits from the board's center file, the
+// more its label leans sideways. The effect is the same absolute size in
+// screen pixels on every viewport, but a small chessboard (a narrow phone
+// in portrait) has much smaller squares, so the same drift reads as a
+// glaringly off-center label there while looking fine on a wide desktop
+// board. Fixed the general, viewport-independent way (the same technique
+// fxRingPolygonPoints/fxPortalsRetrack already use for the Magic II portal
+// ring): reproject every frame, pinning the label's screen-space X to
+// exactly the piece's own screen-space X, while keeping the Y placement
+// (and hence the tip/base height choice) the projection would have given
+// it anyway.
+function retrackPieceLabels() {
+  if (!showPieceNames) return;
+  const ndcBase = new THREE.Vector3(), ndcHigh = new THREE.Vector3(), tmp = new THREE.Vector3();
+  for (const g of pieceGroup.children) {
+    const sprite = g.children.find(c => c.isSprite);
+    if (!sprite || sprite.userData.baseY == null) continue;
+    ndcBase.copy(g.position).project(camera);
+    tmp.set(g.position.x, g.position.y + sprite.userData.baseY, g.position.z);
+    ndcHigh.copy(tmp).project(camera);
+    // Reuse ndcHigh's own depth (z), not the base's: unprojecting at a
+    // different depth than the point originally sat at would shift its
+    // resulting world-space height too (perspective couples depth and the
+    // screen-to-world Y mapping), quietly undoing the "tip"/"base" height
+    // this label is supposed to sit at. Only x (horizontal) is corrected.
+    tmp.set(ndcBase.x, ndcHigh.y, ndcHigh.z).unproject(camera);
+    g.worldToLocal(tmp);
+    sprite.position.copy(tmp);
+  }
 }
 function rebuildPieces() {
   pieceGroup.clear();
@@ -2456,7 +2853,7 @@ function rebuildPieces() {
 // ---------- captured-piece trays (top and bottom of the board) ----------
 const trayGroup = new THREE.Group();
 scene.add(trayGroup);
-const trayMat = new THREE.MeshStandardMaterial({ color: 0x2c1a0c, roughness: 0.9 });
+const trayMat = new THREE.MeshPhysicalMaterial({ color: 0x2c1a0c, roughness: 0.9 });
 for (const z of [5.25, -5.25]) {
   const t = new THREE.Mesh(new THREE.BoxGeometry(8.6, 0.06, 0.9), trayMat);
   t.position.set(0, -0.05, z);
@@ -2513,6 +2910,11 @@ let checkRing = null;
 
 function showMarkers() {
   markerGroup.clear();
+  // Both Magic themes replace the plain 3D markers with a DOM "portal" ring
+  // (see the skill-effects section below); picking still works unchanged
+  // since pickSquare() raycasts squareMeshes/pieceGroup, never markerGroup.
+  if (theme().magicFx) { fxPortalsShow(); return; }
+  fxPortalsClear();
   for (const m of legalForSelected) {
     const p = sqPos(m.to);
     let mesh;
@@ -2528,7 +2930,7 @@ function showMarkers() {
     markerGroup.add(mesh);
   }
 }
-function clearMarkers() { markerGroup.clear(); }
+function clearMarkers() { markerGroup.clear(); fxPortalsClear(); }
 
 function updateSquareTints() {
   for (const m of squareMeshes) m.material.color.setHex(m.userData.baseColor);
@@ -2616,6 +3018,40 @@ function buildPaintedTileTexture(hex, key) {
   ctx.filter = 'none';
   const tex = new THREE.CanvasTexture(cv);
   paintedTexCache[key] = tex;
+  return tex;
+}
+// Procedural marble-vein texture for the Marble theme (pieces and board
+// tiles): a base color with a handful of soft, blurred, randomly-curved
+// vein streaks, similar in spirit to buildPaintedTileTexture above but
+// with thin meandering lines instead of soft blotches.
+const marbleTexCache = {};
+function buildMarbleTexture(hex, veinHex, key) {
+  if (marbleTexCache[key]) return marbleTexCache[key];
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#' + hex.toString(16).padStart(6, '0');
+  ctx.fillRect(0, 0, 128, 128);
+  const vein = '#' + veinHex.toString(16).padStart(6, '0');
+  for (let i = 0; i < 6; i++) {
+    ctx.filter = 'blur(1.2px)';
+    ctx.strokeStyle = vein;
+    ctx.globalAlpha = 0.25 + Math.random() * 0.35;
+    ctx.lineWidth = 0.6 + Math.random() * 1.8;
+    ctx.beginPath();
+    const y0 = Math.random() * 128;
+    ctx.moveTo(-10, y0);
+    let x = -10, y = y0;
+    while (x < 138) {
+      const nx = x + 20 + Math.random() * 30;
+      const ny = y + (Math.random() - 0.5) * 60;
+      ctx.quadraticCurveTo(x + 10, y + (Math.random() - 0.5) * 40, nx, ny);
+      x = nx; y = ny;
+    }
+    ctx.stroke();
+  }
+  ctx.filter = 'none'; ctx.globalAlpha = 1;
+  const tex = new THREE.CanvasTexture(cv);
+  marbleTexCache[key] = tex;
   return tex;
 }
 let paintingBackdropCache = null;
@@ -2923,10 +3359,67 @@ function applyTheme(key) {
   scene.fog = t.fog ? new THREE.Fog(t.bg, t.fog[0], t.fog[1]) : null;
   frameMat.color.setHex(t.frame);
   trayMat.color.setHex(t.tray);
+  // The frame's own roughness/metalness are otherwise never touched by a
+  // theme (every other theme wants its inherited matte-wood default), so
+  // only Glass's chrome-rail look opts in here; everything else falls
+  // back to that same original default.
+  frameMat.roughness = t.frameRough != null ? t.frameRough : 0.8;
+  frameMat.metalness = t.frameMetal || 0;
   MAT_W.color.setHex(t.pieceW); MAT_W.roughness = t.rough; MAT_W.metalness = t.metal;
   MAT_B.color.setHex(t.pieceB); MAT_B.roughness = t.rough; MAT_B.metalness = t.metal;
+  // "Black side" theme colors are often designed near-black for thematic
+  // contrast; themes that need a visibility rescue (their original color
+  // was too dark to read at all -- Modern Night, Magic, Magic II) opt into
+  // a higher floor via pieceBFloor. Everything else only gets a low safety
+  // floor so an intentionally-dark, high-contrast color (e.g. Angkor
+  // Stone's charcoal) isn't dragged back toward gray.
+  raiseMinLightness(MAT_B.color, t.pieceBFloor || 0.1);
   applyPieceLuminescence();
-  const tiled = t.brickTiles || t.paintedTiles;
+  // Glass/Marble-only physical properties (clearcoat, a stronger pull from
+  // the procedural studio environment map above). These materials are
+  // reused across every theme switch, so anything a previous theme turned
+  // on must be explicitly reset here, not just conditionally set --
+  // otherwise it would silently leak into the next theme.
+  for (const mat of [MAT_W, MAT_B, frameMat, trayMat]) {
+    mat.ior = t.ior || 1.5;
+    mat.clearcoat = t.clearcoat || 0;
+    mat.clearcoatRoughness = t.clearcoatRoughness || 0;
+    mat.envMapIntensity = t.envMapIntensity || 0.15;
+    mat.needsUpdate = true;
+  }
+  // Piece materials specifically are capped to a lower envMapIntensity than
+  // the board/frame get: pieces are built from several small stacked parts
+  // (see buildCrystalPiece), and a strong environment reflection on those
+  // triggered visibly broken rendering (some piece parts randomly failing
+  // to draw at all) on this project's software (SwiftShader) test renderer
+  // once envMapIntensity climbed much past ~0.3 -- confirmed independent of
+  // clearcoat/metalness/transparency, and independent of theme (Glass and
+  // Marble both reproduced it), so this cap is a deliberate, verified-safe
+  // ceiling rather than an arbitrary guess.
+  MAT_W.envMapIntensity = MAT_B.envMapIntensity = Math.min(t.envMapIntensity || 0.15, 0.3);
+  // transmission/thickness (real see-through refraction) are piece-only --
+  // the board/frame should stay opaque -- and, like every other physical
+  // property on these two shared materials, must be reset to "off" here on
+  // every theme switch so a previous theme's glass look never leaks in.
+  MAT_W.transmission = MAT_B.transmission = t.transmission || 0;
+  MAT_W.thickness = MAT_B.thickness = t.thickness || 0;
+  const pieceOpacity = t.pieceOpacity != null ? t.pieceOpacity : 1;
+  MAT_W.opacity = MAT_B.opacity = pieceOpacity;
+  MAT_W.transparent = MAT_B.transparent = pieceOpacity < 1;
+  MAT_W.needsUpdate = MAT_B.needsUpdate = true;
+  // a texture's own baked-in pixels are multiplied by material.color, so
+  // when a marble-vein texture supplies the real color, the material color
+  // itself must be reset to white (the same pattern the board tiles below
+  // already use for brickTiles/paintedTiles) to avoid double-darkening.
+  if (t.marblePieces) {
+    const hW = MAT_W.color.getHex(), hB = MAT_B.color.getHex();
+    MAT_W.map = buildMarbleTexture(hW, 0x000000, 'mpW' + hW);
+    MAT_B.map = buildMarbleTexture(hB, 0xffffff, 'mpB' + hB);
+    MAT_W.color.setHex(0xffffff); MAT_B.color.setHex(0xffffff);
+  } else {
+    MAT_W.map = null; MAT_B.map = null;
+  }
+  const tiled = t.brickTiles || t.paintedTiles || t.marbleTiles;
   for (const m of squareMeshes) {
     const light = (E.fileOf(m.userData.sq) + E.rankOf(m.userData.sq)) % 2 === 1;
     // Khmer board style: every square shares one wood tone instead of the
@@ -2938,7 +3431,29 @@ function applyTheme(key) {
       ? buildBrickTexture(hex, khmerBoardStyle ? 'K' : (light ? 'L' : 'D'))
       : t.paintedTiles
       ? buildPaintedTileTexture(hex, 'p' + (khmerBoardStyle ? 'K' : (light ? 'L' : 'D')))
+      : t.marbleTiles
+      ? buildMarbleTexture(hex, light ? 0x777777 : 0xdddddd, 'bd' + (khmerBoardStyle ? 'K' : (light ? 'L' : 'D')))
       : null;
+    m.material.ior = t.ior || 1.5;
+    m.material.clearcoat = t.clearcoat || 0;
+    // Dark squares can opt into a rougher clearcoat + a dimmer env pull
+    // than the theme's own values (see boardClearcoatRoughnessDark/
+    // boardEnvMapIntensityDark on the Glass theme), so a "black glass"
+    // square stays dark instead of mirroring the bright studio environment
+    // into gray; light squares always use the theme's own sharp values.
+    m.material.clearcoatRoughness = (!khmerBoardStyle && !light && t.boardClearcoatRoughnessDark != null) ? t.boardClearcoatRoughnessDark : (t.clearcoatRoughness || 0);
+    m.material.envMapIntensity = (!khmerBoardStyle && !light && t.boardEnvMapIntensityDark != null) ? t.boardEnvMapIntensityDark : (t.envMapIntensity || 0.15);
+    // Glass's light/dark squares are two different materials (clear vs.
+    // black glass), not one material in two colors, so transmission is
+    // looked up per-square by light/dark rather than being a single theme
+    // constant. Reset to 0 (fully opaque) for every other theme, and also
+    // while the "Khmer board" single-tone style is active, where every
+    // square shares one hex and having half of them transmissive for no
+    // visible color reason would look like a rendering glitch.
+    m.material.transmission = khmerBoardStyle ? 0 : (light ? (t.boardTransmissionLight || 0) : (t.boardTransmissionDark || 0));
+    m.material.thickness = t.boardThickness || 0;
+    m.material.attenuationColor.setHex(hex);
+    m.material.attenuationDistance = khmerBoardStyle ? Infinity : (light ? (t.boardAttenuationLight || Infinity) : (t.boardAttenuationDark || Infinity));
     m.material.needsUpdate = true;
   }
   gridOverlayMesh.visible = khmerBoardStyle;
@@ -2948,6 +3463,10 @@ function applyTheme(key) {
   document.body.classList.toggle('theme-pixel', !!t.pixelated);
   setPixelation(!!t.pixelated);
   if (state) { rebuildPieces(); rebuildCaptured(); updateSquareTints(); }
+  // keep an active selection's legal-move indicators consistent with
+  // whichever marker style (3D markers vs. Magic II portals) the new
+  // theme uses, instead of leaving stale ones from the old theme on screen
+  if (selected >= 0) showMarkers();
 }
 document.getElementById('themeSel').onchange = (e) => applyTheme(e.target.value);
 document.getElementById('khmerBoardChk').onchange = (e) => { khmerBoardStyle = e.target.checked; applyTheme(themeKey); };
@@ -3105,6 +3624,7 @@ function playMoveSound(kind) {
 // move, and the whole entry point is try/catch-wrapped so a rendering
 // failure can never break move logic (see triggerSkillEffect below).
 const fxLayer = document.getElementById('fxLayer');
+const fxPortalLayer = document.getElementById('fxPortalLayer');
 const fxCheckVignette = document.createElement('div');
 fxCheckVignette.id = 'fxCheckVignette';
 document.getElementById('scene').appendChild(fxCheckVignette);
@@ -3222,24 +3742,338 @@ function fxCheck(kingSq) {
   window.__oukFxLog.push({ tier: 3, key: 'check_surge' });
 }
 
+// ============ Magic II: louder, more extreme skill effects ============
+// Same primitives as Magic (fxAt/fxSpawn/fxScreenPoint/fxSimpleFlash), just
+// bigger, brighter, and more numerous, plus a screen-level checkmate
+// sequence and portal legal-move glyphs that Magic (tier 1) doesn't have.
+const FX2_SIDE_COLOR = ['#ffe066', '#ff3df0']; // White: electric gold, Black: neon magenta
+
+// Tier 1: a brighter core trail with a short wake of fading particles along the path
+function fxTrail2(fromSq, toSq, side) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  const dx = a.x - b.x, dy = a.y - b.y, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  const col = FX2_SIDE_COLOR[side];
+  fxSpawn(fxAt(b, 'fx-trail-line', { '--fxcol': col, width: len + 'px', height: '5px', transform: `rotate(${ang}deg)`, boxShadow: `0 0 14px ${col}` }), 380);
+  fxSpawn(fxAt(b, 'fx-glow', { '--fxcol': col, width: '40px', height: '40px', left: '-20px', top: '-20px' }), 380);
+  for (let i = 1; i <= 4; i++) {
+    const t = i / 5;
+    const wake = fxAt({ x: b.x + dx * t, y: b.y + dy * t }, 'fx-mote', { '--fxcol': col, '--mx': '0px', '--my': '0px', animationDelay: (i * 30) + 'ms' });
+    fxSpawn(wake, 380 + i * 30);
+  }
+  window.__oukFxLog.push({ tier: 1, key: 'trail2' });
+}
+
+// Tier 2: escalated per-piece "magic strike" bursts -- more particles,
+// brighter glow, longer trails than the base Magic theme, each still well
+// under the 900ms pacing budget.
+function fxCapture2(pieceType, fromSq, toSq, side) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  const col = FX2_SIDE_COLOR[side];
+  const dx = a.x - b.x, dy = a.y - b.y, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  let key = 'capture2';
+  switch (pieceType) {
+    case E.KNIGHT: // Ses -- Blade Cascade
+      key = 'ses_blade_cascade';
+      fxSpawn(fxAt(b, 'fx-trail-line', { '--fxcol': col, width: len + 'px', height: '5px', transform: `rotate(${ang}deg)`, boxShadow: `0 0 14px ${col}` }), 380);
+      for (const [ang2, delay] of [['35deg', 0], ['0deg', 70], ['-35deg', 140]]) {
+        fxSpawn(fxAt(b, 'fx-slash', { '--fxcol': col, '--ang': ang2, width: '58px', animationDelay: delay + 'ms' }), 140 + 320);
+      }
+      break;
+    case E.ROOK: // Touk -- Siege Beam Overload
+      key = 'touk_siege_overload';
+      fxSpawn(fxAt(a, 'fx-beam', { '--fxcol': col, width: len + 'px', transform: `rotate(${ang + 180}deg)` }), 300);
+      fxSpawn(fxAt(a, 'fx-beam', { '--fxcol': col, width: len + 'px', height: '14px', transform: `rotate(${ang + 180}deg)`, opacity: '.5' }), 300);
+      fxSpawn(fxAt(b, 'fx-ring', { '--fxcol': col, width: '30px', height: '30px', left: '-15px', top: '-15px' }), 460);
+      fxSpawn(fxAt(b, 'fx-ring b2', { '--fxcol': col, width: '30px', height: '30px', left: '-15px', top: '-15px' }), 560);
+      break;
+    case E.BISHOP: // Koul -- Radial Pulse Cascade
+      key = 'koul_pulse_cascade';
+      fxSpawn(fxAt(b, 'fx-ring', { '--fxcol': col }), 440);
+      fxSpawn(fxAt(b, 'fx-ring b2', { '--fxcol': col }), 540);
+      fxSpawn(fxAt(b, 'fx-ring', { '--fxcol': col, animationDelay: '180ms' }), 620);
+      for (let i = 0; i < 12; i++) {
+        const a2 = (i / 12) * Math.PI * 2;
+        fxSpawn(fxAt(b, 'fx-mote', { '--fxcol': col, '--mx': (Math.cos(a2) * 55) + 'px', '--my': (Math.sin(a2) * 55) + 'px' }), 500);
+      }
+      break;
+    case E.QUEEN: // Neang, and a promoted Trey -- Twin Crescent Nova
+      key = 'neang_crescent_nova';
+      fxSpawn(fxAt(b, 'fx-glow', { '--fxcol': col, width: '46px', height: '46px', left: '-23px', top: '-23px' }), 320);
+      for (const [ang2, delay] of [['0deg', 0], ['90deg', 0], ['180deg', 60], ['270deg', 60]]) {
+        fxSpawn(fxAt(b, 'fx-crescent', { '--fxcol': col, '--ang': ang2, animationDelay: delay + 'ms' }), 500);
+      }
+      break;
+    case E.PAWN: // Trey -- Spark Cascade
+      key = 'trey_spark_cascade';
+      for (let i = 0; i < 10; i++) {
+        const a2 = (i / 10) * Math.PI * 2 + Math.random() * 0.3;
+        fxSpawn(fxAt(b, 'fx-spark', { '--fxcol': col, '--mx': (Math.cos(a2) * 34) + 'px', '--my': (Math.sin(a2) * 34) + 'px', animationDelay: (i * 20) + 'ms' }), 340 + i * 20);
+      }
+      break;
+    case E.KING: // Ang -- Royal Shock Ultra
+      key = 'ang_shock_ultra';
+      fxSpawn(fxAt(b, 'fx-diamond', {}), 480);
+      fxSpawn(fxAt(b, 'fx-diamond', { animationDelay: '90ms' }), 570);
+      fxSpawn(fxAt(b, 'fx-glint', {}), 320);
+      for (let i = 0; i < 6; i++) {
+        const a2 = (i / 6) * Math.PI * 2;
+        fxSpawn(fxAt(b, 'fx-spark', { '--fxcol': '#ffd36a', '--mx': (Math.cos(a2) * 40) + 'px', '--my': (Math.sin(a2) * 40) + 'px' }), 340);
+      }
+      break;
+  }
+  window.__oukFxLog.push({ tier: 2, key });
+}
+
+// Tier 3: Magic II's check -- a brighter neon vignette, a bigger shake,
+// and one large fast shockwave from the checked king's square.
+function fxCheck2(kingSq) {
+  const sceneEl = document.getElementById('scene');
+  if (fxPrefersReducedMotion()) {
+    fxCheckVignette.classList.remove('go', 'go2', 'simple', 'mategoflash');
+    void fxCheckVignette.offsetWidth;
+    fxCheckVignette.classList.add('simple', 'go');
+    setTimeout(() => fxCheckVignette.classList.remove('simple', 'go'), 280);
+    window.__oukFxLog.push({ tier: 3, key: 'check2_simple' });
+    return;
+  }
+  fxCheckVignette.classList.remove('go2');
+  void fxCheckVignette.offsetWidth;
+  fxCheckVignette.classList.add('go2');
+  sceneEl.classList.remove('fx-shake-big');
+  void sceneEl.offsetWidth;
+  sceneEl.classList.add('fx-shake-big');
+  clearTimeout(fxCheckTimer);
+  fxCheckTimer = setTimeout(() => { fxCheckVignette.classList.remove('go2'); sceneEl.classList.remove('fx-shake-big'); }, 560);
+  const pt = fxScreenPoint(kingSq);
+  fxSpawn(fxAt(pt, 'fx-surge', { width: '26px', height: '26px', left: '-13px', top: '-13px', animationDuration: '500ms', borderColor: '#ff3df0', boxShadow: '0 0 16px #ff3df0' }), 520);
+  window.__oukFxLog.push({ tier: 3, key: 'check2_surge' });
+}
+
+// a jagged SVG lightning-bolt flash, for checkmate stage 1
+function fxLightningBolt(x, y) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  // no viewBox: 1 user unit = 1px, matching every other .fx-fx element's
+  // coordinate space (relative to #fxLayer's own top-left corner)
+  svg.setAttribute('width', '100%'); svg.setAttribute('height', '100%');
+  svg.classList.add('fx-fx', 'fx2-bolt-flash');
+  const steps = 6, pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    pts.push((x + (Math.random() - 0.5) * 40 * (1 - t * 0.3)).toFixed(1) + ',' + (y * t).toFixed(1));
+  }
+  const poly = document.createElementNS(ns, 'polyline');
+  poly.setAttribute('points', pts.join(' '));
+  poly.setAttribute('fill', 'none');
+  poly.setAttribute('stroke', '#fff6d0');
+  poly.setAttribute('stroke-width', '4');
+  poly.style.filter = 'drop-shadow(0 0 10px #ffe066) drop-shadow(0 0 20px #ffe066)';
+  svg.appendChild(poly);
+  svg.style.overflow = 'visible';
+  return svg;
+}
+
+// Tier 4 (Magic II only): checkmate "Triple Super" -- a lightning strike
+// onto the mated king's square, then a giant shockwave sweeping the board,
+// then a screen-wide flash + a strong shake. The game has already ended at
+// this point, so this is allowed to run longer than the ~900ms per-effect
+// budget (~950ms total); reduced motion collapses it to one simple flash
+// and skips the multi-stage sequence entirely, per spec.
+function fxCheckmate2(kingSq, flashColor) {
+  const sceneEl = document.getElementById('scene');
+  if (fxPrefersReducedMotion()) {
+    fxSimpleFlash(fxScreenPoint(kingSq), flashColor || '#ffe066');
+    window.__oukFxLog.push({ tier: 4, key: 'checkmate2_simple' });
+    return;
+  }
+  const pt = fxScreenPoint(kingSq);
+  fxSpawn(fxLightningBolt(pt.x, pt.y), 260); // stage 1: 0ms
+  setTimeout(() => { // stage 2: +220ms
+    try { fxSpawn(fxAt(pt, 'fx2-megaring', {}), 520); }
+    catch (err) { console.warn('checkmate stage 2 failed (ignored):', err); }
+  }, 220);
+  setTimeout(() => { // stage 3: +480ms
+    try {
+      fxCheckVignette.classList.remove('go', 'go2', 'simple');
+      void fxCheckVignette.offsetWidth;
+      fxCheckVignette.classList.add('mategoflash');
+      sceneEl.classList.remove('fx-shake-big');
+      void sceneEl.offsetWidth;
+      sceneEl.classList.add('fx-shake-big');
+      setTimeout(() => { fxCheckVignette.classList.remove('mategoflash'); sceneEl.classList.remove('fx-shake-big'); }, 460);
+    } catch (err) { console.warn('checkmate stage 3 failed (ignored):', err); }
+  }, 480);
+  window.__oukFxLog.push({ tier: 4, key: 'checkmate2_triple' });
+}
+
+// Magic II legal-move indicator: DOM "portal" glyphs (pulsing ring +
+// rotating diamond) on each reachable square, replacing the 3D markers
+// only for this theme. The ring is drawn as an SVG polygon through points
+// of a real flat circle on the board plane, each individually projected to
+// screen space -- so, unlike a plain screen-space circle, it actually lies
+// flush against the (perspective-tilted) square instead of floating in
+// front of it looking like a vertical disc. Re-projected every frame in
+// loop() below so the ring tracks correctly while the camera orbits or zooms.
+const FX_PORTAL_RING_PTS = 28, FX_PORTAL_RADIUS = 0.36;
+function fxRingPolygonPoints(sq, radiusWorld) {
+  const p = sqPos(sq);
+  const r = renderer.domElement.getBoundingClientRect();
+  const pts = [];
+  for (let i = 0; i < FX_PORTAL_RING_PTS; i++) {
+    const a = (i / FX_PORTAL_RING_PTS) * Math.PI * 2;
+    const wx = p.x + Math.cos(a) * radiusWorld, wz = p.z + Math.sin(a) * radiusWorld;
+    const v = new THREE.Vector3(wx, 0.04, wz).project(camera);
+    pts.push(((v.x * 0.5 + 0.5) * r.width).toFixed(1) + ',' + ((-v.y * 0.5 + 0.5) * r.height).toFixed(1));
+  }
+  return pts.join(' ');
+}
+let fxPortalNodes = [];
+function fxPortalsShow() {
+  fxPortalsClear();
+  try {
+    document.body.classList.toggle('fx-reduced-motion', fxPrefersReducedMotion());
+    const ns = 'http://www.w3.org/2000/svg';
+    for (const m of legalForSelected) {
+      const isCap = state.board[m.to] !== E.EMPTY;
+      const el = document.createElement('div');
+      el.className = 'fx-portal ' + (isCap ? 'cap' : 'move');
+      const svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('width', '100%'); svg.setAttribute('height', '100%');
+      svg.classList.add('fx-portal-svg');
+      const poly = document.createElementNS(ns, 'polygon');
+      poly.setAttribute('points', fxRingPolygonPoints(m.to, FX_PORTAL_RADIUS));
+      poly.classList.add('fx-portal-ring-poly');
+      svg.appendChild(poly);
+      el.appendChild(svg);
+      fxPortalLayer.appendChild(el);
+      fxPortalNodes.push({ el, sq: m.to, poly });
+    }
+  } catch (err) {
+    console.warn('portal render failed (ignored):', err);
+  }
+}
+function fxPortalsClear() { fxPortalLayer.innerHTML = ''; fxPortalNodes = []; }
+function fxPortalsRetrack() {
+  if (!fxPortalNodes.length) return;
+  try {
+    for (const n of fxPortalNodes) {
+      n.poly.setAttribute('points', fxRingPolygonPoints(n.sq, FX_PORTAL_RADIUS));
+    }
+  } catch (err) { console.warn('portal retrack failed (ignored):', err); }
+}
+
 // Called from applyMove right after a move has actually been applied to
 // game state -- entirely fire-and-forget so it can never delay the next
 // move, and try/catch-wrapped so a DOM/animation failure can never break
 // the underlying game logic.
-function triggerSkillEffect(m, moverPiece, capturedPiece, isCheck) {
-  if (themeKey !== 'magic') return;
+// ---- Pawn promotion ("Trey Bork" -> Neang) transformation: an expanding
+// golden ring plus a handful of rising sparks at the square the pawn just
+// transformed on. Fired from applyMove/applyTrainingMove whenever a
+// promotion just happened, independent of the normal move/capture effect.
+function fxPromote(sq, side) {
+  const t = theme();
+  if (!t.magicFx) return;
   try {
+    const pt = fxScreenPoint(sq);
+    const col = '#ffd700';
+    if (fxPrefersReducedMotion()) {
+      fxSimpleFlash(pt, col);
+      window.__oukFxLog.push({ tier: 4, key: 'promote_simple' });
+      return;
+    }
+    fxSpawn(fxAt(pt, 'fx-promote-ring', { '--fxcol': col }), 560);
+    const n = t.magicFxTier === 2 ? 10 : 6;
+    for (let i = 0; i < n; i++) {
+      const a2 = (i / n) * Math.PI * 2 + Math.random() * 0.4;
+      const dist = 30 + Math.random() * 20;
+      fxSpawn(fxAt(pt, 'fx-promote-spark', {
+        '--fxcol': col, '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist - 40) + 'px',
+        animationDelay: (i * 15) + 'ms'
+      }), 570 + i * 15);
+    }
+    window.__oukFxLog.push({ tier: 4, key: 'promote_transform' });
+  } catch (err) {
+    console.warn('promotion effect render failed (ignored):', err);
+  }
+}
+
+// ---- "Giant slayer": a small piece (Trey/Ses/Koul) capturing a bigger
+// one (Touk/Neang) gets an escalated shockwave layered on top of its
+// normal per-piece capture effect, celebrating the underdog capture.
+// Values are a simple, intuitive relative scale for this comparison only
+// -- not the AI's own tuned evaluation weights (see engine.js's separate
+// VAL table), which this UI-only effect has no need to match.
+const FX_PIECE_VALUE = { [E.PAWN]: 1, [E.KNIGHT]: 3, [E.BISHOP]: 3, [E.ROOK]: 5, [E.QUEEN]: 9, [E.KING]: 99 };
+function fxPieceValue(piece) { return E.isProm(piece) ? FX_PIECE_VALUE[E.QUEEN] : FX_PIECE_VALUE[E.typeOf(piece)]; }
+function fxUpset(toSq, side) {
+  const t = theme();
+  const colArr = t.magicFxTier === 2 ? FX2_SIDE_COLOR : FX_SIDE_COLOR;
+  const col = colArr[side];
+  try {
+    const pt = fxScreenPoint(toSq);
+    if (fxPrefersReducedMotion()) {
+      fxSimpleFlash(pt, col);
+      window.__oukFxLog.push({ tier: 4, key: 'upset_simple' });
+      return;
+    }
+    fxSpawn(fxAt(pt, 'fx-upset-ring', { '--fxcol': col }), 500);
+    const sceneEl = document.getElementById('scene');
+    sceneEl.classList.remove('fx-shake');
+    void sceneEl.offsetWidth;
+    sceneEl.classList.add('fx-shake');
+    setTimeout(() => sceneEl.classList.remove('fx-shake'), 260);
+    window.__oukFxLog.push({ tier: 4, key: 'upset_shatter' });
+  } catch (err) {
+    console.warn('upset effect render failed (ignored):', err);
+  }
+}
+
+// ---- Opponent "casting" flourish: a brief rotating rune at the origin
+// square, fired only for the AI opponent's own moves (never the human's),
+// so an opponent move reads as a distinct conjuring rather than just a
+// differently-colored copy of the human's own move trail.
+function fxOpponentCast(fromSq, side) {
+  const t = theme();
+  if (!t.magicFx || fxPrefersReducedMotion()) return; // the plain colored trail already covers reduced motion
+  try {
+    const colArr = t.magicFxTier === 2 ? FX2_SIDE_COLOR : FX_SIDE_COLOR;
+    fxSpawn(fxAt(fxScreenPoint(fromSq), 'fx-cast-rune', { '--fxcol': colArr[side] }), 430);
+    window.__oukFxLog.push({ tier: 4, key: 'opponent_cast' });
+  } catch (err) {
+    console.warn('opponent-cast effect render failed (ignored):', err);
+  }
+}
+
+function triggerSkillEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.magicFx) return;
+  try {
+    const tier2 = t.magicFxTier === 2;
     const side = E.colorOf(moverPiece);
     const reduced = fxPrefersReducedMotion();
+    const colArr = tier2 ? FX2_SIDE_COLOR : FX_SIDE_COLOR;
+    // an opponent (AI) move gets its own conjuring flourish at the origin
+    // square, layered in before the usual trail/capture effect below
+    if (mode.startsWith('ai') && side !== humanSide) fxOpponentCast(m.from, side);
     if (capturedPiece !== E.EMPTY) {
       const effType = E.isProm(moverPiece) ? E.QUEEN : E.typeOf(moverPiece);
-      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), FX_SIDE_COLOR[side]);
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), colArr[side]);
+      else if (tier2) fxCapture2(effType, m.from, m.to, side);
       else fxCapture(effType, m.from, m.to, side);
+      // a small piece taking down a bigger one gets an extra shockwave on
+      // top of the capture effect it already just played
+      if (fxPieceValue(moverPiece) < fxPieceValue(capturedPiece)) fxUpset(m.to, side);
     } else {
-      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), FX_SIDE_COLOR[side]);
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), colArr[side]);
+      else if (tier2) fxTrail2(m.from, m.to, side);
       else fxTrail(m.from, m.to, side);
     }
-    if (isCheck) fxCheck(E.kingSq(state, state.turn));
+    if (tier2 && isCheckmate) {
+      fxCheckmate2(E.kingSq(state, state.turn), colArr[side]);
+    } else if (isCheck) {
+      if (tier2) fxCheck2(E.kingSq(state, state.turn));
+      else fxCheck(E.kingSq(state, state.turn));
+    }
   } catch (err) {
     console.warn('skill-effect render failed (ignored):', err);
   }
@@ -3555,8 +4389,11 @@ function applyMove(m) {
   clearMarkers();
   refreshAll();
   const isCheck = E.inCheck(state, state.turn);
+  const mateStatus = E.gameStatus(state);
+  const isCheckmate = !!(mateStatus && mateStatus.type === 'checkmate');
   playMoveSound(isCheck ? 'check' : (captured !== E.EMPTY ? 'capture' : 'move'));
-  triggerSkillEffect(m, mover, captured, isCheck);
+  triggerSkillEffect(m, mover, captured, isCheck, isCheckmate);
+  if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCountForAI();
   scheduleAI();
 }
@@ -3570,6 +4407,7 @@ function applyTrainingMove(m) {
   state.turn = E.WHITE;
   const promoted = wasPawn && E.isProm(state.board[m.to]);
   flashMsg = promoted ? 'ត្រីឡើងនាងហើយ! Promoted to Neang!' : '';
+  if (promoted) fxPromote(m.to, E.colorOf(mover));
   lastMove = m;
   // keep teaching: re-select the moved piece and show its new moves
   selected = m.to;
@@ -4907,6 +5745,29 @@ window.__ouk = {
     const sprite = g.children.find(c => c.isSprite);
     return sprite ? { y: sprite.position.y, scaleX: sprite.scale.x } : null;
   },
+  debugLabelVsMesh: (sq) => {
+    const g = pieceAt[sq];
+    if (!g) return null;
+    const sprite = g.children.find(c => c.isSprite);
+    const box = new THREE.Box3().setFromObject(g);
+    const meshCenter = new THREE.Vector3((box.min.x + box.max.x) / 2, box.min.y, (box.min.z + box.max.z) / 2);
+    const spriteWorld = new THREE.Vector3();
+    sprite.getWorldPosition(spriteWorld);
+    const project = (v) => {
+      const p = v.clone().project(camera);
+      const r = renderer.domElement.getBoundingClientRect();
+      return { x: (p.x * 0.5 + 0.5) * r.width, y: (-p.y * 0.5 + 0.5) * r.height };
+    };
+    return {
+      groupPos: g.position.clone(),
+      meshCenter,
+      spriteWorld,
+      groupScreen: project(g.position.clone()),
+      spriteScreen: project(spriteWorld),
+      camAspect: camera.aspect,
+      canvasRect: (() => { const r = renderer.domElement.getBoundingClientRect(); return { w: r.width, h: r.height }; })()
+    };
+  },
   pieceLabelBgColors: () => {
     const out = {};
     for (const key in pieceLabelMats) {
@@ -4924,14 +5785,43 @@ window.__ouk = {
   sunColor: () => sun.color.getHex(),
   ambientIntensity: () => ambientLight.intensity,
   lightAzEl: () => ({ azimuth: lightAzimuth, elevation: lightElevation }),
+  sceneHasFog: () => !!scene.fog,
   sceneBrightness: () => sceneBrightness,
   rendererExposure: () => renderer.toneMappingExposure,
   pieceLuminescence: () => pieceLuminescence,
   pieceEmissiveIntensity: () => ({ w: MAT_W.emissiveIntensity, b: MAT_B.emissiveIntensity }),
   pieceEmissiveColor: () => ({ w: MAT_W.emissive.getHex(), b: MAT_B.emissive.getHex() }),
+  blackPieceColor: () => MAT_B.color,
+  sceneHasEnvironment: () => !!scene.environment,
+  matWPhysical: () => ({ transmission: MAT_W.transmission, ior: MAT_W.ior, thickness: MAT_W.thickness, clearcoat: MAT_W.clearcoat, clearcoatRoughness: MAT_W.clearcoatRoughness, envMapIntensity: MAT_W.envMapIntensity, roughness: MAT_W.roughness, hasMap: !!MAT_W.map, opacity: MAT_W.opacity, transparent: MAT_W.transparent }),
+  matBPhysical: () => ({ transmission: MAT_B.transmission, ior: MAT_B.ior, thickness: MAT_B.thickness, clearcoat: MAT_B.clearcoat, clearcoatRoughness: MAT_B.clearcoatRoughness, envMapIntensity: MAT_B.envMapIntensity, roughness: MAT_B.roughness, hasMap: !!MAT_B.map, opacity: MAT_B.opacity, transparent: MAT_B.transparent }),
+  pieceBFloor: () => theme().pieceBFloor || 0.1,
+  tileDarkHex: () => theme().tileDark,
+  boardEnvMapIntensity: () => squareMeshes[0].material.envMapIntensity,
+  frameEnvMapIntensity: () => frameMat.envMapIntensity,
+  squareMaterialAt: (sq) => {
+    const m = squareMeshes.find((s) => s.userData.sq === sq);
+    return {
+      clearcoatRoughness: m.material.clearcoatRoughness,
+      envMapIntensity: m.material.envMapIntensity,
+      transmission: m.material.transmission,
+      color: m.material.color.getHex()
+    };
+  },
+  frameMetalness: () => frameMat.metalness,
+  frameRoughness: () => frameMat.roughness,
+  pieceGroupCount: () => pieceGroup.children.length,
+  squareHasMarbleMap: () => !!squareMeshes[0].material.map,
+  fxPoint: (sq) => fxScreenPoint(sq),
+  fxRingCenter: (sq) => {
+    const pts = fxRingPolygonPoints(sq, FX_PORTAL_RADIUS).split(' ').map(p => p.split(',').map(Number));
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
+  },
   tileColorsUniform: () => new Set(squareMeshes.map(m => m.userData.baseColor)).size === 1,
   gridVisible: () => gridOverlayMesh.visible,
   pieceStyle: () => pieceStyleOverride,
+  resolvedPieceStyle: () => pieceStyle(),
   audioReady: () => !!audioCtx,
   musicPlaying: () => musicPlaying,
   currentMusicKey: () => currentMusicKey,
@@ -4952,14 +5842,21 @@ window.__ouk = {
   fxLog: () => window.__oukFxLog.slice(),
   fxClearLog: () => { window.__oukFxLog.length = 0; },
   fxLayerCount: () => fxLayer.children.length,
-  fxCheckShaking: () => document.getElementById('scene').classList.contains('fx-shake'),
-  fxVignetteActive: () => fxCheckVignette.classList.contains('go'),
+  fxCheckShaking: () => document.getElementById('scene').classList.contains('fx-shake') || document.getElementById('scene').classList.contains('fx-shake-big'),
+  fxVignetteActive: () => fxCheckVignette.classList.contains('go') || fxCheckVignette.classList.contains('go2'),
+  fxMateFlashActive: () => fxCheckVignette.classList.contains('mategoflash'),
   fxSetReducedMotion: (on) => {
     // Playwright/jsdom can't toggle the OS media feature, so tests use this
     // override to exercise the reduced-motion code path deterministically.
     window.__oukForceReducedMotion = on;
   },
-  fxTrigger: (m, moverPiece, capturedPiece, isCheck) => triggerSkillEffect(m, moverPiece, capturedPiece, isCheck)
+  fxTrigger: (m, moverPiece, capturedPiece, isCheck, isCheckmate) => triggerSkillEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate),
+  fxPromoteTrigger: (sq, side) => fxPromote(sq, side),
+  fxOpponentCastTrigger: (sq, side) => fxOpponentCast(sq, side),
+  // ---- Magic II (debug hooks) ----
+  fxPortalCount: () => fxPortalNodes.length,
+  fxPortalTypesAt: () => fxPortalNodes.map(n => ({ sq: n.sq, cap: n.el.classList.contains('cap') })),
+  fxReducedMotionClass: () => document.body.classList.contains('fx-reduced-motion')
 };
 
 // ---------- render loop ----------
@@ -5023,6 +5920,8 @@ function loop() {
   requestAnimationFrame(loop);
   controls.update();
   if (checkRing) checkRing.material.opacity = 0.35 + 0.3 * Math.abs(Math.sin(clock.getElapsedTime() * 3));
+  fxPortalsRetrack(); // keep Magic II portal glyphs pinned to their squares while the camera orbits
+  retrackPieceLabels(); // keep piece-name labels perspective-corrected and centered on every viewport
   renderer.render(scene, camera);
 }
 
