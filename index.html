@@ -662,6 +662,42 @@
     0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
     100% { transform: translate(var(--mx), var(--my)) rotate(200deg); opacity: 0; }
   }
+
+  /* ============ Kids Playroom theme: bouncy/splashy motion effects ============
+     A squash-stretch bounce pop for a normal move, and a colorful paint
+     splash + confetti burst for a capture -- brighter and springier
+     than any other theme's effects, matching the "colorful, fun,
+     bouncy, splashy" brief. */
+  .fx-kids-bounce {
+    position: absolute; width: 30px; height: 30px; left: -15px; top: -15px;
+    border-radius: 50%; background: radial-gradient(circle, #fff6a0, #ffb703 60%, transparent 75%);
+    animation: fxKidsBounce 340ms cubic-bezier(.34, 1.8, .64, 1) forwards;
+  }
+  @keyframes fxKidsBounce {
+    0% { transform: scale(.3) scaleY(1.3); opacity: 1; }
+    40% { transform: scale(1.15) scaleY(.8); opacity: 1; }
+    70% { transform: scale(.92) scaleY(1.08); opacity: 1; }
+    100% { transform: scale(1) scaleY(1); opacity: 0; }
+  }
+  .fx-kids-splash {
+    position: absolute; width: 40px; height: 40px; left: -20px; top: -20px; border-radius: 50%;
+    background: radial-gradient(circle, var(--splashcol, #ff6b6b) 0%, var(--splashcol, #ff6b6b) 45%, transparent 72%);
+    animation: fxKidsSplash 420ms ease-out forwards;
+  }
+  @keyframes fxKidsSplash {
+    0% { transform: scale(.2); opacity: 1; }
+    50% { opacity: 1; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  .fx-kids-confetti {
+    position: absolute; width: 7px; height: 7px; left: -3.5px; top: -3.5px; border-radius: 2px;
+    background: var(--fxcol, #ffe14d);
+    animation: fxKidsConfetti 460ms ease-out forwards;
+  }
+  @keyframes fxKidsConfetti {
+    0% { transform: translate(0, 0) rotate(0deg) scale(.5); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) rotate(260deg) scale(1); opacity: 0; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1001,6 +1037,11 @@
       <option value="marble">Marble — ថ្មម៉ាបល</option>
       <option value="mario">Super Ouk World — ពិភពម៉ារីយ៉ូ</option>
       <option value="contra">Contra 1988 — ចម្បាំង១៩៨៨</option>
+      <option value="sofisticate">Sofisticate — ទំនើបប្រណីត</option>
+      <option value="girlyPink">Girly Pink — ផ្កាឈូក</option>
+      <option value="girlyPurple">Girly Purple — ស្វាយ</option>
+      <option value="girlyYellow">Girly Yellow — លឿង</option>
+      <option value="kids">Kids Playroom — កុមារ</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -2355,6 +2396,68 @@ const THEMES = {
     // less chunky than the jungle theme's (or even Mario's doubled) default.
     pixelated: true, pixelScale: 0.96, contraBackdrop: true, brickTiles: true,
     contraFx: true
+  },
+  // Sofisticate: a modern high-end-gadget look -- brushed platinum vs.
+  // matte space-black pieces (the two-tone finish of a premium titanium
+  // watch/phone), a soft studio-gradient backdrop (sofisticateBackdrop,
+  // buildSofisticateBackdrop below) instead of a flat color, and a sharp
+  // clearcoat + strong environment pull so the polished metal actually
+  // reads as expensive rather than just gray plastic. Reuses the
+  // 'minimal' piece geometry (already "slender high-polish forms") --
+  // the premium read comes entirely from material/color here, not a
+  // bespoke shape.
+  sofisticate: {
+    name: 'Sofisticate', style: 'minimal',
+    bg: 0x1c1c20, fog: null,
+    frame: 0x38383e, tileLight: 0xd9d9de, tileDark: 0x2a2a2e,
+    pieceW: 0xe9e9ee, pieceB: 0x232326, rough: 0.16, metal: 0.82,
+    labelInk: '#e9e9ee', tray: 0x141416,
+    clearcoat: 0.6, clearcoatRoughness: 0.08, envMapIntensity: 1.3,
+    sofisticateBackdrop: true, pieceBFloor: 0.14
+  },
+  // ---- Girl-vibe themes: three color variants sharing one redesigned
+  // "girly" piece set (soft rounded candy/gem shapes with a small pastel
+  // satin bow at the collar of every piece -- see buildGirlyPiece and
+  // MAT_BOW) instead of any of the existing traditional/carved/minimal
+  // geometry. Each variant is its own theme entry so it appears as its
+  // own pick in the theme list, but all three point at style: 'girly'.
+  girlyPink: {
+    name: 'Girly Pink', style: 'girly',
+    bg: 0xffe3ee, fog: null,
+    frame: 0xe8a8c4, tileLight: 0xffeef5, tileDark: 0xf2a8c8,
+    pieceW: 0xfff3f8, pieceB: 0xd6488a, rough: 0.3, metal: 0.05,
+    labelInk: '#7a2a4c', tray: 0xf7c9dc,
+    clearcoat: 0.4, clearcoatRoughness: 0.2, envMapIntensity: 0.5
+  },
+  girlyPurple: {
+    name: 'Girly Purple', style: 'girly',
+    bg: 0xede2ff, fog: null,
+    frame: 0xa87ec8, tileLight: 0xf2e8ff, tileDark: 0xc39ce8,
+    pieceW: 0xf8f0ff, pieceB: 0x7a3ab0, rough: 0.3, metal: 0.05,
+    labelInk: '#442870', tray: 0xd9c2f2,
+    clearcoat: 0.4, clearcoatRoughness: 0.2, envMapIntensity: 0.5
+  },
+  girlyYellow: {
+    name: 'Girly Yellow', style: 'girly',
+    bg: 0xfff6d8, fog: null,
+    frame: 0xf0c246, tileLight: 0xfff8e2, tileDark: 0xf5d878,
+    pieceW: 0xfffaf0, pieceB: 0xdc9a10, rough: 0.3, metal: 0.05,
+    labelInk: '#6b4a10', tray: 0xf5e3a8,
+    clearcoat: 0.4, clearcoatRoughness: 0.2, envMapIntensity: 0.5
+  },
+  // Kids: a redesigned chunky, rounded, bright-primary-color piece set
+  // (buildKidsPiece -- big rounded "toy block" bodies with a contrasting
+  // polka-dot cap) on a bold 4-color-family board, paired with its own
+  // bouncy move / splashy-confetti capture motion effects (kidsFx, see
+  // triggerKidsEffect) and a playful xylophone/kazoo SFX bank instead of
+  // any other theme's plain blip or none at all.
+  kids: {
+    name: 'Kids Playroom', style: 'kids',
+    bg: 0x8fd8ff, fog: null,
+    frame: 0xff8a4a, tileLight: 0xffe14d, tileDark: 0x2ec4b6,
+    pieceW: 0xff6b6b, pieceB: 0x4a6cf7, rough: 0.5, metal: 0.0,
+    labelInk: '#ffffff', tray: 0xff8a4a,
+    kidsFx: true
   }
 };
 let themeKey = 'wood';
@@ -2670,6 +2773,16 @@ function buildLabels() {
 const MAT_W = new THREE.MeshPhysicalMaterial({ color: 0xe9dabb, roughness: 0.45, metalness: 0.05 });
 const MAT_B = new THREE.MeshPhysicalMaterial({ color: 0x6d2a18, roughness: 0.45, metalness: 0.05 });
 const MAT_GOLD = new THREE.MeshStandardMaterial({ color: 0xd4a548, roughness: 0.3, metalness: 0.6 });
+// A soft white satin-ribbon accent shared by all three Girly themes'
+// bow trim (see buildGirlyPiece) -- white reads elegantly against any
+// of the pink/purple/yellow palettes, so one shared material covers
+// all three instead of needing a per-theme accent color.
+const MAT_BOW = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.05 });
+// A bright contrasting cap/accent color for the Kids Playroom theme's
+// chunky piece set (see buildKidsPiece) -- a cheerful sunshine yellow
+// that reads clearly against either the coral (White) or blue (Black)
+// body color.
+const MAT_KIDS_ACCENT = new THREE.MeshStandardMaterial({ color: 0xffe14d, roughness: 0.4, metalness: 0.0 });
 // Magic/Magic II accent materials (theme().goldAccents): replace the old
 // full-chrome body + separate solid gold trim ring with a subtler split --
 // the base gets its own slight metal shine, and the rest of the body gets
@@ -2737,6 +2850,8 @@ function buildPiece(type, color, promoted) {
   if (style === 'pixel' || style === 'mario' || style === 'contra') return buildVoxelPiece(g, add, type, promoted, color);
   if (style === 'khmer') return buildKhmerPiece(g, add, type, promoted, color);
   if (style === 'crystal') return buildCrystalPiece(g, add, type, promoted, color);
+  if (style === 'girly') return buildGirlyPiece(g, add, type, promoted, color);
+  if (style === 'kids') return buildKidsPiece(g, add, type, promoted, color);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
   if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18, baseMat); // collar
   switch (type) {
@@ -2824,6 +2939,113 @@ function buildVoxelPiece(g, add, type, promoted, color) {
       break;
   }
   if (promoted) add(box(0.42, 0.06, 0.42), 0.22, MAT_GOLD);
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Cute, softly rounded candy/gem piece set for the three Girly (Pink/
+// Purple/Yellow) themes: every piece gets a small pastel satin bow
+// (MAT_BOW -- two flattened "loop" spheres plus a center knot) at its
+// collar, and bodies favor stacked spheres/domes over hard edges for a
+// rounded, huggable silhouette instead of any of the traditional/
+// carved/minimal/faceted forms the other styles use.
+function buildGirlyPiece(g, add, type, promoted, color) {
+  add(new THREE.SphereGeometry(0.28, 20, 12), 0.09).scale.set(1, 0.38, 1); // rounded base
+  const addBow = (y) => {
+    const loop = (x, rotZ) => {
+      const m = add(new THREE.SphereGeometry(0.075, 10, 8), y, MAT_BOW);
+      m.scale.set(1, 0.55, 0.4);
+      m.position.x = x;
+      m.rotation.z = rotZ;
+    };
+    loop(-0.075, 0.55);
+    loop(0.075, -0.55);
+    add(new THREE.SphereGeometry(0.04, 8, 6), y, MAT_BOW);
+  };
+  switch (type) {
+    case E.KING:
+      add(new THREE.SphereGeometry(0.22, 20, 14), 0.36);
+      add(new THREE.SphereGeometry(0.15, 18, 12), 0.62);
+      add(new THREE.TorusGeometry(0.1, 0.03, 8, 16), 0.78).rotation.x = Math.PI / 2;
+      add(new THREE.SphereGeometry(0.06, 12, 10), 0.92);
+      addBow(0.2);
+      break;
+    case E.QUEEN:
+      add(new THREE.SphereGeometry(0.2, 20, 14), 0.34);
+      add(new THREE.SphereGeometry(0.13, 16, 12), 0.56);
+      add(new THREE.SphereGeometry(0.07, 12, 10), 0.7);
+      addBow(0.2);
+      break;
+    case E.BISHOP:
+      add(new THREE.ConeGeometry(0.16, 0.3, 18), 0.36);
+      add(new THREE.SphereGeometry(0.07, 12, 10), 0.54);
+      addBow(0.2);
+      break;
+    case E.KNIGHT: {
+      add(new THREE.SphereGeometry(0.17, 18, 12), 0.32);
+      const head = add(new THREE.SphereGeometry(0.12, 16, 12), 0.46);
+      head.position.z = 0.05;
+      const ear1 = add(new THREE.ConeGeometry(0.04, 0.12, 8), 0.58);
+      ear1.position.set(-0.05, 0, 0.02);
+      const ear2 = add(new THREE.ConeGeometry(0.04, 0.12, 8), 0.58);
+      ear2.position.set(0.05, 0, 0.02);
+      addBow(0.2);
+      break;
+    }
+    case E.ROOK:
+      add(new THREE.SphereGeometry(0.19, 18, 12), 0.28).scale.set(1, 0.85, 1);
+      add(new THREE.TorusGeometry(0.14, 0.025, 8, 16), 0.42).rotation.x = Math.PI / 2;
+      addBow(0.2);
+      break;
+    case E.PAWN:
+      add(new THREE.SphereGeometry(0.16, 18, 12), 0.26);
+      addBow(0.14);
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.22, 0.03, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Big, chunky, rounded "toy block" piece set for the Kids Playroom
+// theme: oversized rounded bodies (cylinders/spheres) each topped with
+// a bright contrasting accent cap (MAT_KIDS_ACCENT), instead of any of
+// the slender/faceted/blocky-pixel forms the other styles use -- reads
+// as a stack of building blocks or bath toys rather than a chess piece.
+function buildKidsPiece(g, add, type, promoted, color) {
+  add(new THREE.CylinderGeometry(0.32, 0.34, 0.16, 20), 0.09); // chunky base
+  switch (type) {
+    case E.KING:
+      add(new THREE.CylinderGeometry(0.26, 0.3, 0.5, 20), 0.42);
+      add(new THREE.SphereGeometry(0.22, 18, 14), 0.74);
+      add(new THREE.BoxGeometry(0.24, 0.06, 0.06), 0.98, MAT_KIDS_ACCENT);
+      add(new THREE.BoxGeometry(0.06, 0.06, 0.24), 0.98, MAT_KIDS_ACCENT);
+      break;
+    case E.QUEEN:
+      add(new THREE.CylinderGeometry(0.24, 0.28, 0.44, 20), 0.38);
+      add(new THREE.SphereGeometry(0.19, 16, 12), 0.66, MAT_KIDS_ACCENT);
+      break;
+    case E.BISHOP:
+      add(new THREE.ConeGeometry(0.22, 0.42, 20), 0.38);
+      add(new THREE.SphereGeometry(0.1, 12, 10), 0.62, MAT_KIDS_ACCENT);
+      break;
+    case E.KNIGHT: {
+      add(new THREE.CylinderGeometry(0.22, 0.28, 0.34, 20), 0.3);
+      const head = add(new THREE.BoxGeometry(0.24, 0.3, 0.24), 0.56);
+      head.rotation.y = Math.PI / 4;
+      add(new THREE.SphereGeometry(0.08, 12, 10), 0.76, MAT_KIDS_ACCENT);
+      break;
+    }
+    case E.ROOK:
+      add(new THREE.CylinderGeometry(0.28, 0.3, 0.36, 20), 0.32);
+      add(new THREE.TorusGeometry(0.22, 0.045, 10, 20), 0.52, MAT_KIDS_ACCENT).rotation.x = Math.PI / 2;
+      break;
+    case E.PAWN:
+      add(new THREE.SphereGeometry(0.22, 18, 14), 0.3);
+      add(new THREE.SphereGeometry(0.08, 12, 10), 0.5, MAT_KIDS_ACCENT);
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.22, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -3298,6 +3520,29 @@ function buildContraBackdrop() {
   contraBackdropCache = tex;
   return tex;
 }
+// A soft, smoothly-filtered studio-gradient backdrop for the Sofisticate
+// theme -- a plain vertical light-to-dark charcoal gradient with a
+// subtle soft highlight band, the classic product-photography softbox
+// look, rather than any of the other backdrops' hard-edged pixel-art
+// illustration. Deliberately left at the default (linear) texture
+// filtering, unlike every pixelated theme's NearestFilter backdrop, so
+// it stays smooth even though it's rendered at full resolution.
+let sofisticateBackdropCache = null;
+function buildSofisticateBackdrop() {
+  if (sofisticateBackdropCache) return sofisticateBackdropCache;
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 288;
+  const ctx = cv.getContext('2d');
+  const sky = ctx.createLinearGradient(0, 0, 0, 288);
+  sky.addColorStop(0, '#3a3a40'); sky.addColorStop(0.55, '#1f1f24'); sky.addColorStop(1, '#0e0e11');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, 512, 288);
+  ctx.filter = 'blur(30px)';
+  ctx.fillStyle = 'rgba(255,255,255,0.10)';
+  ctx.beginPath(); ctx.ellipse(256, 40, 260, 70, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.filter = 'none';
+  const tex = new THREE.CanvasTexture(cv);
+  sofisticateBackdropCache = tex;
+  return tex;
+}
 // A small hard-edged brick/dirt pattern tinted to the tile's base color.
 const brickTexCache = {};
 function buildBrickTexture(hex, key) {
@@ -3632,6 +3877,7 @@ function updateBackground() {
   else if (t.paintedBackdrop) tex = buildPaintingBackdrop();
   else if (t.marioBackdrop) tex = buildMarioBackdrop();
   else if (t.contraBackdrop) tex = buildContraBackdrop();
+  else if (t.sofisticateBackdrop) tex = buildSofisticateBackdrop();
   else tex = null;
   const fadeEl = document.getElementById('bgFade');
   // cancel any in-flight fade so rapid successive changes (theme, then
@@ -3994,6 +4240,32 @@ const SFX = {
       envOsc({ freq: 500, type: 'square', dur: 0.1, gain: 0.28, delay: 0.1 });
       envOsc({ freq: 700, type: 'square', dur: 0.1, gain: 0.28, delay: 0.2 });
       envOsc({ freq: 500, type: 'square', dur: 0.14, gain: 0.28, delay: 0.3 });
+    }
+  },
+  // Girly (Pink/Purple/Yellow) themes: a twinkly high-pitched bell chime
+  // for move/capture/check, matching the cute rounded-candy piece set --
+  // all sine waves, all well above the other themes' typical register.
+  girly(kind) {
+    if (kind === 'move') envOsc({ freq: 880, type: 'sine', dur: 0.12, gain: 0.22, freqTo: 1100 });
+    else if (kind === 'capture') { envOsc({ freq: 1200, type: 'sine', dur: 0.08, gain: 0.24 }); envOsc({ freq: 1600, type: 'sine', dur: 0.14, gain: 0.2, delay: 0.06 }); }
+    else {
+      envOsc({ freq: 1046, type: 'sine', dur: 0.1, gain: 0.22 });
+      envOsc({ freq: 1318, type: 'sine', dur: 0.1, gain: 0.22, delay: 0.1 });
+      envOsc({ freq: 1568, type: 'sine', dur: 0.16, gain: 0.22, delay: 0.2 });
+    }
+  },
+  // Kids Playroom theme: a bouncy rising "boing" for a move, a splashy
+  // noise-burst whoosh for a capture, and a cheerful four-note xylophone
+  // "ta-da" for check -- playful triangle-wave tone, matching the
+  // "colorful, fun, bouncy, splashy" brief.
+  kids(kind) {
+    if (kind === 'move') envOsc({ freq: 420, type: 'triangle', dur: 0.14, gain: 0.26, freqTo: 640 });
+    else if (kind === 'capture') { noiseBurst({ dur: 0.1, filterFreq: 1800, q: 3, gain: 0.3 }); envOsc({ freq: 300, type: 'sine', dur: 0.18, gain: 0.28, freqTo: 700 }); }
+    else {
+      envOsc({ freq: 523, type: 'triangle', dur: 0.09, gain: 0.26 });
+      envOsc({ freq: 659, type: 'triangle', dur: 0.09, gain: 0.26, delay: 0.09 });
+      envOsc({ freq: 784, type: 'triangle', dur: 0.09, gain: 0.26, delay: 0.18 });
+      envOsc({ freq: 1046, type: 'triangle', dur: 0.18, gain: 0.26, delay: 0.27 });
     }
   }
 };
@@ -4583,6 +4855,54 @@ function triggerContraEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate)
   }
 }
 
+// ============ Kids Playroom theme: bouncy/splashy motion effects ============
+// A springy squash-stretch bounce for a normal move, and a colorful
+// paint-splash + confetti burst for a capture. Fires only while kidsFx
+// is on -- same fire-and-forget, try/catch-wrapped, independently-
+// called pattern as triggerMarioEffect/triggerContraEffect above.
+function fxKidsBounce(sq) {
+  fxSpawn(fxAt(fxScreenPoint(sq), 'fx-kids-bounce'), 340);
+  window.__oukFxLog.push({ tier: 1, key: 'kids_bounce' });
+}
+// Capturing side gets its own splash color -- coral for White, blue for
+// Black -- so a capture also reads as "whose turn did that" at a glance.
+const KIDS_SPLASH_COLOR = ['#ff6b6b', '#4a6cf7'];
+const KIDS_CONFETTI_COLORS = ['#ffe14d', '#2ec4b6', '#ff8a4a', '#c86bff'];
+function fxKidsSplash(sq, side) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-kids-splash', { '--splashcol': KIDS_SPLASH_COLOR[side] }), 420);
+  for (let i = 0; i < 8; i++) {
+    const a2 = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 24 + Math.random() * 20;
+    fxSpawn(fxAt(pt, 'fx-kids-confetti', {
+      '--fxcol': KIDS_CONFETTI_COLORS[i % KIDS_CONFETTI_COLORS.length],
+      '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px'
+    }), 460);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'kids_splash' });
+}
+function triggerKidsEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.kidsFx) return;
+  try {
+    const side = E.colorOf(moverPiece);
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), KIDS_SPLASH_COLOR[side]);
+      else fxKidsSplash(m.to, side);
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#ffb703');
+      else fxKidsBounce(m.to);
+    }
+    // reuses the same screen-level check vignette/shake every other
+    // theme's check effect does (see fxCheck above) -- a generic
+    // "you're in check" beat that fits fine without any change.
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('kids-effect render failed (ignored):', err);
+  }
+}
+
 // ---- background music: 10 soft, slow, procedurally-generated looping
 // tracks (5 general "relaxing lobby" style, 5 using a Khmer-flavored
 // pentatonic scale) — not literal recordings, synthesized so nothing needs
@@ -4909,6 +5229,7 @@ function applyMove(m) {
   triggerSkillEffect(m, mover, captured, isCheck, isCheckmate);
   triggerMarioEffect(m, mover, captured, isCheck, isCheckmate);
   triggerContraEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerKidsEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCountForAI();
   scheduleAI();
