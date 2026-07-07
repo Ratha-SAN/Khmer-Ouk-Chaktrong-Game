@@ -2304,9 +2304,9 @@ const THEMES = {
   // khaki/jungle-green camo board, and a dark fogged jungle-night backdrop
   // (contraBackdrop, buildContraBackdrop below). Reuses the same blocky
   // voxel piece geometry as Pixel Jungle/Mario (style 'contra' routes to
-  // buildVoxelPiece in buildPiece; see there) but keeps Pixel Jungle's
-  // chunkier default resolution -- a grittier, lower-fi look than Mario's
-  // sharpened one fits an 8-bit war game better than a bright platformer.
+  // buildVoxelPiece in buildPiece; see there) at triple Pixel Jungle's
+  // internal render resolution (see pixelScale below) -- sharper than
+  // even Mario's doubled resolution, while staying pixelated/retro.
   // Its own SFX bank (SFX.contra) and motion effects (contraFx, see
   // triggerContraEffect) swap the plain blip/no-motion-fx for gunfire,
   // explosions, and a bullet-tracer/muzzle-flash move effect.
@@ -2316,7 +2316,10 @@ const THEMES = {
     frame: 0x3a3f2e, tileLight: 0x5a6b3c, tileDark: 0x2b3320,
     pieceW: 0x35577a, pieceB: 0x8a2020, rough: 0.75, metal: 0.15,
     labelInk: '#d8e0c8', tray: 0x22261c,
-    pixelated: true, contraBackdrop: true, brickTiles: true,
+    // Triple Pixel Jungle's default internal render resolution (see
+    // resize()'s pixelScale lookup) -- still retro/pixelated, just much
+    // less chunky than the jungle theme's (or even Mario's doubled) default.
+    pixelated: true, pixelScale: 0.96, contraBackdrop: true, brickTiles: true,
     contraFx: true
   }
 };
