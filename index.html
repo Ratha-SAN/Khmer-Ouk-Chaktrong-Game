@@ -2416,8 +2416,9 @@ const THEMES = {
     sofisticateBackdrop: true, pieceBFloor: 0.14
   },
   // ---- Girl-vibe themes: three color variants sharing one redesigned
-  // "girly" piece set -- faceted diamond-cut gems on angular stems with
-  // a rose-gold jewelry band at the collar of every piece (see
+  // "girly" piece set -- smooth rounded cabochon-gem bodies accented
+  // with a few sharp details (a diamond-cut gem finial + a faceted
+  // rose-gold jewelry band at the collar of every piece; see
   // buildGirlyPiece and MAT_GIRLY_ACCENT) instead of any of the existing
   // traditional/carved/minimal geometry. Each variant is its own theme
   // entry so it appears as its own pick in the theme list, but all three
@@ -2948,57 +2949,63 @@ function buildVoxelPiece(g, add, type, promoted, color) {
   return g;
 }
 
-// Faceted fine-jewelry piece set for the three Girly (Pink/Purple/
-// Yellow) themes: low-poly diamond-cut gems (THREE.OctahedronGeometry,
-// 8 sharp triangular facets) on angular octagonal/hexagonal prism
-// stems, trimmed with a polished rose-gold band (MAT_GIRLY_ACCENT) at
-// the collar -- deliberately all sharp facets and no smooth curved
-// surfaces, the opposite of a previous, much rounder/softer "candy"
-// version of this piece set that read as too childish.
+// Fine-jewelry piece set for the three Girly (Pink/Purple/Yellow)
+// themes: smooth, softly rounded bodies (spheres/domed towers, back to
+// a high segment count) like a polished cabochon gem or pearl, each
+// accented with a FEW genuinely sharp details -- a low-poly diamond-cut
+// gem finial (THREE.OctahedronGeometry, 8 flat facets) and a faceted
+// rose-gold band (MAT_GIRLY_ACCENT, a deliberately low-segment torus so
+// its ring reads as angular rather than smooth) -- rather than making
+// every surface faceted, which read as too hard/cold for a "girly"
+// theme. Round body, sharp jewelry accents: the mix is the point.
 function buildGirlyPiece(g, add, type, promoted, color) {
-  const seg = 8; // low segment count everywhere -- visible flat facets, not a smooth curve
-  add(new THREE.CylinderGeometry(0.27, 0.3, 0.12, seg), 0.08); // faceted octagonal plinth
-  const addBand = (y, r) => add(new THREE.TorusGeometry(r || 0.15, 0.02, 6, seg), y, MAT_GIRLY_ACCENT).rotation.x = Math.PI / 2;
+  const seg = 20; // smooth, high segment count for every body shape below
+  add(new THREE.SphereGeometry(0.27, seg, 12), 0.09).scale.set(1, 0.4, 1); // smooth rounded base
+  const addBand = (y, r) => add(new THREE.TorusGeometry(r || 0.15, 0.022, 6, 10), y, MAT_GIRLY_ACCENT).rotation.x = Math.PI / 2; // low-seg torus -- the sharp accent
+  const addGem = (y, r) => add(new THREE.OctahedronGeometry(r, 0), y); // diamond-cut finial -- the other sharp accent
   switch (type) {
     case E.KING:
-      add(new THREE.CylinderGeometry(0.16, 0.22, 0.55, seg), 0.4);
-      addBand(0.68, 0.16);
-      add(new THREE.OctahedronGeometry(0.14, 0), 0.86);
-      for (let i = 0; i < 5; i++) {
+      add(new THREE.CylinderGeometry(0.17, 0.22, 0.5, seg), 0.39); // smooth tapered tower
+      addBand(0.66, 0.16);
+      add(new THREE.SphereGeometry(0.14, seg, 12), 0.8); // smooth dome
+      addGem(0.98, 0.09);
+      for (let i = 0; i < 5; i++) { // a few small sharp crown spikes, not a fully angular crown
         const a2 = (i / 5) * Math.PI * 2;
-        const spike = add(new THREE.ConeGeometry(0.025, 0.12, 4), 1.0, MAT_GIRLY_ACCENT);
-        spike.position.set(Math.cos(a2) * 0.1, 0, Math.sin(a2) * 0.1);
+        const spike = add(new THREE.ConeGeometry(0.02, 0.1, 4), 0.9, MAT_GIRLY_ACCENT);
+        spike.position.set(Math.cos(a2) * 0.09, 0, Math.sin(a2) * 0.09);
       }
       addBand(0.2);
       break;
     case E.QUEEN:
-      add(new THREE.CylinderGeometry(0.14, 0.2, 0.48, seg), 0.37);
-      addBand(0.6, 0.14);
-      add(new THREE.OctahedronGeometry(0.13, 0), 0.76);
+      add(new THREE.CylinderGeometry(0.15, 0.2, 0.44, seg), 0.36); // smooth tapered tower
+      addBand(0.58, 0.14);
+      add(new THREE.SphereGeometry(0.12, seg, 12), 0.7); // smooth dome
+      addGem(0.82, 0.07);
       addBand(0.2);
       break;
     case E.BISHOP:
-      add(new THREE.CylinderGeometry(0.11, 0.18, 0.34, seg), 0.32);
-      add(new THREE.OctahedronGeometry(0.11, 0), 0.56).scale.set(0.8, 1.4, 0.8); // marquise-cut taper
+      add(new THREE.ConeGeometry(0.15, 0.32, seg), 0.34); // smooth teardrop taper
+      add(new THREE.SphereGeometry(0.08, seg, 12), 0.56);
+      addGem(0.66, 0.05);
       addBand(0.2);
       break;
     case E.KNIGHT: {
-      add(new THREE.CylinderGeometry(0.13, 0.2, 0.32, seg), 0.3);
-      const head = add(new THREE.BoxGeometry(0.16, 0.24, 0.16), 0.5);
-      head.rotation.y = Math.PI / 4;
-      const ear = add(new THREE.ConeGeometry(0.045, 0.14, 4), 0.66);
-      ear.rotation.y = Math.PI / 4;
+      add(new THREE.SphereGeometry(0.16, seg, 12), 0.3); // smooth rounded body
+      const head = add(new THREE.SphereGeometry(0.12, seg, 12), 0.46);
+      head.position.z = 0.04; head.scale.set(0.85, 1, 1.15);
+      addGem(0.6, 0.045);
       addBand(0.2);
       break;
     }
     case E.ROOK:
-      add(new THREE.CylinderGeometry(0.16, 0.19, 0.3, 6), 0.28); // hexagonal turret
-      add(new THREE.CylinderGeometry(0.18, 0.16, 0.06, 6), 0.44, MAT_GIRLY_ACCENT);
+      add(new THREE.SphereGeometry(0.18, seg, 12), 0.28).scale.set(1, 0.9, 1); // smooth rounded drum
+      addBand(0.44, 0.15);
       addBand(0.2);
       break;
     case E.PAWN:
-      add(new THREE.OctahedronGeometry(0.15, 0), 0.26);
-      addBand(0.14, 0.12);
+      add(new THREE.SphereGeometry(0.16, seg, 12), 0.26); // smooth sphere gem
+      addGem(0.42, 0.045);
+      addBand(0.14);
       break;
   }
   if (promoted) add(new THREE.TorusGeometry(0.22, 0.03, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
