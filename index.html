@@ -2416,34 +2416,37 @@ const THEMES = {
     sofisticateBackdrop: true, pieceBFloor: 0.14
   },
   // ---- Girl-vibe themes: three color variants sharing one redesigned
-  // "girly" piece set (soft rounded candy/gem shapes with a small pastel
-  // satin bow at the collar of every piece -- see buildGirlyPiece and
-  // MAT_BOW) instead of any of the existing traditional/carved/minimal
-  // geometry. Each variant is its own theme entry so it appears as its
-  // own pick in the theme list, but all three point at style: 'girly'.
+  // "girly" piece set -- faceted diamond-cut gems on angular stems with
+  // a rose-gold jewelry band at the collar of every piece (see
+  // buildGirlyPiece and MAT_GIRLY_ACCENT) instead of any of the existing
+  // traditional/carved/minimal geometry. Each variant is its own theme
+  // entry so it appears as its own pick in the theme list, but all three
+  // point at style: 'girly'. rough/metal/clearcoat are all tuned toward
+  // a glossier, more reflective "polished gem" finish than a typical
+  // theme's, for a sparkling rather than matte-candy read.
   girlyPink: {
     name: 'Girly Pink', style: 'girly',
     bg: 0xffe3ee, fog: null,
     frame: 0xe8a8c4, tileLight: 0xffeef5, tileDark: 0xf2a8c8,
-    pieceW: 0xfff3f8, pieceB: 0xd6488a, rough: 0.3, metal: 0.05,
+    pieceW: 0xfff3f8, pieceB: 0xd6488a, rough: 0.12, metal: 0.35,
     labelInk: '#7a2a4c', tray: 0xf7c9dc,
-    clearcoat: 0.4, clearcoatRoughness: 0.2, envMapIntensity: 0.5
+    clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9
   },
   girlyPurple: {
     name: 'Girly Purple', style: 'girly',
     bg: 0xede2ff, fog: null,
     frame: 0xa87ec8, tileLight: 0xf2e8ff, tileDark: 0xc39ce8,
-    pieceW: 0xf8f0ff, pieceB: 0x7a3ab0, rough: 0.3, metal: 0.05,
+    pieceW: 0xf8f0ff, pieceB: 0x7a3ab0, rough: 0.12, metal: 0.35,
     labelInk: '#442870', tray: 0xd9c2f2,
-    clearcoat: 0.4, clearcoatRoughness: 0.2, envMapIntensity: 0.5
+    clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9
   },
   girlyYellow: {
     name: 'Girly Yellow', style: 'girly',
     bg: 0xfff6d8, fog: null,
     frame: 0xf0c246, tileLight: 0xfff8e2, tileDark: 0xf5d878,
-    pieceW: 0xfffaf0, pieceB: 0xdc9a10, rough: 0.3, metal: 0.05,
+    pieceW: 0xfffaf0, pieceB: 0xdc9a10, rough: 0.12, metal: 0.35,
     labelInk: '#6b4a10', tray: 0xf5e3a8,
-    clearcoat: 0.4, clearcoatRoughness: 0.2, envMapIntensity: 0.5
+    clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9
   },
   // Kids: a redesigned chunky, rounded, bright-primary-color piece set
   // (buildKidsPiece -- big rounded "toy block" bodies with a contrasting
@@ -2773,11 +2776,13 @@ function buildLabels() {
 const MAT_W = new THREE.MeshPhysicalMaterial({ color: 0xe9dabb, roughness: 0.45, metalness: 0.05 });
 const MAT_B = new THREE.MeshPhysicalMaterial({ color: 0x6d2a18, roughness: 0.45, metalness: 0.05 });
 const MAT_GOLD = new THREE.MeshStandardMaterial({ color: 0xd4a548, roughness: 0.3, metalness: 0.6 });
-// A soft white satin-ribbon accent shared by all three Girly themes'
-// bow trim (see buildGirlyPiece) -- white reads elegantly against any
-// of the pink/purple/yellow palettes, so one shared material covers
-// all three instead of needing a per-theme accent color.
-const MAT_BOW = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.05 });
+// A polished rose-gold jewelry-band accent shared by all three Girly
+// themes' faceted piece set (see buildGirlyPiece) -- rose gold reads as
+// fine jewelry against any of the pink/purple/yellow palettes, so one
+// shared material covers all three instead of needing a per-theme
+// accent color. High metalness + low roughness for a crisp sparkle
+// instead of the softer satin-ribbon look this used to be.
+const MAT_GIRLY_ACCENT = new THREE.MeshStandardMaterial({ color: 0xe8c0a0, roughness: 0.12, metalness: 0.8 });
 // A bright contrasting cap/accent color for the Kids Playroom theme's
 // chunky piece set (see buildKidsPiece) -- a cheerful sunshine yellow
 // that reads clearly against either the coral (White) or blue (Black)
@@ -2943,63 +2948,57 @@ function buildVoxelPiece(g, add, type, promoted, color) {
   return g;
 }
 
-// Cute, softly rounded candy/gem piece set for the three Girly (Pink/
-// Purple/Yellow) themes: every piece gets a small pastel satin bow
-// (MAT_BOW -- two flattened "loop" spheres plus a center knot) at its
-// collar, and bodies favor stacked spheres/domes over hard edges for a
-// rounded, huggable silhouette instead of any of the traditional/
-// carved/minimal/faceted forms the other styles use.
+// Faceted fine-jewelry piece set for the three Girly (Pink/Purple/
+// Yellow) themes: low-poly diamond-cut gems (THREE.OctahedronGeometry,
+// 8 sharp triangular facets) on angular octagonal/hexagonal prism
+// stems, trimmed with a polished rose-gold band (MAT_GIRLY_ACCENT) at
+// the collar -- deliberately all sharp facets and no smooth curved
+// surfaces, the opposite of a previous, much rounder/softer "candy"
+// version of this piece set that read as too childish.
 function buildGirlyPiece(g, add, type, promoted, color) {
-  add(new THREE.SphereGeometry(0.28, 20, 12), 0.09).scale.set(1, 0.38, 1); // rounded base
-  const addBow = (y) => {
-    const loop = (x, rotZ) => {
-      const m = add(new THREE.SphereGeometry(0.075, 10, 8), y, MAT_BOW);
-      m.scale.set(1, 0.55, 0.4);
-      m.position.x = x;
-      m.rotation.z = rotZ;
-    };
-    loop(-0.075, 0.55);
-    loop(0.075, -0.55);
-    add(new THREE.SphereGeometry(0.04, 8, 6), y, MAT_BOW);
-  };
+  const seg = 8; // low segment count everywhere -- visible flat facets, not a smooth curve
+  add(new THREE.CylinderGeometry(0.27, 0.3, 0.12, seg), 0.08); // faceted octagonal plinth
+  const addBand = (y, r) => add(new THREE.TorusGeometry(r || 0.15, 0.02, 6, seg), y, MAT_GIRLY_ACCENT).rotation.x = Math.PI / 2;
   switch (type) {
     case E.KING:
-      add(new THREE.SphereGeometry(0.22, 20, 14), 0.36);
-      add(new THREE.SphereGeometry(0.15, 18, 12), 0.62);
-      add(new THREE.TorusGeometry(0.1, 0.03, 8, 16), 0.78).rotation.x = Math.PI / 2;
-      add(new THREE.SphereGeometry(0.06, 12, 10), 0.92);
-      addBow(0.2);
+      add(new THREE.CylinderGeometry(0.16, 0.22, 0.55, seg), 0.4);
+      addBand(0.68, 0.16);
+      add(new THREE.OctahedronGeometry(0.14, 0), 0.86);
+      for (let i = 0; i < 5; i++) {
+        const a2 = (i / 5) * Math.PI * 2;
+        const spike = add(new THREE.ConeGeometry(0.025, 0.12, 4), 1.0, MAT_GIRLY_ACCENT);
+        spike.position.set(Math.cos(a2) * 0.1, 0, Math.sin(a2) * 0.1);
+      }
+      addBand(0.2);
       break;
     case E.QUEEN:
-      add(new THREE.SphereGeometry(0.2, 20, 14), 0.34);
-      add(new THREE.SphereGeometry(0.13, 16, 12), 0.56);
-      add(new THREE.SphereGeometry(0.07, 12, 10), 0.7);
-      addBow(0.2);
+      add(new THREE.CylinderGeometry(0.14, 0.2, 0.48, seg), 0.37);
+      addBand(0.6, 0.14);
+      add(new THREE.OctahedronGeometry(0.13, 0), 0.76);
+      addBand(0.2);
       break;
     case E.BISHOP:
-      add(new THREE.ConeGeometry(0.16, 0.3, 18), 0.36);
-      add(new THREE.SphereGeometry(0.07, 12, 10), 0.54);
-      addBow(0.2);
+      add(new THREE.CylinderGeometry(0.11, 0.18, 0.34, seg), 0.32);
+      add(new THREE.OctahedronGeometry(0.11, 0), 0.56).scale.set(0.8, 1.4, 0.8); // marquise-cut taper
+      addBand(0.2);
       break;
     case E.KNIGHT: {
-      add(new THREE.SphereGeometry(0.17, 18, 12), 0.32);
-      const head = add(new THREE.SphereGeometry(0.12, 16, 12), 0.46);
-      head.position.z = 0.05;
-      const ear1 = add(new THREE.ConeGeometry(0.04, 0.12, 8), 0.58);
-      ear1.position.set(-0.05, 0, 0.02);
-      const ear2 = add(new THREE.ConeGeometry(0.04, 0.12, 8), 0.58);
-      ear2.position.set(0.05, 0, 0.02);
-      addBow(0.2);
+      add(new THREE.CylinderGeometry(0.13, 0.2, 0.32, seg), 0.3);
+      const head = add(new THREE.BoxGeometry(0.16, 0.24, 0.16), 0.5);
+      head.rotation.y = Math.PI / 4;
+      const ear = add(new THREE.ConeGeometry(0.045, 0.14, 4), 0.66);
+      ear.rotation.y = Math.PI / 4;
+      addBand(0.2);
       break;
     }
     case E.ROOK:
-      add(new THREE.SphereGeometry(0.19, 18, 12), 0.28).scale.set(1, 0.85, 1);
-      add(new THREE.TorusGeometry(0.14, 0.025, 8, 16), 0.42).rotation.x = Math.PI / 2;
-      addBow(0.2);
+      add(new THREE.CylinderGeometry(0.16, 0.19, 0.3, 6), 0.28); // hexagonal turret
+      add(new THREE.CylinderGeometry(0.18, 0.16, 0.06, 6), 0.44, MAT_GIRLY_ACCENT);
+      addBand(0.2);
       break;
     case E.PAWN:
-      add(new THREE.SphereGeometry(0.16, 18, 12), 0.26);
-      addBow(0.14);
+      add(new THREE.OctahedronGeometry(0.15, 0), 0.26);
+      addBand(0.14, 0.12);
       break;
   }
   if (promoted) add(new THREE.TorusGeometry(0.22, 0.03, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
