@@ -2317,7 +2317,14 @@ const THEMES = {
   // explosions, and a bullet-tracer/muzzle-flash move effect.
   contra: {
     name: 'Contra 1988', style: 'contra',
-    bg: 0x0c140c, fog: [14, 30],
+    // fog was originally [14, 30] for a jungle-night depth cue, but the
+    // camera's own max zoom-out distance (22, see configureControls) sits
+    // deep inside that range -- zooming out pushed the whole board/pieces
+    // noticeably dark/hazy toward the fog color, a real usability bug no
+    // other theme has (every other theme leaves fog null). The dark
+    // "night" mood already comes through via bg/contraBackdrop alone, so
+    // fog stays off, matching every other theme.
+    bg: 0x0c140c, fog: null,
     frame: 0x3a3f2e, tileLight: 0x5a6b3c, tileDark: 0x2b3320,
     pieceW: 0x35577a, pieceB: 0x8a2020, rough: 0.75, metal: 0.15,
     labelInk: '#d8e0c8', tray: 0x22261c,
