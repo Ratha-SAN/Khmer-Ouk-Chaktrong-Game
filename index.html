@@ -5834,6 +5834,14 @@ document.querySelectorAll('.sidebtn').forEach(b => {
 });
 buildLevelButtons();
 
+// Tracks which screen led to the mode-select screen, so Cancel there can
+// return to that same screen instead of always dropping straight into
+// the board: opened from the very first Start screen (openModeScreenFrom
+// ('start')), Cancel should go back to Start, not reveal whatever
+// leftover/default board sits underneath before a game has ever really
+// been chosen; opened mid-game via "Change Mode" ('game'), Cancel should
+// still just close back to that ongoing game, unchanged from before.
+let modeScreenOrigin = 'start';
 function openModeScreen() {
   document.getElementById('startScreen').style.display = 'none';
   document.getElementById('aiOptions').style.display = 'none';
@@ -5847,12 +5855,15 @@ function hideOverlays() {
   overlayOpen = false;
   tickHud();
 }
-document.getElementById('startBtn').onclick = openModeScreen;
-document.getElementById('changeModeBtn').onclick = openModeScreen;
+document.getElementById('startBtn').onclick = () => { modeScreenOrigin = 'start'; openModeScreen(); };
+document.getElementById('changeModeBtn').onclick = () => { modeScreenOrigin = 'game'; openModeScreen(); };
 document.getElementById('pick2p').onclick = () => { startGameWithMode('hotseat', E.WHITE); hideOverlays(); };
 document.getElementById('pickAi').onclick = () => { document.getElementById('aiOptions').style.display = 'block'; };
 document.getElementById('confirmAi').onclick = () => { startGameWithMode('ai' + pendingAiLevel, pendingSide); hideOverlays(); };
-document.getElementById('modeCancel').onclick = hideOverlays;
+document.getElementById('modeCancel').onclick = () => {
+  if (modeScreenOrigin === 'start') showStartScreen();
+  else hideOverlays();
+};
 function showStartScreen() {
   document.getElementById('modeScreen').style.display = 'none';
   document.getElementById('startScreen').style.display = 'flex';
