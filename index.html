@@ -1192,8 +1192,8 @@
 
   <h3>Setup</h3>
   <p>Trey start on each side's <strong>third</strong> rank. Unlike international chess, the King and Queen are
-     <strong>not</strong> mirrored between colors: the Sdach sits on the same file for both players (e1 and e8),
-     with the Neang beside it on the same other file for both (d1 and d8) — the King is always on the
+     <strong>not</strong> mirrored between colors: the Sdach sits on the same file for both players (d1 and d8),
+     with the Neang beside it on the same other file for both (e1 and e8) — the King is always on the
      player's own side of the board, not centered opposite the enemy King. White moves first. There is no
      castling.</p>
 
@@ -1259,11 +1259,11 @@
   function isProm(p) { return (p & 16) !== 0; }
 
   // Board: 64 squares, sq = rank*8 + file. Rank 0 = White's back rank.
-  // King and Queen sit on the same files for both colors (d = Queen, e = King)
+  // King and Queen sit on the same files for both colors (d = King, e = Queen)
   // -- the traditional Ang-on-the-player's-own-side layout, not the mirrored
   // (offset) placement international chess uses.
-  // White King e1 (sq 4), Queen d1 (sq 3); Black King e8 (sq 60), Queen d8 (sq 59).
-  var QUEEN_START = [3, 59];
+  // White King d1 (sq 3), Queen e1 (sq 4); Black King d8 (sq 59), Queen e8 (sq 60).
+  var QUEEN_START = [4, 60];
   var PROM_RANK = [5, 2];           // Trey promotes on reaching the 6th rank
   function fwd(c) { return c === WHITE ? 8 : -8; }
   function fileOf(sq) { return sq & 7; }
@@ -1298,14 +1298,14 @@
   //                     aligns on the king's rank or file)
   function initialState(variant) {
     var b = new Array(64).fill(EMPTY);
-    var back = [ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK];
+    var back = [ROOK, KNIGHT, BISHOP, KING, QUEEN, BISHOP, KNIGHT, ROOK];
     for (var f = 0; f < 8; f++) {
       b[f] = mk(back[f], WHITE);
       b[16 + f] = mk(PAWN, WHITE);
       b[40 + f] = mk(PAWN, BLACK);
     }
     b[56] = mk(ROOK, BLACK); b[57] = mk(KNIGHT, BLACK); b[58] = mk(BISHOP, BLACK);
-    b[59] = mk(QUEEN, BLACK); b[60] = mk(KING, BLACK);  b[61] = mk(BISHOP, BLACK);
+    b[59] = mk(KING, BLACK); b[60] = mk(QUEEN, BLACK);  b[61] = mk(BISHOP, BLACK);
     b[62] = mk(KNIGHT, BLACK); b[63] = mk(ROOK, BLACK);
     var S = {
       board: b, turn: WHITE,
@@ -1824,12 +1824,12 @@
     }
 
     // ---------- setup ----------
-    T('setup: kings share the same file for both colors (Ke1/Ke8), queens on d1/d8', function () {
+    T('setup: kings share the same file for both colors (Kd1/Kd8), queens on e1/e8', function () {
       var S = E.initialState();
-      eq(S.board[sq('e1')], E.mk(E.KING, E.WHITE), 'e1');
-      eq(S.board[sq('e8')], E.mk(E.KING, E.BLACK), 'e8');
-      eq(S.board[sq('d1')], E.mk(E.QUEEN, E.WHITE), 'd1');
-      eq(S.board[sq('d8')], E.mk(E.QUEEN, E.BLACK), 'd8');
+      eq(S.board[sq('d1')], E.mk(E.KING, E.WHITE), 'd1');
+      eq(S.board[sq('d8')], E.mk(E.KING, E.BLACK), 'd8');
+      eq(S.board[sq('e1')], E.mk(E.QUEEN, E.WHITE), 'e1');
+      eq(S.board[sq('e8')], E.mk(E.QUEEN, E.BLACK), 'e8');
     });
     T('setup: Trey on 3rd/6th ranks, back ranks R-N-B', function () {
       var S = E.initialState();
@@ -1846,8 +1846,8 @@
       var legal = E.genLegal(S, E.WHITE);
       eq(legal.length, 25, 'white legal moves');
       var kj = legal.filter(function (m) { return m.special === 1; });
-      eq(kj.length, 2, 'king knight-jumps (c2, g2)');
-      assert(hasMove(legal, 'e1', 'c2', 1) && hasMove(legal, 'e1', 'g2', 1), 'jump targets');
+      eq(kj.length, 2, 'king knight-jumps (b2, f2)');
+      assert(hasMove(legal, 'd1', 'b2', 1) && hasMove(legal, 'd1', 'f2', 1), 'jump targets');
       var qj = legal.filter(function (m) { return m.special === 2; });
       eq(qj.length, 0, 'queen jump blocked by own Trey on d3 at start');
     });
@@ -1898,26 +1898,26 @@
     // ---------- special first moves ----------
     T('Neang jump: 2 straight forward on first move, leaping over a piece, non-capture', function () {
       var S = E.initialState();
-      doMove(S, 'd3', 'd4');           // clear d3
-      doMove(S, 'e6', 'e5');           // black reply
-      var ms = movesFrom(S, 'd1');
-      assert(hasMove(ms, 'd1', 'd3', 2), 'queen jump d1-d3 available');
-      // leap over occupied square: put something on d2
+      doMove(S, 'e3', 'e4');           // clear e3
+      doMove(S, 'd6', 'd5');           // black reply
+      var ms = movesFrom(S, 'e1');
+      assert(hasMove(ms, 'e1', 'e3', 2), 'queen jump e1-e3 available');
+      // leap over occupied square: put something on e2
       var S2 = E.emptyState();
-      put(S2, 'e1', E.KING, E.WHITE); put(S2, 'a8', E.KING, E.BLACK);
-      put(S2, 'd1', E.QUEEN, E.WHITE); put(S2, 'd2', E.KNIGHT, E.WHITE);
-      assert(hasMove(movesFrom(S2, 'd1'), 'd1', 'd3', 2), 'jump passes over occupied d2');
-      // non-capture: enemy piece on d3 blocks the jump
-      put(S2, 'd3', E.PAWN, E.BLACK);
-      assert(!hasMove(movesFrom(S2, 'd1'), 'd1', 'd3'), 'jump cannot capture');
+      put(S2, 'a1', E.KING, E.WHITE); put(S2, 'a8', E.KING, E.BLACK);
+      put(S2, 'e1', E.QUEEN, E.WHITE); put(S2, 'e2', E.KNIGHT, E.WHITE);
+      assert(hasMove(movesFrom(S2, 'e1'), 'e1', 'e3', 2), 'jump passes over occupied e2');
+      // non-capture: enemy piece on e3 blocks the jump
+      put(S2, 'e3', E.PAWN, E.BLACK);
+      assert(!hasMove(movesFrom(S2, 'e1'), 'e1', 'e3'), 'jump cannot capture');
     });
     T('Neang jump forfeited after the Neang has moved', function () {
       var S = E.emptyState();
-      put(S, 'e1', E.KING, E.WHITE); put(S, 'h8', E.KING, E.BLACK);
-      put(S, 'd1', E.QUEEN, E.WHITE); put(S, 'a6', E.PAWN, E.BLACK);
-      assert(hasMove(movesFrom(S, 'd1'), 'd1', 'd3', 2), 'available before moving');
-      doMove(S, 'd1', 'e2'); doMove(S, 'a6', 'a5'); doMove(S, 'e2', 'd1'); doMove(S, 'a5', 'a4');
-      assert(!hasMove(movesFrom(S, 'd1'), 'd1', 'd3'), 'gone after queen returned to d1');
+      put(S, 'a1', E.KING, E.WHITE); put(S, 'h8', E.KING, E.BLACK);
+      put(S, 'e1', E.QUEEN, E.WHITE); put(S, 'a6', E.PAWN, E.BLACK);
+      assert(hasMove(movesFrom(S, 'e1'), 'e1', 'e3', 2), 'available before moving');
+      doMove(S, 'e1', 'd2'); doMove(S, 'a6', 'a5'); doMove(S, 'd2', 'e1'); doMove(S, 'a5', 'a4');
+      assert(!hasMove(movesFrom(S, 'e1'), 'e1', 'e3'), 'gone after queen returned to e1');
     });
     T('capture variant (default): both jumps lost once ANY capture occurs', function () {
       var S = E.emptyState('capture');
@@ -5586,11 +5586,11 @@ const EXAMPLE_GAME_MOVES_SEHTYM = [
     { side:E.BLACK, type:E.ROOK, prom:false, from:'d7', to:'c7', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.KNIGHT, prom:false, from:'d4', to:'b5', cap:false, capType:null, capProm:false, check:false, book:false, note:{"kh":"សេះចាប់ផ្ដើមឆ្ពោះទៅរកទូកខ្មៅដែលកំពុងបញ្ជូនត្រឡប់ទៅវិញរវាង c7/d7 ដោយគ្មានផែនការច្បាស់លាស់ — និមិត្តរូបនៃការខ្វះផែនការរបស់កម្រិត៣។","en":"White's Ses starts heading toward Black's Touk, which has been shuffling aimlessly between c7 and d7 for several moves — a sign of Level 3's lack of a plan."} },
     { side:E.BLACK, type:E.KNIGHT, prom:false, from:'g8', to:'h6', cap:false, capType:null, capProm:false, check:false, book:false },
-    { side:E.WHITE, type:E.KNIGHT, prom:false, from:'b5', to:'c7', cap:true, capType:E.ROOK, capProm:false, check:true, book:false, note:{"kh":"សេះស៊ីទូកដោយផ្ទាល់នៅ c7 ដោយអុកផងដែរ! ស ឈ្នះទូកមួយ (៥ពិន្ទុ) ដោយចំណាយត្រឹមតែសេះមួយ ប្រសិនបើខ្មៅយកមកវិញ។","en":"The Ses simply captures the Touk on c7 — with check! White wins a full Touk (5 points) for the price of the knight once Black recaptures."} },
+    { side:E.WHITE, type:E.KNIGHT, prom:false, from:'b5', to:'c7', cap:true, capType:E.ROOK, capProm:false, check:false, book:false, note:{"kh":"សេះស៊ីទូកដោយផ្ទាល់នៅ c7! ស ឈ្នះទូកមួយ (៥ពិន្ទុ) ដោយចំណាយត្រឹមតែសេះមួយ ប្រសិនបើខ្មៅយកមកវិញ។","en":"The Ses simply captures the Touk on c7! White wins a full Touk (5 points) for the price of the knight once Black recaptures."} },
     { side:E.BLACK, type:E.BISHOP, prom:false, from:'c8', to:'c7', cap:true, capType:E.KNIGHT, capProm:false, check:false, book:false, note:{"kh":"គោលខ្មៅយកសេះមកវិញ — ការដូរនេះនៅតែធ្វើឲ្យសមានចំណេញច្បាស់លាស់ (ទូក ៥ ប្រឆាំងនឹងសេះ ៣)។","en":"Black's Koul recaptures the Ses — but the trade still nets White a clear material gain (a 5-point Touk for a 3-point Ses)."} },
     { side:E.WHITE, type:E.QUEEN, prom:true, from:'c6', to:'b5', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.BLACK, type:E.KNIGHT, prom:false, from:'h6', to:'g4', cap:false, capType:null, capProm:false, check:false, book:false },
-    { side:E.WHITE, type:E.KING, prom:false, from:'e1', to:'d2', cap:false, capType:null, capProm:false, check:false, book:false },
+    { side:E.WHITE, type:E.KING, prom:false, from:'d1', to:'d2', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.BLACK, type:E.KNIGHT, prom:false, from:'g4', to:'h6', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.QUEEN, prom:true, from:'b5', to:'a4', cap:true, capType:E.PAWN, capProm:false, check:false, book:false },
     { side:E.BLACK, type:E.KNIGHT, prom:false, from:'h6', to:'g4', cap:false, capType:null, capProm:false, check:false, book:false },
@@ -5602,8 +5602,8 @@ const EXAMPLE_GAME_MOVES_SEHTYM = [
     { side:E.BLACK, type:E.BISHOP, prom:false, from:'b6', to:'c7', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.ROOK, prom:false, from:'c6', to:'a6', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.BLACK, type:E.KNIGHT, prom:false, from:'h6', to:'g4', cap:false, capType:null, capProm:false, check:false, book:false },
-    { side:E.WHITE, type:E.ROOK, prom:false, from:'a6', to:'a8', cap:false, capType:null, capProm:false, check:false, book:false, note:{"kh":"ទូកចូលទៅដល់ជួរទី៨។ វាមិនទាន់ជាការអុកទេ — នាងខ្មៅផ្ទាល់ខ្លួននៅ d8 រារាំងទូកមិនឲ្យបន្តដល់ស្ដេច — ប៉ុន្តែស្ដេចខ្មៅនៅតែសម្រេចចិត្តដកថយឲ្យមានសុវត្ថិភាពបន្ថែម។","en":"White's Touk reaches the 8th rank. It is not yet check — Black's own Neang on d8 blocks the rank before it can reach the Ang — but Black's king retreats for extra safety anyway."} },
-    { side:E.BLACK, type:E.KING, prom:false, from:'e8', to:'d7', cap:false, capType:null, capProm:false, check:false, book:false },
+    { side:E.WHITE, type:E.ROOK, prom:false, from:'a6', to:'a8', cap:false, capType:null, capProm:false, check:true, book:false, note:{"kh":"ទូកចូលទៅដល់ជួរទី៨ ដោយអុក! ស្ដេចខ្មៅត្រូវរត់គេច។","en":"White's Touk reaches the 8th rank with check! Black's Ang is forced to flee."} },
+    { side:E.BLACK, type:E.KING, prom:false, from:'d8', to:'d7', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.PAWN, prom:false, from:'a4', to:'a5', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.BLACK, type:E.KNIGHT, prom:false, from:'g4', to:'h6', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.PAWN, prom:false, from:'a5', to:'a6', cap:false, capType:null, capProm:false, check:false, book:false },
@@ -5619,7 +5619,7 @@ const EXAMPLE_GAME_MOVES_SDAM = [
     { side:E.WHITE, type:E.KNIGHT, prom:false, from:'g1', to:'e2', cap:false, capType:null, capProm:false, check:false, book:true, note:{"kh":"សេះមុខចាប់ផ្ដើមចេញឆ្ពោះទៅរកមូលដ្ឋាន f4 — ជំហានទីមួយនៃប្រព័ន្ធសេះចងស្តាំ។","en":"The lead Ses starts heading toward its f4 outpost — the first step of the Chong Sdam system."} },
     { side:E.BLACK, type:E.PAWN, prom:false, from:'a6', to:'a5', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.KNIGHT, prom:false, from:'e2', to:'f4', cap:false, capType:null, capProm:false, check:false, book:true, note:{"kh":"សេះមុខមកដល់ f4 ជាមូលដ្ឋានឈរមុខឈ្នះមុខ — ត្រូវការការគាំទ្របន្ថែមមុននឹងជំរុញត្រីទៅមុខ (មើលចំណាំនៅជើងទី៦)។","en":"The lead Ses arrives on its aggressive f4 outpost — it will need real support before the pawn lever, see the note at move 6."} },
-    { side:E.BLACK, type:E.KING, prom:false, from:'e8', to:'f7', cap:false, capType:null, capProm:false, check:false, book:false },
+    { side:E.BLACK, type:E.KING, prom:false, from:'d8', to:'f7', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.KNIGHT, prom:false, from:'b1', to:'d2', cap:false, capType:null, capProm:false, check:false, book:true, note:{"kh":"សេះទីពីរអភិវឌ្ឍទៅ d2 ដើម្បី \"ចង\" ខាងក្រោយសេះមុខតាមផែនការចងស្តាំ។","en":"The second Ses develops to d2 to \"tie in\" behind the lead knight, per the Chong Sdam plan."} },
     { side:E.BLACK, type:E.PAWN, prom:false, from:'e6', to:'e5', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.PAWN, prom:false, from:'g3', to:'g4', cap:false, capType:null, capProm:false, check:false, book:true, note:{"kh":"ត្រី g3-g4 ចាប់ផ្ដើមបើកជួរខាងស្ដាំ — ប៉ុន្តែសូមកត់សម្គាល់៖ សេះនៅ f4 មិនទាន់មានត្រី ឬកូនអុកណាការពារដោយផ្ទាល់ទេ។ នេះជាចំណុចខ្សោយពិតប្រាកដដែលនឹងលេចឡើងក្នុងពីរជើងបន្ទាប់។","en":"Trey g3-g4 begins prying open the right side — but note: the Ses on f4 isn't actually guarded by any Trey or piece yet. This is a real weakness that shows up in the next two moves."} },
@@ -5640,7 +5640,7 @@ const EXAMPLE_GAME_MOVES_SDAM = [
     { side:E.BLACK, type:E.PAWN, prom:false, from:'h6', to:'h5', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.PAWN, prom:false, from:'h3', to:'h4', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.BLACK, type:E.ROOK, prom:false, from:'a4', to:'a5', cap:false, capType:null, capProm:false, check:false, book:false },
-    { side:E.WHITE, type:E.KING, prom:false, from:'e1', to:'d2', cap:false, capType:null, capProm:false, check:false, book:false },
+    { side:E.WHITE, type:E.KING, prom:false, from:'d1', to:'d2', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.BLACK, type:E.ROOK, prom:false, from:'a5', to:'a6', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.BISHOP, prom:false, from:'f1', to:'e2', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.BLACK, type:E.ROOK, prom:false, from:'a6', to:'a7', cap:false, capType:null, capProm:false, check:false, book:false },
@@ -5653,7 +5653,7 @@ const EXAMPLE_GAME_MOVES_SDAM = [
     { side:E.WHITE, type:E.PAWN, prom:false, from:'a3', to:'a4', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.BLACK, type:E.PAWN, prom:false, from:'b5', to:'a4', cap:true, capType:E.PAWN, capProm:false, check:false, book:false, note:{"kh":"ខ្មៅដូរត្រីមួយទៀត។","en":"Black trades off another pawn."} },
     { side:E.WHITE, type:E.BISHOP, prom:false, from:'b3', to:'a4', cap:true, capType:E.PAWN, capProm:false, check:false, book:false, note:{"kh":"គោលរបស់សចូលរួមយកមកវិញ — ដូរស្មើគ្នា ប៉ុន្តែសមានការអភិវឌ្ឍន៍ល្អជាងរួចជាស្រេច។","en":"White's Koul joins in to recapture — even material, but White's pieces are already better placed."} },
-    { side:E.BLACK, type:E.QUEEN, prom:false, from:'d8', to:'e7', cap:false, capType:null, capProm:false, check:false, book:false },
+    { side:E.BLACK, type:E.QUEEN, prom:false, from:'e8', to:'f7', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.ROOK, prom:false, from:'h1', to:'g1', cap:false, capType:null, capProm:false, check:true, book:false, note:{"kh":"ទូក h1-g1 បើកជួរ g ដោយផ្ទាល់ — ស្ដេចខ្មៅឈរនៅលើជួរតែមួយគ្នា ដូច្នេះនេះជាការអុក!","en":"Touk h1-g1 opens straight down the g-file — Black's Ang happens to sit on that same file, so this is check!"} },
     { side:E.BLACK, type:E.KING, prom:false, from:'g7', to:'h7', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.PAWN, prom:false, from:'c3', to:'c4', cap:false, capType:null, capProm:false, check:false, book:false },
@@ -5668,9 +5668,9 @@ const EXAMPLE_GAME_MOVES_SDAM = [
     { side:E.BLACK, type:E.BISHOP, prom:false, from:'a8', to:'b7', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.ROOK, prom:false, from:'a1', to:'a7', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.BLACK, type:E.BISHOP, prom:false, from:'b7', to:'c8', cap:false, capType:null, capProm:false, check:false, book:false },
-    { side:E.WHITE, type:E.ROOK, prom:false, from:'a7', to:'e7', cap:true, capType:E.QUEEN, capProm:false, check:false, book:false, note:{"kh":"ទូករបស់សលោតឆ្លងកាត់ក្ដារទាំងមូលទៅ e7 ស៊ីនាងខ្មៅដោយផ្ទាល់! ជាការចាប់យកកូនអុកសំខាន់មួយដោយឥតការពារ។","en":"White's Touk swings all the way to e7 and captures Black's Neang outright! A major undefended piece falls."} },
+    { side:E.WHITE, type:E.ROOK, prom:false, from:'a7', to:'f7', cap:true, capType:E.QUEEN, capProm:false, check:false, book:false, note:{"kh":"ទូករបស់សលោតឆ្លងកាត់ក្ដារទាំងមូលទៅ f7 ស៊ីនាងខ្មៅដោយផ្ទាល់! ជាការចាប់យកកូនអុកសំខាន់មួយដោយឥតការពារ។","en":"White's Touk swings all the way to f7 and captures Black's Neang outright! A major undefended piece falls."} },
     { side:E.BLACK, type:E.PAWN, prom:false, from:'c6', to:'c5', cap:false, capType:null, capProm:false, check:false, book:false },
-    { side:E.WHITE, type:E.ROOK, prom:false, from:'e7', to:'g7', cap:true, capType:E.BISHOP, capProm:false, check:true, book:false, note:{"kh":"ទូកបន្តទៅ g7 ស៊ីគោលខ្មៅដោយអុកទៀត — ការវាយប្រហារបន្តតគ្នាមិនឈប់សំរាក។","en":"The Touk continues to g7, capturing Black's Koul with check — a relentless follow-up attack."} },
+    { side:E.WHITE, type:E.ROOK, prom:false, from:'f7', to:'g7', cap:true, capType:E.BISHOP, capProm:false, check:true, book:false, note:{"kh":"ទូកបន្តទៅ g7 ស៊ីគោលខ្មៅដោយអុកទៀត — ការវាយប្រហារបន្តតគ្នាមិនឈប់សំរាក។","en":"The Touk continues to g7, capturing Black's Koul with check — a relentless follow-up attack."} },
     { side:E.BLACK, type:E.KING, prom:false, from:'h7', to:'h6', cap:false, capType:null, capProm:false, check:false, book:false },
     { side:E.WHITE, type:E.ROOK, prom:false, from:'g1', to:'g6', cap:false, capType:null, capProm:false, check:true, book:false, note:{"kh":"ទូក g1-g6 ជាការអុកងាប់ចុងក្រោយ៖ ស្ដេចខ្មៅជាប់នៅ h6 គ្មានផ្លូវរត់ទៀតទេ។ ល្បែងបញ្ចប់ដោយឈ្នះស។","en":"Touk g1-g6 is the final checkmate: Black's Ang on h6 has nowhere left to run. White wins."} }
   ];
@@ -5731,8 +5731,8 @@ const GUIDE = {
       key: 'thumb', btn: 'គោលការណ៍<br>Principles', kh: 'គោលការណ៍សំខាន់ៗ', pron: 'kolakar samkhan',
       lit: 'key principles (descriptive title, not a traditional term)', initial: true,
       answer: { from: 'f1', to: 'e2' },
-      why: { kh: 'អ្វីត្រូវរកមើល៖ ចង្កោមត្រួតគ្នា — គោល f1-e2 អភិវឌ្ឍចូលទៅក្នុងការការពាររបស់នាង d1 និងស្ដេច e1 នេះជាទម្លាប់ធ្វើដំណើររបស់គោល និងនាងជានិច្ច; ដាក់សេះនៅកណ្ដាលតាំងពីដើម — ដោយសារអ្វីៗផ្សេងទៀតដើរខ្លីៗ សេះជាកម្លាំងសំខាន់នៅទីនេះ មិនមែនកូនអុករងទេ; ទទួលបានជួរបើកមុននឹងឲ្យទូកចេញធ្វើការ; រកមូលដ្ឋានសេះដែលត្រីខ្លួនឯងការពារ ហើយត្រីសត្រូវមិនអាចទាត់ចេញ; រក្សាការពារជួរក្រោយ។',
-        en: 'What to look for: overlapping clusters — Koul f1-e2 develops into the protection of the Neang d1 and Ang e1, and this is how Koul and Neang must always travel (the phalanx habit); centralize the Ses early — with everything else short-ranged they are main forces here, not minor pieces; earn open files before activating Touks; hunt for Ses outposts your Trey guard and enemy Trey cannot kick; keep the back rank guarded.' },
+      why: { kh: 'អ្វីត្រូវរកមើល៖ ចង្កោមត្រួតគ្នា — គោល f1-e2 អភិវឌ្ឍចូលទៅក្នុងការការពាររបស់ស្ដេច d1 និងនាង e1 នេះជាទម្លាប់ធ្វើដំណើររបស់គោល និងនាងជានិច្ច; ដាក់សេះនៅកណ្ដាលតាំងពីដើម — ដោយសារអ្វីៗផ្សេងទៀតដើរខ្លីៗ សេះជាកម្លាំងសំខាន់នៅទីនេះ មិនមែនកូនអុករងទេ; ទទួលបានជួរបើកមុននឹងឲ្យទូកចេញធ្វើការ; រកមូលដ្ឋានសេះដែលត្រីខ្លួនឯងការពារ ហើយត្រីសត្រូវមិនអាចទាត់ចេញ; រក្សាការពារជួរក្រោយ។',
+        en: 'What to look for: overlapping clusters — Koul f1-e2 develops into the protection of the Ang d1 and Neang e1, and this is how Koul and Neang must always travel (the phalanx habit); centralize the Ses early — with everything else short-ranged they are main forces here, not minor pieces; earn open files before activating Touks; hunt for Ses outposts your Trey guard and enemy Trey cannot kick; keep the back rank guarded.' },
       avoid: { kh: 'ការចាត់ចេញនាងតែម្នាក់ឯងលឿនពេក; គោលតែម្នាក់ឯងជាំជ្រៅ (វាមិនអាចថយក្រោយត្រង់បានទេ — ការណែនាំហៅថាវាវិនាសដោយរចនាសម្ព័ន្ធ); ការទប់ស្កាត់ត្រីកណ្ដាលខ្លួនឯង; និងការទុកឲ្យទូកសត្រូវតម្រង់ជួរជាមួយស្ដេចខ្លួនឯង — ក្រោមច្បាប់ជម្រើសរបស់កម្មវិធីនេះ ការតម្រង់ជួរនោះលុបចោលសិទ្ធិលោតដូចសេះរបស់ស្ដេចជាអចិន្ត្រៃយ៍។',
         en: 'Early lone Neang forays; a lone Koul pushed deep (it can never step straight backward — the guide calls it structurally doomed); blocking your own central Trey; and letting an enemy Touk align with your Ang — under this app’s optional rook rule that alignment permanently revokes the Ang’s one knight-leap.' }
     }
