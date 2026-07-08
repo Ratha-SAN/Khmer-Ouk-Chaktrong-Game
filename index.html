@@ -5898,6 +5898,42 @@ const GUIDE = {
         en: 'Auto-piloting the chase into the wrong corner. Every check you play before recognizing the fortress is a move off the count for nothing.' },
       flag: { kh: 'បច្ចេកទេសដេញពេញលេញត្រូវការជើងជាច្រើន; ឧទាហរណ៍នេះផ្ទៀងផ្ទាត់តែជំហានសម្គាល់ និងការអុកដេញដំបូងប៉ុណ្ណោះ។',
         en: 'The full herding technique runs many moves; this example verifies the recognition step and the first herding check only.' }
+    },
+    {
+      key: 'phalanxDecoy', btn: 'ភាឡង់បំភាន់<br>Phalanx Decoy', kh: 'ការលះបង់បំភាន់ភាឡង់', pron: 'lah bang bomphean phealɑng',
+      lit: 'the phalanx decoy sacrifice — ignore the bait, or burn the clock chasing it',
+      setup(put) { put('c3', E.KING, E.WHITE); put('a7', E.ROOK, E.WHITE); put('f6', E.KNIGHT, E.WHITE); put('h8', E.KING, E.BLACK); put('a1', E.QUEEN, E.BLACK, true); },
+      answer: { from: 'a7', to: 'h7' },
+      why: { kh: 'ខ្មៅបានដើរត្រីបកដែលនៅរស់ទៅ a1 ជ្រុងឆ្ងាយបំផុតពីស្ដេចខ្លួនឯងនៅ h8 សង្ឃឹមថាសបានចំណាយជើងទូក/សេះឆ្លងកាត់ក្ដារទៅចាប់វា ដុតពេលវេលានៃការរាប់កិត្តិយសក្ដារ ៦៤ជើងឲ្យអស់។ ប៉ុន្តែទីតាំងនេះមានបណ្ដាញអុកងាប់ទូក+សេះដដែលពីឧទាហរណ៍ "ទូក+សេះ" រួចរាល់ហើយ៖ សេះ f6 គ្រប់គ្រង g8 និងការពារ h7 ដូច្នេះទូក a7-h7 ជាការអុកងាប់ភ្លាមៗ។ ចម្លើយត្រឹមត្រូវចំពោះការបំភាន់នេះគឺមិនអើពើនឹងវាទាល់តែសោះ — កុំបង្វែរជើងទៅចាប់ការទាក់ទាញនៅពេលបណ្ដាញអុកងាប់បិទជិតរួចហើយ។',
+        en: 'Black has marched the surviving Trey Bork to a1, the corner opposite its own Ang on h8, hoping White spends Touk-and-Ses tempo crossing the board to hunt it down and burns through the 64-move Board’s Honor clock toward a draw. But the position already holds the same Touk+Ses corner net from the Touk+Ses example: Ses f6 covers g8 and guards h7, so Touk a7-h7 is mate right now. The correct answer to the decoy is to ignore it completely — never divert to grab the bait when the net is already closed.' },
+      avoid: { kh: 'ការបញ្ជូនកូនអុកទៅចាប់ត្រីបកនៅជ្រុងភ្លាមៗដោយស្វ័យប្រវត្តិ មុននឹងឆែកមើលថាតើអុកងាប់មានស្រាប់ហើយឬនៅ — នោះជាពេលវេលាដែលអ្នកការពារកំពុងព្យាយាមលួច។',
+        en: 'Auto-piloting a piece off to capture the lone Bork before checking whether mate is already on the board — that is exactly the tempo the defender is trying to steal.' },
+      flag: { kh: 'ពាក្យពីបញ្ជីដែលអ្នកផ្ដល់ឲ្យ ("Phalanx Decoy Sacrifice"); ទីតាំងប្រើប្ដូរបណ្ដាញអុកងាប់ដែលបានផ្ទៀងផ្ទាត់ពី "ទូក+សេះ" ដោយបន្ថែមត្រីបកបំភាន់នៅជ្រុងឆ្ងាយ ដើម្បីបង្ហាញថាជម្រើសនោះមិនផ្លាស់ប្ដូរជើងល្អបំផុតឡើយ។',
+        en: 'Term from your supplied list ("Phalanx Decoy Sacrifice"); the position reuses the verified Touk+Ses corner mate from the Touk+Ses example with a decoy Bork added at the far corner, to show the choice does not change the best move.' }
+    },
+    {
+      key: 'kamikaze', btn: 'កាមីកាហ្សេ<br>Kamikaze', kh: 'ការលះបង់កាមីកាហ្សេមុនកាល', pron: 'lah bang kamikaze mun kal',
+      lit: 'the premature kamikaze sacrifice — clear the last pawns to force Piece’s Honor',
+      setup(put) { put('a1', E.KING, E.WHITE); put('b4', E.KNIGHT, E.WHITE); put('h8', E.KING, E.BLACK); put('c6', E.BISHOP, E.BLACK); put('f7', E.BISHOP, E.BLACK); put('d5', E.PAWN, E.BLACK); },
+      answer: { from: 'b4', to: 'd5' },
+      why: { kh: 'សនៅទីនេះជាអ្នកការពារ ស្ដេចខ្សោយជាងជាមួយសេះចុងក្រោយតែមួយ។ គោលទាំងពីររបស់ខ្មៅ (c6 និង f7) នៅឆ្ងាយពីគ្នា — មិនទាន់សម្របសម្រួលគ្នា។ ចម្លើយត្រឹមត្រូវគឺលះបង់សេះចុងក្រោយចូលទៅក្នុងត្រីនៅ d5 ដែលគោល c6 កំពុងការពារ — ព្រមទទួលការឆក់យកមកវិញ ដើម្បីជម្រះត្រីចុងក្រោយចេញពីក្ដារភ្លាមៗ។ ពេលគោល c6 ឆក់មកវិញ ខ្មៅនៅសល់តែពីរគោល (ដែនកំណត់ ២២ — ឬ ៣២ ប្រសិនបើជាសេះពីរជំនួសវិញ) ខណៈស្ដេចខ្លួនឯងក្លាយជាតែម្នាក់ឯង — ការរាប់កិត្តិយសកូនអុកចាប់ផ្ដើមភ្លាមៗទល់នឹងគោលដែលនៅមិនទាន់សម្របគ្នាទាំងពីរនោះ។',
+        en: 'Here White is the defender, the weaker side with only one minor piece left. Black’s two Bishops (c6 and f7) sit far apart from each other — still uncoordinated. The correct answer is to sacrifice that last Ses into the Trey on d5, which the Bishop on c6 guards — willingly accepting the recapture in order to clear the board’s last pawn right now. Once c6 recaptures, Black is left with exactly two Bishops (limit 22 — or 32 had it been two Ses instead) while White’s Ang stands alone — Piece’s Honor begins immediately against a pair of Bishops that have not yet coordinated.' },
+      avoid: { kh: 'ការរង់ចាំយូរពេក រហូតដល់គោលទាំងពីរសម្របគ្នារួច។ ការលះបង់នេះមានប្រសិទ្ធភាពតែពេល "មុនកាល" ប៉ុណ្ណោះ — មុននឹងអ្នកវាយប្រហារត្រៀមខ្លួនរួចរាល់។',
+        en: 'Waiting too long, until the two Bishops have already coordinated. The sacrifice only works while it is genuinely "premature" — before the attacker is ready.' },
+      flag: { kh: 'ពាក្យពីបញ្ជីដែលអ្នកផ្ដល់ឲ្យ ("Premature Kamikaze Sacrifice"); ជើងឆក់មកវិញ (គោល c6xd5) មិនត្រូវបានក្លែងធ្វើនៅក្នុងឧបករណ៍នេះទេ — មានតែជើងលះបង់ខ្លួនឯងប៉ុណ្ណោះដែលបង្ហាញ ដូចឧទាហរណ៍ផ្សេងទៀតក្នុងកម្រិត៣។',
+        en: 'Term from your supplied list ("Premature Kamikaze Sacrifice"); the recapture (Bishop c6xd5) is not itself simulated in this tool — only the sacrificing move is shown, as with other Tier 3 examples that narrate the follow-up.' }
+    },
+    {
+      key: 'limitExtend', btn: 'ពន្លាតដែនកំណត់<br>Limit-Extend', kh: 'ការលះបង់ពន្លាតដែនកំណត់', pron: 'lah bang ponloat den kamnat',
+      lit: 'the limit-extending sacrifice — trade the Touk for time',
+      setup(put) { put('a1', E.KING, E.WHITE); put('b3', E.KNIGHT, E.WHITE); put('h3', E.KNIGHT, E.WHITE); put('a4', E.ROOK, E.WHITE); put('e5', E.KING, E.BLACK); },
+      answer: { from: 'a4', to: 'e4' },
+      why: { kh: 'សនៅទីនេះជាអ្នកវាយប្រហារមានទូកមួយ និងសេះពីរ ទល់នឹងស្ដេចខ្មៅរត់រួសរាន់តែម្នាក់ឯង — ដែនកំណត់បច្ចុប្បន្នគឺ ១៦ជើងប៉ុណ្ណោះ (កាន់កាប់ដោយទូក)។ ប្រសិនបើ ១៦ជើងមិនគ្រប់គ្រាន់ដើម្បីរកផ្លូវអុកងាប់ទេ ចម្លើយត្រឹមត្រូវគឺលះបង់ទូកចេញដោយចេតនា៖ ទូក a4-e4 អុកភ្លាមៗ ដោយគ្មានអ្វីការពារ ដូច្នេះស្ដេចខ្មៅអាចឆក់យកមកវិញ (Kxe4)។ ពេលទូកបាត់ សេះទាំងពីរដែលនៅសល់ហៅដែនកំណត់ថ្មីភ្លាមៗ — ៣២ជើង — ដូរអំណាចយកពេលវេលាបន្ថែម ដើម្បីបញ្ចប់ការដេញ។',
+        en: 'White here is the attacker with one Touk and two Ses against Black’s elusive lone Ang — the current limit is only 16 moves (governed by the Touk). If 16 moves is not enough to force a mate, the correct answer is to deliberately give up the Touk: Rook a4-e4 checks immediately with nothing defending it, so the Black king can simply take it (Kxe4). Once the Touk is gone, the remaining two Ses immediately invoke the new limit — 32 moves — trading raw power for the extra time needed to finish the hunt.' },
+      avoid: { kh: 'ការលះបង់ទូកលឿនពេក មុននឹងពិតជាត្រូវការពេលវេលាបន្ថែម — ការបោះបង់អំណាចវាយប្រហារពិតប្រាកដដោយឥតហេតុផលមុនពេលចាំបាច់។ ត្រូវប្រើការពន្លាតដែនកំណត់តែពេលផែនការ ១៦ជើងបានបរាជ័យជាក់ស្ដែងសិន។',
+        en: 'Sacrificing the Touk too early, before genuinely needing the extra time — that throws away real mating power for no reason. Only cash in the limit-extension once the 16-move plan has demonstrably failed.' },
+      flag: { kh: 'ពាក្យពីបញ្ជីដែលអ្នកផ្ដល់ឲ្យ ("Limit-Extending Sacrifice"); ជើងឆក់មកវិញ (Kxe4) មិនត្រូវបានក្លែងធ្វើនៅក្នុងឧបករណ៍នេះទេ — មានតែជើងផ្ដល់ជូនប៉ុណ្ណោះដែលបង្ហាញ។',
+        en: 'Term from your supplied list ("Limit-Extending Sacrifice"); the recapture (Kxe4) is not itself simulated in this tool — only the offering move is shown.' }
     }
   ]
 };
