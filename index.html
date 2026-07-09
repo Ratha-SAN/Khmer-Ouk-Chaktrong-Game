@@ -3308,9 +3308,10 @@ const PIECE_TOP_Y = {
   [E.PAWN]: 0.61
 };
 function labelY(type) {
-  // Nudged 10% further from the piece in both modes: "tip" raised higher
-  // above the piece's own top, "base" lowered closer toward the board.
-  return pieceNamePosition === 'base' ? 0.2 * 0.9 : (PIECE_TOP_Y[type] + 0.07) * 1.1;
+  // "tip" raised 10% higher above the piece's own top; "base" lowered a
+  // further 10% on top of the earlier 10% cut (0.2 -> 0.18 -> 0.162), so it
+  // now sits noticeably closer to the board surface.
+  return pieceNamePosition === 'base' ? 0.2 * 0.9 * 0.9 : (PIECE_TOP_Y[type] + 0.07) * 1.1;
 }
 // Khmer script combines base consonants with subscript signs (Coeng +
 // a subordinate consonant, e.g. the cluster under "្រ") whose advance
