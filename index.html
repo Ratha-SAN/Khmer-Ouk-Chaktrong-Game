@@ -1057,7 +1057,7 @@
     </select>
     <label style="margin-top:6px">
       <input type="checkbox" id="khmerBoardChk">
-      ក្ដារបែបខ្មែរ Khmer board (single wood tone, no checker squares)
+      ក្តាអុកបែបបរទេស Checkered Board
     </label>
     <label>
       <input type="checkbox" id="pieceNameChk">
@@ -1069,8 +1069,8 @@
         <option value="base">Name position: at base</option>
       </select>
       <select id="pieceNameLangSel">
-        <option value="both" selected>Name language: Khmer + Latin</option>
-        <option value="kh">Name language: Khmer only</option>
+        <option value="both">Name language: Khmer + Latin</option>
+        <option value="kh" selected>Name language: Khmer only</option>
         <option value="en">Name language: Latin only</option>
       </select>
     </div>
@@ -2773,8 +2773,10 @@ for (let sq = 0; sq < 64; sq++) {
 
 // Thin grid-line overlay for the "Khmer board" style: a single wood-toned
 // board (no checkered squares) ruled off with a pinstripe grid, as on a
-// traditional Cambodian board.
-let khmerBoardStyle = false;
+// traditional Cambodian board. Now the default look; the "Checkered Board"
+// checkbox is the opt-in to switch to the (foreign/international) two-tone
+// checkerboard instead, so it stays unchecked while this stays true.
+let khmerBoardStyle = true;
 const gridOverlayCache = {};
 function buildGridTexture(inkColor) {
   if (gridOverlayCache[inkColor]) return gridOverlayCache[inkColor];
@@ -3283,7 +3285,7 @@ function buildPieceReflection(pieceGroupObj, color) {
 // rotated 180° for the black side.
 let showPieceNames = false;
 let pieceNamePosition = 'tip'; // 'tip' | 'base'
-let pieceNameLang = 'both'; // 'both' | 'kh' | 'en'
+let pieceNameLang = 'kh'; // 'both' | 'kh' | 'en'
 const pieceLabelMats = {};
 // White and Black get distinct label color schemes (a light chip for
 // White, a dark chip for Black) so at a glance you can tell whose piece a
@@ -3306,7 +3308,9 @@ const PIECE_TOP_Y = {
   [E.PAWN]: 0.61
 };
 function labelY(type) {
-  return pieceNamePosition === 'base' ? 0.2 : PIECE_TOP_Y[type] + 0.07;
+  // Nudged 10% further from the piece in both modes: "tip" raised higher
+  // above the piece's own top, "base" lowered closer toward the board.
+  return pieceNamePosition === 'base' ? 0.2 * 0.9 : (PIECE_TOP_Y[type] + 0.07) * 1.1;
 }
 // Khmer script combines base consonants with subscript signs (Coeng +
 // a subordinate consonant, e.g. the cluster under "្រ") whose advance
@@ -4189,7 +4193,7 @@ document.getElementById('themeSel').onchange = (e) => {
     else { playSource = 'builtin'; currentMusicKey = track; }
   }
 };
-document.getElementById('khmerBoardChk').onchange = (e) => { khmerBoardStyle = e.target.checked; applyTheme(themeKey); };
+document.getElementById('khmerBoardChk').onchange = (e) => { khmerBoardStyle = !e.target.checked; applyTheme(themeKey); };
 document.getElementById('pieceNameChk').onchange = (e) => {
   showPieceNames = e.target.checked;
   document.getElementById('pieceNameOpts').style.display = showPieceNames ? 'block' : 'none';
@@ -6403,7 +6407,7 @@ function loadGame() {
   }
   if (typeof payload.khmerBoardStyle === 'boolean') {
     khmerBoardStyle = payload.khmerBoardStyle;
-    document.getElementById('khmerBoardChk').checked = khmerBoardStyle;
+    document.getElementById('khmerBoardChk').checked = !khmerBoardStyle;
   }
   if (payload.pieceStyleOverride) {
     pieceStyleOverride = payload.pieceStyleOverride;
