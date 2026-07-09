@@ -1003,6 +1003,42 @@
     0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
     100% { transform: translate(var(--mx), var(--my)) rotate(-160deg); opacity: 0; }
   }
+
+  /* ============ Kingdom of Wonder theme: golden-shimmer move / tricolor-sparkle capture effects ============
+     A small golden shimmer that travels from the mover's square to its
+     destination for a normal move (temple-gilding catching the light),
+     and a celebratory burst for a capture -- a gold bell-resonance ripple
+     ring plus sparkle particles in all three of the national flag's
+     colors (red, blue, gold), reading as a ceremonial moment rather than
+     an act of violence, matching this theme's respectful tone. */
+  .fx-kh-shimmer {
+    position: absolute; width: 8px; height: 8px; left: -4px; top: -4px; border-radius: 50%;
+    background: radial-gradient(circle, #fff6d8, #e0b84a 55%, transparent 85%);
+    box-shadow: 0 0 6px 2px #e0b84a;
+    animation: fxKhShimmer 300ms ease-in-out forwards;
+  }
+  @keyframes fxKhShimmer {
+    0% { transform: translate(0, 0) scale(.6); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) scale(1.1); opacity: 0; }
+  }
+  .fx-kh-ripple {
+    position: absolute; width: 20px; height: 20px; left: -10px; top: -10px; border-radius: 50%;
+    border: 3px solid #e0b84a; box-shadow: 0 0 10px 2px #f0d080;
+    animation: fxKhRipple 420ms ease-out forwards;
+  }
+  @keyframes fxKhRipple {
+    0% { transform: scale(.3); opacity: .95; }
+    100% { transform: scale(3); opacity: 0; }
+  }
+  .fx-kh-spark {
+    position: absolute; width: 6px; height: 6px; left: -3px; top: -3px; border-radius: 50%;
+    background: var(--sparkcol); box-shadow: 0 0 6px 2px var(--sparkcol);
+    animation: fxKhSpark 380ms ease-out forwards;
+  }
+  @keyframes fxKhSpark {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) scale(.3); opacity: 0; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1357,6 +1393,7 @@
       <option value="atla">Last Airbender — អ្នកបញ្ជាខ្យល់</option>
       <option value="starwars">Star Wars — សង្គ្រាមផ្កាយ</option>
       <option value="nature">Mountain Valley — ជ្រលងភ្នំ</option>
+      <option value="cambodia">Kingdom of Wonder — នគរដ៏អស្ចារ្យ</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -1449,6 +1486,7 @@
       <optgroup label="Cinematic (2)"></optgroup>
       <optgroup label="Synth (1)"></optgroup>
       <optgroup label="World (1)"></optgroup>
+      <optgroup label="National (1)"></optgroup>
     </select>
     <div class="btnrow" style="margin-top:6px">
       <button id="musicPlayBtn">▶ Play</button>
@@ -2957,6 +2995,27 @@ const THEMES = {
     pieceW: 0x6fb86a, pieceB: 0x7a7d82, rough: 0.6, metal: 0.0,
     labelInk: '#eafbe0', tray: 0x3a2b1c,
     natureFx: true
+  },
+  // Kingdom of Wonder: a Cambodian-pride theme built around the national
+  // flag's own palette (royal blue frame/tray, sandstone-gold light
+  // squares, flag-red dark squares) and Cambodia's great monuments --
+  // not a conflict, but two proud eras of the same nation facing each
+  // other: the Angkor Empire (White, gold/sandstone) and the Modern
+  // Kingdom (Black, royal blue) -- see buildCambodiaPiece. Its own
+  // golden-shimmer move / tricolor-sparkle-with-bell-ripple capture
+  // motion effects (cambodiaFx, see triggerCambodiaEffect) and a temple-
+  // bell / gong SFX bank, paired with an original, dignified marching
+  // instrumental (see MUSIC_TRACKS.anthem1) -- evoking anthem
+  // conventions without transcribing Cambodia's actual national anthem,
+  // the same "inspired by, not a transcription of" approach used for
+  // every other theme's music and SFX in this game.
+  cambodia: {
+    name: 'Kingdom of Wonder', style: 'cambodia',
+    bg: 0xf0b860, fog: null,
+    frame: 0x1a2a6b, tileLight: 0xe8d9a8, tileDark: 0xb03028,
+    pieceW: 0xe8c988, pieceB: 0x2a3f8f, rough: 0.5, metal: 0.05,
+    labelInk: '#fff4d6', tray: 0x14204d,
+    cambodiaFx: true
   }
 };
 let themeKey = 'wood';
@@ -3382,6 +3441,18 @@ const MAT_NATURE_LEAF = new THREE.MeshStandardMaterial({ color: 0x4f9a4a, roughn
 const MAT_NATURE_WATER = new THREE.MeshStandardMaterial({ color: 0x4fa8d8, roughness: 0.3, metalness: 0.05 });
 const MAT_NATURE_SNOW = new THREE.MeshStandardMaterial({ color: 0xf4f8fb, roughness: 0.5, metalness: 0.0 });
 const MAT_NATURE_MOSS = new THREE.MeshStandardMaterial({ color: 0x7a9463, roughness: 0.75, metalness: 0.0 });
+// Fixed accent colors for the Kingdom of Wonder piece set (see
+// buildCambodiaPiece): warm sandstone and gold gilding for the Angkor
+// Empire era, and the Cambodian flag's own red/blue/white for the Modern
+// Kingdom era and its lotus-bud accents. All non-metallic (or only
+// lightly so) and kept bright, matching every custom theme since the
+// Avatar theme's lesson about dark, fairly metallic materials reading as
+// near-invisible under this scene's lighting.
+const MAT_KH_STONE = new THREE.MeshStandardMaterial({ color: 0xd9c9a0, roughness: 0.7, metalness: 0.0 });
+const MAT_KH_GOLD = new THREE.MeshStandardMaterial({ color: 0xe0b84a, roughness: 0.35, metalness: 0.4 });
+const MAT_KH_FLAG_RED = new THREE.MeshStandardMaterial({ color: 0xd8303a, roughness: 0.45, metalness: 0.0 });
+const MAT_KH_FLAG_BLUE = new THREE.MeshStandardMaterial({ color: 0x2a3f8f, roughness: 0.45, metalness: 0.05 });
+const MAT_KH_LOTUS = new THREE.MeshStandardMaterial({ color: 0xf3d8e6, roughness: 0.5, metalness: 0.0 });
 // Magic/Magic II accent materials (theme().goldAccents): replace the old
 // full-chrome body + separate solid gold trim ring with a subtler split --
 // the base gets its own slight metal shine, and the rest of the body gets
@@ -3470,6 +3541,7 @@ function buildPiece(type, color, promoted) {
   if (style === 'atla') return buildAtlaPiece(g, add, type, promoted, color);
   if (style === 'starwars') return buildStarwarsPiece(g, add, type, promoted, color);
   if (style === 'nature') return buildNaturePiece(g, add, type, promoted, color);
+  if (style === 'cambodia') return buildCambodiaPiece(g, add, type, promoted, color);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
   if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18, baseMat); // collar
   switch (type) {
@@ -4233,6 +4305,105 @@ function buildNaturePiece(g, add, type, promoted, color) {
       } else {
         add(new THREE.SphereGeometry(0.15, 12, 10), 0.22);
         add(new THREE.SphereGeometry(0.04, 8, 6), 0.32, MAT_NATURE_MOSS).position.x = 0.1;
+      }
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.22, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Kingdom of Wonder piece set: two proud eras of Cambodia, not warring
+// factions -- the Angkor Empire (White, sandstone and gold) facing the
+// Modern Kingdom (Black, royal blue and gold). King: Angkor Wat's tiered
+// central prang vs the Independence Monument's stepped lotus-bud stupa --
+// each era's most iconic silhouette. Queen/Neang: an Apsara dancer (an
+// ornate crown) vs a Naga serpent (a coiled body with a fanned hood) --
+// both legendary guardian figures of Khmer myth. Bishop/Koul: a Buddhist
+// stupa vs a Garuda guardian. Knight/Ses: a war elephant (the classical
+// Khmer army's signature mount) vs a Kouprey, Cambodia's national animal.
+// Rook/Touk: a temple gopura tower vs a flag-topped watchtower -- both
+// read as a blocky defensive tower. Pawn/Trey: a lotus bud vs a small
+// banner post.
+function buildCambodiaPiece(g, add, type, promoted, color) {
+  add(new THREE.CylinderGeometry(0.3, 0.34, 0.14, 20), 0.07); // base
+  const angkor = color === E.WHITE;
+  switch (type) {
+    case E.KING:
+      if (angkor) {
+        add(new THREE.CylinderGeometry(0.2, 0.26, 0.16, 16), 0.35, MAT_KH_STONE);
+        add(new THREE.CylinderGeometry(0.15, 0.2, 0.16, 16), 0.5, MAT_KH_STONE);
+        add(new THREE.CylinderGeometry(0.1, 0.15, 0.16, 16), 0.64, MAT_KH_STONE);
+        add(new THREE.ConeGeometry(0.08, 0.24, 16), 0.84, MAT_KH_GOLD);
+      } else {
+        add(new THREE.CylinderGeometry(0.22, 0.26, 0.14, 16), 0.34);
+        add(new THREE.CylinderGeometry(0.17, 0.21, 0.14, 16), 0.46);
+        add(new THREE.CylinderGeometry(0.12, 0.16, 0.14, 16), 0.58);
+        add(new THREE.SphereGeometry(0.1, 14, 10), 0.72, MAT_KH_GOLD).scale.set(1, 1.3, 1);
+      }
+      break;
+    case E.QUEEN:
+      if (angkor) {
+        add(new THREE.ConeGeometry(0.19, 0.4, 14), 0.34, MAT_KH_STONE);
+        add(new THREE.ConeGeometry(0.15, 0.26, 14), 0.62, MAT_KH_GOLD);
+        add(new THREE.SphereGeometry(0.04, 10, 8), 0.82, MAT_KH_GOLD);
+      } else {
+        add(new THREE.TorusGeometry(0.14, 0.06, 10, 18), 0.36).rotation.x = Math.PI / 2.2;
+        add(new THREE.SphereGeometry(0.1, 14, 10), 0.52);
+        for (let i = 0; i < 5; i++) {
+          const ang = (i - 2) * 0.3;
+          const hood = add(new THREE.ConeGeometry(0.035, 0.2, 8), 0.6, MAT_KH_FLAG_RED);
+          hood.position.set(Math.sin(ang) * 0.12, 0.06, Math.cos(ang) * 0.12 - 0.03);
+          hood.rotation.x = Math.PI;
+        }
+      }
+      break;
+    case E.BISHOP:
+      if (angkor) {
+        add(new THREE.SphereGeometry(0.18, 16, 12), 0.46, MAT_KH_STONE).scale.set(1, 0.75, 1);
+        add(new THREE.ConeGeometry(0.1, 0.34, 14), 0.68, MAT_KH_GOLD);
+      } else {
+        add(new THREE.CylinderGeometry(0.13, 0.16, 0.34, 14), 0.3);
+        const wingL = add(new THREE.BoxGeometry(0.3, 0.05, 0.16), 0.5, MAT_KH_GOLD); wingL.rotation.z = 0.4; wingL.position.x = -0.16;
+        const wingR = add(new THREE.BoxGeometry(0.3, 0.05, 0.16), 0.5, MAT_KH_GOLD); wingR.rotation.z = -0.4; wingR.position.x = 0.16;
+        add(new THREE.SphereGeometry(0.08, 12, 10), 0.6);
+      }
+      break;
+    case E.KNIGHT:
+      if (angkor) {
+        add(new THREE.BoxGeometry(0.3, 0.3, 0.4), 0.28, MAT_KH_STONE);
+        const head = add(new THREE.BoxGeometry(0.18, 0.18, 0.18), 0.46, MAT_KH_STONE);
+        head.position.z = 0.18;
+        const trunk = add(new THREE.CylinderGeometry(0.04, 0.06, 0.24, 10), 0.34, MAT_KH_STONE);
+        trunk.rotation.x = 0.6; trunk.position.z = 0.28;
+        add(new THREE.ConeGeometry(0.025, 0.12, 8), 0.4, MAT_KH_LOTUS).position.set(-0.06, 0, 0.26);
+        add(new THREE.ConeGeometry(0.025, 0.12, 8), 0.4, MAT_KH_LOTUS).position.set(0.06, 0, 0.26);
+      } else {
+        add(new THREE.BoxGeometry(0.28, 0.26, 0.38), 0.26);
+        const head = add(new THREE.BoxGeometry(0.16, 0.16, 0.18), 0.42);
+        head.position.z = 0.17;
+        add(new THREE.TorusGeometry(0.06, 0.02, 6, 12, Math.PI * 1.2), 0.56, MAT_KH_GOLD).position.set(-0.06, 0.02, 0.2);
+        add(new THREE.TorusGeometry(0.06, 0.02, 6, 12, Math.PI * 1.2), 0.56, MAT_KH_GOLD).position.set(0.06, 0.02, 0.2);
+      }
+      break;
+    case E.ROOK:
+      if (angkor) {
+        add(new THREE.CylinderGeometry(0.22, 0.26, 0.44, 16), 0.29, MAT_KH_STONE);
+        add(new THREE.ConeGeometry(0.14, 0.22, 16), 0.62, MAT_KH_STONE);
+        add(new THREE.SphereGeometry(0.035, 8, 6), 0.76, MAT_KH_GOLD);
+      } else {
+        add(new THREE.BoxGeometry(0.32, 0.5, 0.32), 0.32);
+        add(new THREE.CylinderGeometry(0.02, 0.02, 0.2, 8), 0.62).position.x = 0.1;
+        add(new THREE.BoxGeometry(0.14, 0.09, 0.02), 0.68, MAT_KH_FLAG_RED).position.set(0.17, 0, 0);
+      }
+      break;
+    case E.PAWN:
+      if (angkor) {
+        add(new THREE.SphereGeometry(0.14, 14, 10), 0.24, MAT_KH_LOTUS).scale.set(1, 0.85, 1);
+        add(new THREE.ConeGeometry(0.09, 0.2, 12), 0.4, MAT_KH_LOTUS);
+      } else {
+        add(new THREE.CylinderGeometry(0.02, 0.02, 0.34, 8), 0.24);
+        add(new THREE.BoxGeometry(0.12, 0.08, 0.015), 0.4, MAT_KH_FLAG_RED).position.x = 0.07;
       }
       break;
   }
@@ -5270,7 +5441,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -5563,6 +5734,24 @@ const SFX = {
     if (kind === 'move') { noiseBurst({ dur: 0.14, filterFreq: 2200, q: 0.9, gain: 0.16, filterType: 'bandpass' }); noiseBurst({ dur: 0.1, filterFreq: 3000, q: 1.2, gain: 0.1, filterType: 'bandpass', delay: 0.05 }); }
     else if (kind === 'capture') { noiseBurst({ dur: 0.08, filterFreq: 1200, q: 3, gain: 0.32 }); envOsc({ freq: 140, type: 'triangle', dur: 0.18, gain: 0.28, freqTo: 70, delay: 0.02 }); noiseBurst({ dur: 0.16, filterFreq: 700, q: 1.5, gain: 0.22, delay: 0.06 }); }
     else { envOsc({ freq: 70, type: 'sawtooth', dur: 0.9, gain: 0.3, freqTo: 45 }); noiseBurst({ dur: 0.7, filterFreq: 250, q: 0.8, gain: 0.22, delay: 0.1 }); }
+  },
+  // Kingdom of Wonder: a soft temple-bell chime (with a light overtone
+  // shimmer) for a move, a deeper ceremonial gong strike for a capture,
+  // and a bigger double gong toll for check/checkmate -- dignified and
+  // resonant rather than alarm-shaped, matching this theme's celebratory
+  // tone.
+  cambodia(kind) {
+    if (kind === 'move') { envOsc({ freq: 660, type: 'sine', dur: 0.3, gain: 0.2 }); envOsc({ freq: 1320, type: 'sine', dur: 0.2, gain: 0.08, delay: 0.02 }); }
+    else if (kind === 'capture') {
+      envOsc({ freq: 180, type: 'sine', dur: 0.6, gain: 0.34, freqTo: 150 });
+      noiseBurst({ dur: 0.4, filterFreq: 500, q: 1.2, gain: 0.24, filterType: 'lowpass' });
+      envOsc({ freq: 90, type: 'sine', dur: 0.5, gain: 0.2, delay: 0.05 });
+    } else {
+      envOsc({ freq: 140, type: 'sine', dur: 0.7, gain: 0.35 });
+      noiseBurst({ dur: 0.5, filterFreq: 400, q: 1, gain: 0.28 });
+      envOsc({ freq: 140, type: 'sine', dur: 0.6, gain: 0.3, delay: 0.35 });
+      noiseBurst({ dur: 0.4, filterFreq: 400, q: 1, gain: 0.24, delay: 0.35 });
+    }
   }
 };
 window.__oukSfxLog = [];
@@ -6518,6 +6707,52 @@ function triggerNatureEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate)
   }
 }
 
+// ============ Kingdom of Wonder theme: golden-shimmer/tricolor-sparkle motion effects ============
+// A small golden shimmer that travels from the mover's square to its
+// destination for a normal move (fxKhShimmer), and a celebratory burst
+// for a capture (fxKhRipple + fxKhSpark) -- a gold bell-resonance ripple
+// plus sparkle particles in the flag's own red/blue/gold, read as a
+// ceremonial moment rather than violence. Fires only while cambodiaFx is
+// on -- same fire-and-forget, try/catch-wrapped pattern as the other
+// custom themes above.
+function fxKhShimmer(fromSq, toSq) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  fxSpawn(fxAt(a, 'fx-kh-shimmer', { '--mx': (b.x - a.x) + 'px', '--my': (b.y - a.y) + 'px' }), 300);
+  window.__oukFxLog.push({ tier: 1, key: 'kh_shimmer' });
+}
+function fxKhBurst(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-kh-ripple', {}), 420);
+  const colors = ['#d8303a', '#2a3f8f', '#e0b84a'];
+  for (let i = 0; i < 9; i++) {
+    const a2 = (i / 9) * Math.PI * 2 + Math.random() * 0.3;
+    const dist = 20 + Math.random() * 20;
+    fxSpawn(fxAt(pt, 'fx-kh-spark', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px', '--sparkcol': colors[i % 3] }), 380);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'kh_burst' });
+}
+function triggerCambodiaEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.cambodiaFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#e0b84a');
+      else fxKhBurst(m.to);
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#e0b84a');
+      else fxKhShimmer(m.from, m.to);
+    }
+    // reuses the same screen-level check vignette/shake every other
+    // theme's check effect does (see fxCheck above) -- a generic
+    // "you're in check" beat that fits fine without any change (it reads
+    // naturally enough as an urgent temple-gong warning).
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('cambodia-effect render failed (ignored):', err);
+  }
+}
+
 // ---- background music: 10 soft, slow, procedurally-generated looping
 // tracks (5 general "relaxing lobby" style, 5 using a Khmer-flavored
 // pentatonic scale) — not literal recordings, synthesized so nothing needs
@@ -6608,17 +6843,27 @@ const MUSIC_TRACKS = {
   // stakes without transcribing any existing film score.
   cine2: { label: 'កងទ័ពផ្កាយ Galactic Overture (pad + piano mix)', instrument: 'pad', instrument2: 'piano', noteLen: 1400, gain: 0.08,
     filterHz: 1300, detune: 3,
-    notes: [174.61, 207.65, 220.00, null, 196.00, 174.61, null, null] }
+    notes: [174.61, 207.65, 220.00, null, 196.00, 174.61, null, null] },
+  // An original, dignified marching-tempo instrumental for the Kingdom of
+  // Wonder theme -- a rising-then-resolving major-key phrase evoking
+  // national-anthem conventions (steady cadence, a proud arc up and back
+  // down to the tonic). This is a NEW composition, not a transcription of
+  // Cambodia's actual national anthem ("Nokoreach") -- the same
+  // "inspired by, never a transcription of an existing score" approach
+  // used for every other track in this game (Mario/Contra/Star Wars/etc).
+  anthem1: { label: 'មោទនភាពជាតិ National Pride (piano + pad mix)', instrument: 'piano', instrument2: 'pad', noteLen: 560, gain: 0.09,
+    sustain: 0.55,
+    notes: [220.00, 246.94, 293.66, 329.63, 392.00, 329.63, 293.66, 246.94] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
   const groups = sel.querySelectorAll('optgroup');
-  const relaxGroup = groups[0], khmerGroup = groups[1], arcadeGroup = groups[2], cineGroup = groups[3], synthGroup = groups[4], worldGroup = groups[5];
+  const relaxGroup = groups[0], khmerGroup = groups[1], arcadeGroup = groups[2], cineGroup = groups[3], synthGroup = groups[4], worldGroup = groups[5], nationalGroup = groups[6];
   Object.keys(MUSIC_TRACKS).forEach(key => {
     const t = MUSIC_TRACKS[key];
     const opt = document.createElement('option');
     opt.value = key; opt.textContent = t.label;
-    (key.startsWith('khmer') ? khmerGroup : key.startsWith('arcade') ? arcadeGroup : key.startsWith('cine') ? cineGroup : key.startsWith('synth') ? synthGroup : key.startsWith('world') ? worldGroup : relaxGroup).appendChild(opt);
+    (key.startsWith('khmer') ? khmerGroup : key.startsWith('arcade') ? arcadeGroup : key.startsWith('cine') ? cineGroup : key.startsWith('synth') ? synthGroup : key.startsWith('world') ? worldGroup : key.startsWith('anthem') ? nationalGroup : relaxGroup).appendChild(opt);
   });
   sel.value = 'khmer1';
 }
@@ -6892,6 +7137,7 @@ function applyMove(m) {
   triggerAtlaEffect(m, mover, captured, isCheck, isCheckmate);
   triggerStarwarsEffect(m, mover, captured, isCheck, isCheckmate);
   triggerNatureEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerCambodiaEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
