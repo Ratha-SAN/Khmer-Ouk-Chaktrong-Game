@@ -227,6 +227,14 @@
   #modal th, #modal td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; font-size: 13px; }
   #modal .note { color: #b7a687; font-size: 12px; font-style: italic; }
   #modal .close { float: right; }
+  #modal .langBtn { float: right; margin-right: 8px; }
+  /* Rules modal language toggle: .kh/.en mark each translated chunk, and
+     data-lang on .box (set by rulesLangBtn's click handler) shows only the
+     selected language's chunks -- a full-page switch, not stacked bilingual
+     text, so headings/paragraphs/notes/table cells all read as one clean
+     single-language document at a time. */
+  #modal .box[data-lang="kh"] .en { display: none; }
+  #modal .box[data-lang="en"] .kh { display: none; }
   /* full-screen overlays: start screen + mode selection */
   .fullOverlay {
     position: fixed; inset: 0; background: rgba(8,6,3,.88); display: flex;
@@ -1175,68 +1183,88 @@
   </div>
 </div>
 
-<div id="modal"><div class="box">
+<div id="modal"><div class="box" data-lang="kh">
   <button class="close" onclick="document.getElementById('modal').style.display='none'">✕ Close</button>
+  <button id="rulesLangBtn" class="close langBtn">🌐 English</button>
   <h2>ច្បាប់អុកចត្រង្គ — Rules of Ouk Chatrang</h2>
 
-  <h3>Pieces &amp; moves</h3>
+  <h3><span class="kh">ការដើររបស់កូនអុក</span><span class="en">Pieces &amp; moves</span></h3>
   <table>
-    <tr><th>Khmer</th><th>Name</th><th>English</th><th>Move</th></tr>
-    <tr><td>ស្ដេច</td><td>Sdach</td><td>King</td><td>One square in any direction.</td></tr>
-    <tr><td>នាង</td><td>Neang</td><td>Queen</td><td>One square diagonally only.</td></tr>
-    <tr><td>គោល</td><td>Koul</td><td>Bishop</td><td>One square diagonally, or one square straight <em>forward</em>.</td></tr>
-    <tr><td>សេះ</td><td>Ses</td><td>Knight</td><td>Exactly like a chess knight.</td></tr>
-    <tr><td>ទូក</td><td>Tuuk</td><td>Boat / Rook</td><td>Exactly like a chess rook.</td></tr>
-    <tr><td>ត្រី</td><td>Trey</td><td>Fish / Pawn</td><td>One square forward; captures one square diagonally forward. No double step, no en&nbsp;passant.</td></tr>
+    <tr><th>ខ្មែរ Khmer</th><th>ឈ្មោះតាមសូរ Name</th><th>English</th><th><span class="kh">ការដើរ</span><span class="en">Move</span></th></tr>
+    <tr><td>ស្ដេច</td><td>Sdach</td><td>King</td><td><span class="kh">មួយក្រឡាទៅគ្រប់ទិស។</span><span class="en">One square in any direction.</span></td></tr>
+    <tr><td>នាង</td><td>Neang</td><td>Queen</td><td><span class="kh">មួយក្រឡាបញ្ឆិតតែប៉ុណ្ណោះ។</span><span class="en">One square diagonally only.</span></td></tr>
+    <tr><td>គោល</td><td>Koul</td><td>Bishop</td><td><span class="kh">មួយក្រឡាបញ្ឆិត ឬមួយក្រឡាត្រង់ <em>ទៅមុខ</em>។</span><span class="en">One square diagonally, or one square straight <em>forward</em>.</span></td></tr>
+    <tr><td>សេះ</td><td>Ses</td><td>Knight</td><td><span class="kh">ដូចសេះអុកអន្តរជាតិបេះបិទ។</span><span class="en">Exactly like a chess knight.</span></td></tr>
+    <tr><td>ទូក</td><td>Tuuk</td><td>Boat / Rook</td><td><span class="kh">ដូចទូកអុកអន្តរជាតិបេះបិទ។</span><span class="en">Exactly like a chess rook.</span></td></tr>
+    <tr><td>ត្រី</td><td>Trey</td><td>Fish / Pawn</td><td><span class="kh">មួយក្រឡាទៅមុខ; ស៊ីមួយក្រឡាបញ្ឆិតទៅមុខ។ មិនអាចដើរពីរក្រឡា និងគ្មានការស៊ីអន្តរកាល (en&nbsp;passant) ទេ។</span><span class="en">One square forward; captures one square diagonally forward. No double step, no en&nbsp;passant.</span></td></tr>
   </table>
 
-  <h3>Setup</h3>
-  <p>Trey start on each side's <strong>third</strong> rank. Like international chess, the King and Queen are
+  <h3><span class="kh">ការរៀបចំដំបូង</span><span class="en">Setup</span></h3>
+  <p><span class="kh">ត្រីចាប់ផ្ដើមនៅជួរទី<strong>បី</strong>របស់ខ្លួន។ ដូចអុកអន្តរជាតិដែរ ស្ដេច និងនាងឆ្លុះបញ្ចាំងគ្នារវាងពណ៌៖ ស្ដេចសនៅ d1 ឈរផ្ទុយមុខនាងខ្មៅនៅ d8
+     ហើយនាងសនៅ e1 ឈរផ្ទុយមុខស្ដេចខ្មៅនៅ e8 — មិនមែនឈរផ្ទុយមុខគ្នាដោយផ្ទាល់នៅជួរឈរតែមួយទេ។ សដើរមុន។ គ្មានការរូតប្រាសាទទេ។</span>
+     <span class="en">Trey start on each side's <strong>third</strong> rank. Like international chess, the King and Queen are
      mirrored between colors: White's Sdach on d1 sits opposite Black's Neang on d8, and White's Neang on e1
      sits opposite Black's Sdach on e8 — not centered face-to-face on the same file. White moves first.
-     There is no castling.</p>
+     There is no castling.</span></p>
 
-  <h3>Special first moves</h3>
-  <p>On its first move the <strong>Sdach</strong> may jump like a knight (never a capture, never while in check).
+  <h3><span class="kh">ជើងដំបូងពិសេស</span><span class="en">Special first moves</span></h3>
+  <p><span class="kh">ក្នុងជើងទីមួយ <strong>ស្ដេច</strong> អាចលោតដូចសេះបាន (មិនមែនជាការស៊ី ហើយមិនអាចធ្វើពេលកំពុងជាប់អុកទេ)។ ក្នុងជើងទីមួយដែរ
+     <strong>នាង</strong> អាចលោតត្រង់ទៅមុខពីរក្រឡា (មិនមែនជាការស៊ី ហើយអាចលោតរំលងក្រឡាដែលមានកូនអុក)។</span>
+     <span class="en">On its first move the <strong>Sdach</strong> may jump like a knight (never a capture, never while in check).
      On its first move the <strong>Neang</strong> may leap two squares straight forward (never a capture; it may
-     pass over an occupied square).</p>
-  <p class="note">Sources conflict on when these jumps are forfeited. Default here: both jumps are lost once
+     pass over an occupied square).</span></p>
+  <p class="note"><span class="kh">ឯកសារនីមួយៗខ្វែងគំនិតគ្នាអំពីពេលដែលសិទ្ធិលោតទាំងនេះបាត់។ លំនាំដើមទីនេះ៖ សិទ្ធិទាំងពីរបាត់ភ្លាមៗពេលមានការស៊ីកូនអុកណាមួយកើតឡើង។
+     ជម្រើសផ្សេង (អាចជ្រើសរើសបានក្នុងការកំណត់)៖ សិទ្ធិលោតរបស់ស្ដេចបាត់ជាអចិន្ត្រៃយ៍ភ្លាមៗពេលទូកសត្រូវតម្រង់ជួរដេក ឬជួរឈរដូចគ្នានឹងស្ដេច —
+     ទោះបីជាទូកនោះផ្លាស់ទីចេញក្រោយមកក៏ដោយ ហើយទោះបីជាមានកូនអុកផ្សេងឈរខណ្ឌនៅចន្លោះក៏ដោយ។</span>
+     <span class="en">Sources conflict on when these jumps are forfeited. Default here: both jumps are lost once
      <em>any</em> piece has been captured. Alternative (selectable in settings): the King's jump is permanently
      lost once an enemy Tuuk aligns on the King's rank or file — even if the Tuuk later moves away, and even
-     if other pieces stand between.</p>
+     if other pieces stand between.</span></p>
 
-  <h3>Promotion</h3>
-  <p>A Trey promotes immediately and mandatorily on reaching the <strong>sixth</strong> rank
-     (the opponent's third), and thereafter moves as a Neang.</p>
+  <h3><span class="kh">ការឡើងនាង</span><span class="en">Promotion</span></h3>
+  <p><span class="kh">ត្រីត្រូវឡើងជានាងភ្លាមៗជាកាតព្វកិច្ច ពេលទៅដល់ជួរទី<strong>ប្រាំមួយ</strong> (ជួរទីបីរបស់សត្រូវ) ហើយបន្ទាប់មកដើរដូចនាង។</span>
+     <span class="en">A Trey promotes immediately and mandatorily on reaching the <strong>sixth</strong> rank
+     (the opponent's third), and thereafter moves as a Neang.</span></p>
 
-  <h3>Game end</h3>
-  <p>Checkmate wins. <strong>Stalemate is a draw.</strong></p>
+  <h3><span class="kh">ចុងបញ្ចប់ល្បែង</span><span class="en">Game end</span></h3>
+  <p><span class="kh">អុកងាប់ឈ្នះ។ <strong>ស្ទួនស្មើ។</strong></span><span class="en">Checkmate wins. <strong>Stalemate is a draw.</strong></span></p>
 
-  <h3>Counting rules (draws for the weaker side)</h3>
-  <p><strong>Board's honor:</strong> a player with three or fewer pieces may start counting from 1
-     with a limit of 64; they may pause and restart at their own discretion, and a restart begins from 1 again.</p>
-  <p><strong>Piece's honor:</strong> when no unpromoted Trey remain and a player has only the bare Sdach,
+  <h3><span class="kh">ច្បាប់ការរាប់ (ស្មើសម្រាប់ខាងខ្សោយ)</span><span class="en">Counting rules (draws for the weaker side)</span></h3>
+  <p><span class="kh"><strong>ការរាប់កិត្តិយសក្ដារ៖</strong> អ្នកលេងដែលនៅសល់បីកូនអុក ឬតិចជាងនេះ អាចចាប់ផ្ដើមរាប់ពី ១ ដោយមានដែនកំណត់ ៦៤ជើង;
+     អ្នកនោះអាចផ្អាក និងចាប់ផ្ដើមឡើងវិញតាមចិត្តខ្លួន ហើយការចាប់ផ្ដើមឡើងវិញនីមួយៗចាប់ពី ១ វិញ។</span>
+     <span class="en"><strong>Board's honor:</strong> a player with three or fewer pieces may start counting from 1
+     with a limit of 64; they may pause and restart at their own discretion, and a restart begins from 1 again.</span></p>
+  <p><span class="kh"><strong>ការរាប់កិត្តិយសកូនអុក៖</strong> ពេលគ្មានត្រីមិនទាន់ឡើងនាងសល់ទៀត ហើយអ្នកលេងម្នាក់នៅសល់តែស្ដេចទទេ អ្នកនោះអាចរាប់ជំនួសវិញ
+     ដោយចាប់ផ្ដើមពីចំនួនកូនអុកសរុបនាពេលបច្ចុប្បន្ននៅលើក្ដារ (ទាំងសងខាង រួមទាំងស្ដេចទាំងពីរ) ដោយដែនកំណត់ត្រូវបានកំណត់ដោយកម្លាំងរបស់ខាងខ្លាំង
+     — យកតម្លៃតូចបំផុតដែលអាចអនុវត្តបាន៖</span>
+     <span class="en"><strong>Piece's honor:</strong> when no unpromoted Trey remain and a player has only the bare Sdach,
      that player may instead count starting from the total number of pieces currently on the board
      (both sides, both Sdach included), with the limit fixed by the stronger side's force — the smallest
-     applicable value:</p>
+     applicable value:</span></p>
   <table>
-    <tr><th>Stronger side has…</th><th>Limit</th></tr>
-    <tr><td>Two Tuuk</td><td>8</td></tr>
-    <tr><td>One Tuuk</td><td>16</td></tr>
-    <tr><td>Two Koul</td><td>22</td></tr>
-    <tr><td>Two Ses</td><td>32</td></tr>
-    <tr><td>One Koul</td><td>44</td></tr>
-    <tr><td>One Ses</td><td>64</td></tr>
-    <tr><td>Only Neang / promoted Trey</td><td>64</td></tr>
+    <tr><th><span class="kh">ខាងខ្លាំងមាន…</span><span class="en">Stronger side has…</span></th><th><span class="kh">ដែនកំណត់</span><span class="en">Limit</span></th></tr>
+    <tr><td><span class="kh">ទូកពីរ</span><span class="en">Two Tuuk</span></td><td>8</td></tr>
+    <tr><td><span class="kh">ទូកមួយ</span><span class="en">One Tuuk</span></td><td>16</td></tr>
+    <tr><td><span class="kh">គោលពីរ</span><span class="en">Two Koul</span></td><td>22</td></tr>
+    <tr><td><span class="kh">សេះពីរ</span><span class="en">Two Ses</span></td><td>32</td></tr>
+    <tr><td><span class="kh">គោលមួយ</span><span class="en">One Koul</span></td><td>44</td></tr>
+    <tr><td><span class="kh">សេះមួយ</span><span class="en">One Ses</span></td><td>64</td></tr>
+    <tr><td><span class="kh">មានតែនាង ឬត្រីឡើងនាង</span><span class="en">Only Neang / promoted Trey</span></td><td>64</td></tr>
   </table>
-  <p class="note">These limits are the commonly cited table; exact values vary slightly between Cambodian
+  <p class="note"><span class="kh">ដែនកំណត់ទាំងនេះជាតារាងដែលត្រូវបានលើកឡើងជាទូទៅបំផុត; តម្លៃពិតប្រាកដប្រែប្រួលបន្តិចបន្តួចរវាងឯកសារខ្មែរ និងថៃ។
+     តារាងនេះស្ថិតនៅក្នុងថេរអថេរតែមួយដែលអាចកែសម្រួលបាន (<code>PIECE_HONOR_TABLE</code>) នៅក្នុងស្គ្រីបម៉ាស៊ីនរបស់ល្បែង។
+     ពេលការរាប់កិត្តិយសកូនអុកចាប់ផ្ដើមហើយ ដែនកំណត់ខ្លួនឯងមិនផ្លាស់ប្ដូរឡើយ — ប៉ុន្តែការស៊ីកូនអុកនីមួយៗនឹងចាប់ផ្ដើមរាប់ឡើងវិញពីចំនួនសរុបថ្មី
+     (តូចជាង) ដដែលនៅក្រោមដែនកំណត់ដើមនោះ។ ការឈប់ រួចចាប់ផ្ដើមរាប់ដោយដៃវិញ ក៏កំណត់ដែនកំណត់ថ្មីម្ដងទៀតដែរ។ បើការរាប់ដល់ដែនកំណត់
+     មុននឹងមានអុកងាប់ ល្បែងស្មើ។ ប្រអប់ធីក "ចាប់ផ្ដើមរាប់ដោយស្វ័យប្រវត្តិ" (ការកំណត់ → ល្បែង) ចាប់ផ្ដើមរាប់ភ្លាមៗពេលខាងណាមួយមានលក្ខណៈគ្រប់គ្រាន់
+     ជំនួសឲ្យការរង់ចាំចុចប៊ូតុង "ចាប់ផ្ដើមរាប់" ដោយដៃ; កុំព្យូទ័រតែងតែសម្រេចចិត្តដោយខ្លួនឯងទោះបីយ៉ាងណា ព្រោះវាគ្មានប៊ូតុងអាចចុចបានទេ។</span>
+     <span class="en">These limits are the commonly cited table; exact values vary slightly between Cambodian
      and Thai sources. The table lives in one editable constant (<code>PIECE_HONOR_TABLE</code>) in the
      engine script. Once piece-counting starts the limit itself never changes -- but a capture restarts the
      count from the new (smaller) total, still governed by that original limit. Stopping and manually
      restarting re-fixes the limit too. If the count reaches the limit before checkmate, the game is a draw.
      The "Auto-start counting when eligible" checkbox (Settings → Game) starts the count the instant a side
      qualifies instead of waiting for a manual "Start count" button click; the computer opponent always
-     decides for itself either way, since it has no button to click.</p>
+     decides for itself either way, since it has no button to click.</span></p>
 </div></div>
 
 <!-- ============ RULES ENGINE (also shipped to the AI web worker) ============ -->
@@ -6274,6 +6302,19 @@ undoBtn.onclick = () => {
   refreshAll();
 };
 document.getElementById('rulesBtn').onclick = (e) => { e.preventDefault(); document.getElementById('modal').style.display = 'flex'; };
+// Rules modal language toggle: the button always labels the language
+// clicking it switches TO, not the one currently shown.
+let rulesLang = 'kh';
+function applyRulesLang() {
+  document.querySelector('#modal .box').dataset.lang = rulesLang;
+  document.getElementById('rulesLangBtn').textContent = rulesLang === 'kh' ? '🌐 English' : '🌐 ខ្មែរ';
+}
+document.getElementById('rulesLangBtn').onclick = (e) => {
+  e.preventDefault();
+  rulesLang = rulesLang === 'kh' ? 'en' : 'kh';
+  applyRulesLang();
+};
+applyRulesLang();
 
 // resets the board using whatever mode/humanSide are currently set; both
 // "New game" and a confirmed mode-select pick funnel through this
@@ -6757,6 +6798,8 @@ window.__ouk = {
   guideGameMoveAt: (i) => currentGuideExample().moves[i],
   loginEnabled: () => LOGIN_ENABLED,
   showPieceNames: () => showPieceNames,
+  rulesLang: () => rulesLang,
+  toggleRulesLang: () => document.getElementById('rulesLangBtn').click(),
   pieceNamePosition: () => pieceNamePosition,
   pieceNameLang: () => pieceNameLang,
   pieceLabelInfo: () => pieceGroup.children.map(g => {
