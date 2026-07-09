@@ -706,6 +706,42 @@
     0% { transform: translate(0, 0) rotate(0deg) scale(.5); opacity: 1; }
     100% { transform: translate(var(--mx), var(--my)) rotate(260deg) scale(1); opacity: 0; }
   }
+
+  /* ============ Plants vs Zombies theme: pea-shot/splat motion effects ============
+     A small green pea that actually travels from the mover's square to its
+     destination for a normal move (translate by --mx/--my, unlike Contra's
+     static rotated-bar tracer), and a squelchy green splat + flying goo
+     bits for a capture -- a lawn-defense read instead of any other
+     theme's palette. */
+  .fx-pvz-pea {
+    position: absolute; width: 10px; height: 10px; left: -5px; top: -5px; border-radius: 50%;
+    background: radial-gradient(circle, #d4ff6b, #6b9e2a 70%, transparent 90%);
+    box-shadow: 0 0 5px #8bc34a;
+    animation: fxPvzPea 220ms ease-in forwards;
+  }
+  @keyframes fxPvzPea {
+    0% { transform: translate(0, 0) scale(.6); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) scale(1); opacity: 0; }
+  }
+  .fx-pvz-splat {
+    position: absolute; width: 42px; height: 42px; left: -21px; top: -21px; border-radius: 50%;
+    background: radial-gradient(circle, #c8f08a 0%, #6b9e2a 45%, transparent 72%);
+    animation: fxPvzSplat 380ms ease-out forwards;
+  }
+  @keyframes fxPvzSplat {
+    0% { transform: scale(.25); opacity: 1; }
+    55% { opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+  .fx-pvz-bit {
+    position: absolute; width: 6px; height: 6px; left: -3px; top: -3px; border-radius: 40%;
+    background: #4a5c34;
+    animation: fxPvzBit 420ms ease-out forwards;
+  }
+  @keyframes fxPvzBit {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) rotate(200deg); opacity: 0; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1054,6 +1090,7 @@
       <option value="girlyPurple">Girly Purple — ស្វាយ</option>
       <option value="girlyYellow">Girly Yellow — លឿង</option>
       <option value="kids">Kids Playroom — កុមារ</option>
+      <option value="pvz">Plants vs Zombies — រុក្ខជាតិទល់មនុស្សស្លាប់រស់</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -1142,7 +1179,7 @@
       <option value="none">No music</option>
       <optgroup label="Relaxing (5)"></optgroup>
       <optgroup label="Khmer Traditional (5)"></optgroup>
-      <optgroup label="Arcade (2)"></optgroup>
+      <optgroup label="Arcade (3)"></optgroup>
     </select>
     <div class="btnrow" style="margin-top:6px">
       <button id="musicPlayBtn">▶ Play</button>
@@ -2550,6 +2587,21 @@ const THEMES = {
     pieceW: 0xff6b6b, pieceB: 0x4a6cf7, rough: 0.5, metal: 0.0,
     labelInk: '#ffffff', tray: 0xff8a4a,
     kidsFx: true
+  },
+  // Plants vs Zombies: a sunny backyard-lawn board (alternating grass
+  // stripes, like the game's own lawn) with a genuinely different piece
+  // shape per side instead of one silhouette recolored -- see
+  // buildPvzPiece -- paired with its own pea-shooting / squelchy-splat
+  // motion effects (pvzFx, see triggerPvzEffect) and a chiptune-ish
+  // SFX bank (pea pop / plant-eaten squelch / "a zombie is coming"
+  // groan-tone alert).
+  pvz: {
+    name: 'Plants vs Zombies', style: 'pvz',
+    bg: 0x8bc9f0, fog: null,
+    frame: 0x6b4423, tileLight: 0x8bc34a, tileDark: 0x5a9c34,
+    pieceW: 0x4caf50, pieceB: 0x707a5c, rough: 0.55, metal: 0.0,
+    labelInk: '#ffffff', tray: 0x6b4423,
+    pvzFx: true
   }
 };
 let themeKey = 'wood';
@@ -2902,6 +2954,17 @@ const MAT_GIRLY_ACCENT = new THREE.MeshStandardMaterial({ color: 0xe8c0a0, rough
 // that reads clearly against either the coral (White) or blue (Black)
 // body color.
 const MAT_KIDS_ACCENT = new THREE.MeshStandardMaterial({ color: 0xffe14d, roughness: 0.4, metalness: 0.0 });
+// Fixed accent colors for the Plants vs Zombies piece set (see
+// buildPvzPiece) -- unlike the single shared accent above, PvZ needs
+// several distinct, always-the-same prop colors regardless of theme
+// (sunflower petals, a zombie's tin bucket, a traffic cone, a Wall-nut's
+// shell, a Chomper's mouth), so each gets its own small fixed material
+// instead of being derived from the theme's piece colors.
+const MAT_PVZ_ACCENT = new THREE.MeshStandardMaterial({ color: 0xffd93b, roughness: 0.4, metalness: 0.0 }); // sunflower petals, sun, pea
+const MAT_PVZ_METAL = new THREE.MeshStandardMaterial({ color: 0xb8bcc0, roughness: 0.3, metalness: 0.6 }); // bucket, tombstone
+const MAT_PVZ_CONE = new THREE.MeshStandardMaterial({ color: 0xff8a1a, roughness: 0.5, metalness: 0.0 }); // traffic cone, flag
+const MAT_PVZ_NUT = new THREE.MeshStandardMaterial({ color: 0xc9975c, roughness: 0.6, metalness: 0.0 }); // Wall-nut/Tall-nut shell
+const MAT_PVZ_MOUTH = new THREE.MeshStandardMaterial({ color: 0x7a1414, roughness: 0.5, metalness: 0.0 }); // Chomper's mouth
 // Magic/Magic II accent materials (theme().goldAccents): replace the old
 // full-chrome body + separate solid gold trim ring with a subtler split --
 // the base gets its own slight metal shine, and the rest of the body gets
@@ -2984,6 +3047,7 @@ function buildPiece(type, color, promoted) {
   if (style === 'crystal') return buildCrystalPiece(g, add, type, promoted, color);
   if (style === 'girly') return buildGirlyPiece(g, add, type, promoted, color);
   if (style === 'kids') return buildKidsPiece(g, add, type, promoted, color);
+  if (style === 'pvz') return buildPvzPiece(g, add, type, promoted, color);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
   if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18, baseMat); // collar
   switch (type) {
@@ -3176,6 +3240,94 @@ function buildKidsPiece(g, add, type, promoted, color) {
     case E.PAWN:
       add(new THREE.SphereGeometry(0.22, 18, 14), 0.3);
       add(new THREE.SphereGeometry(0.08, 12, 10), 0.5, MAT_KIDS_ACCENT);
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.22, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Plants vs Zombies piece set: unlike every other style here, White and
+// Black don't share one silhouette recolored -- each piece type gets a
+// genuinely different shape per side, a plant (White) facing off against
+// its closest zombie counterpart (Black), matching the game's own
+// lawn-defense identity instead of just reskinning a generic chess set.
+// King: Peashooter vs the classic arms-out Zombie (the franchise's two
+// mascots). Queen/Neang: Sunflower vs Flag Zombie (both "support" units).
+// Bishop/Koul: Wall-nut vs Conehead Zombie. Knight/Ses: Chomper vs
+// Buckethead Zombie. Rook/Touk: Tall-nut vs a tombstone (both read as a
+// blocky defensive tower). Pawn/Trey: a sprouting sun vs a zombie hand
+// breaking through the lawn.
+function buildPvzPiece(g, add, type, promoted, color) {
+  add(new THREE.CylinderGeometry(0.32, 0.36, 0.14, 20), 0.07); // grassy base
+  const plant = color === E.WHITE;
+  switch (type) {
+    case E.KING:
+      if (plant) {
+        add(new THREE.CylinderGeometry(0.14, 0.17, 0.55, 14), 0.36);
+        add(new THREE.SphereGeometry(0.22, 16, 12), 0.68);
+        const tube = add(new THREE.CylinderGeometry(0.08, 0.09, 0.28, 12), 0.72);
+        tube.rotation.z = Math.PI / 2.6; tube.position.x = 0.16;
+        add(new THREE.SphereGeometry(0.07, 10, 8), 0.78, MAT_PVZ_ACCENT).position.x = 0.34;
+      } else {
+        add(new THREE.BoxGeometry(0.3, 0.5, 0.22), 0.4);
+        add(new THREE.SphereGeometry(0.18, 16, 12), 0.76);
+        const armL = add(new THREE.BoxGeometry(0.4, 0.09, 0.09), 0.58); armL.rotation.z = 0.5; armL.position.x = -0.05;
+        const armR = add(new THREE.BoxGeometry(0.4, 0.09, 0.09), 0.5); armR.rotation.z = -0.5; armR.position.x = 0.05;
+      }
+      break;
+    case E.QUEEN:
+      if (plant) {
+        add(new THREE.CylinderGeometry(0.1, 0.13, 0.4, 12), 0.3);
+        add(new THREE.SphereGeometry(0.2, 16, 12), 0.58);
+        for (let i = 0; i < 6; i++) {
+          const ang = i * Math.PI / 3;
+          const petal = add(new THREE.SphereGeometry(0.08, 10, 8), 0.58, MAT_PVZ_ACCENT);
+          petal.position.set(Math.cos(ang) * 0.22, 0.58, Math.sin(ang) * 0.22);
+        }
+      } else {
+        add(new THREE.CylinderGeometry(0.16, 0.2, 0.42, 14), 0.32);
+        add(new THREE.SphereGeometry(0.16, 14, 10), 0.62);
+        const pole = add(new THREE.CylinderGeometry(0.015, 0.015, 0.4, 6), 0.78); pole.position.x = 0.14;
+        const flag = add(new THREE.BoxGeometry(0.16, 0.1, 0.02), 0.9, MAT_PVZ_CONE); flag.position.x = 0.2;
+      }
+      break;
+    case E.BISHOP:
+      if (plant) {
+        add(new THREE.SphereGeometry(0.25, 18, 14), 0.42, MAT_PVZ_NUT).scale.set(1, 1.15, 1);
+      } else {
+        add(new THREE.CylinderGeometry(0.16, 0.2, 0.4, 14), 0.32);
+        add(new THREE.SphereGeometry(0.16, 14, 10), 0.6);
+        add(new THREE.ConeGeometry(0.16, 0.28, 14), 0.86, MAT_PVZ_CONE);
+      }
+      break;
+    case E.KNIGHT:
+      if (plant) {
+        add(new THREE.SphereGeometry(0.24, 16, 12), 0.4);
+        add(new THREE.SphereGeometry(0.13, 12, 10), 0.4, MAT_PVZ_MOUTH).position.z = 0.18;
+      } else {
+        add(new THREE.CylinderGeometry(0.16, 0.2, 0.4, 14), 0.32);
+        add(new THREE.SphereGeometry(0.16, 14, 10), 0.6);
+        add(new THREE.CylinderGeometry(0.17, 0.15, 0.2, 14), 0.78, MAT_PVZ_METAL);
+      }
+      break;
+    case E.ROOK:
+      if (plant) {
+        add(new THREE.CylinderGeometry(0.26, 0.28, 0.55, 16), 0.35, MAT_PVZ_NUT);
+      } else {
+        add(new THREE.BoxGeometry(0.4, 0.5, 0.16), 0.34, MAT_PVZ_METAL);
+        add(new THREE.SphereGeometry(0.2, 16, 8), 0.66, MAT_PVZ_METAL).scale.set(1, 0.5, 0.4);
+      }
+      break;
+    case E.PAWN:
+      if (plant) {
+        add(new THREE.CylinderGeometry(0.06, 0.08, 0.24, 10), 0.2);
+        add(new THREE.SphereGeometry(0.14, 14, 10), 0.36, MAT_PVZ_ACCENT);
+      } else {
+        add(new THREE.CylinderGeometry(0.09, 0.1, 0.28, 10), 0.22);
+        add(new THREE.BoxGeometry(0.06, 0.14, 0.05), 0.4);
+        add(new THREE.BoxGeometry(0.05, 0.13, 0.045), 0.4).position.x = 0.05;
+      }
       break;
   }
   if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.22, MAT_GOLD).rotation.x = Math.PI / 2;
@@ -4212,7 +4364,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -4419,6 +4571,20 @@ const SFX = {
       envOsc({ freq: 659, type: 'triangle', dur: 0.09, gain: 0.26, delay: 0.09 });
       envOsc({ freq: 784, type: 'triangle', dur: 0.09, gain: 0.26, delay: 0.18 });
       envOsc({ freq: 1046, type: 'triangle', dur: 0.18, gain: 0.26, delay: 0.27 });
+    }
+  },
+  // Plants vs Zombies theme: a quick chirpy "pea pop" for a move, a wet
+  // noise-burst squelch (something got chomped) plus a low descending
+  // groan for a capture, and an urgent alternating two-tone siren --
+  // the classic "a zombie is coming!" lawn alarm -- for check.
+  pvz(kind) {
+    if (kind === 'move') envOsc({ freq: 900, type: 'square', dur: 0.05, gain: 0.22, freqTo: 500 });
+    else if (kind === 'capture') { noiseBurst({ dur: 0.16, filterFreq: 700, q: 1.5, gain: 0.4, filterType: 'lowpass' }); envOsc({ freq: 200, type: 'sawtooth', dur: 0.18, gain: 0.3, freqTo: 90 }); }
+    else {
+      envOsc({ freq: 440, type: 'sawtooth', dur: 0.14, gain: 0.26 });
+      envOsc({ freq: 660, type: 'sawtooth', dur: 0.14, gain: 0.26, delay: 0.16 });
+      envOsc({ freq: 440, type: 'sawtooth', dur: 0.14, gain: 0.26, delay: 0.32 });
+      envOsc({ freq: 660, type: 'sawtooth', dur: 0.18, gain: 0.26, delay: 0.48 });
     }
   }
 };
@@ -5056,6 +5222,50 @@ function triggerKidsEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
   }
 }
 
+// ============ Plants vs Zombies theme: pea-shot/splat motion effects ============
+// A pea that visibly travels from the mover's square to its destination
+// for a normal move (fxPvzPea -- an actually-translating dot, unlike
+// Contra's static rotated-bar tracer), and a squelchy splat + flying goo
+// bits for a capture (fxPvzSplat). Fires only while pvzFx is on -- same
+// fire-and-forget, try/catch-wrapped, independently-called pattern as
+// triggerMarioEffect/triggerContraEffect/triggerKidsEffect above.
+function fxPvzPea(fromSq, toSq) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  fxSpawn(fxAt(a, 'fx-pvz-pea', { '--mx': (b.x - a.x) + 'px', '--my': (b.y - a.y) + 'px' }), 220);
+  window.__oukFxLog.push({ tier: 1, key: 'pvz_pea' });
+}
+function fxPvzSplat(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-pvz-splat', {}), 380);
+  for (let i = 0; i < 6; i++) {
+    const a2 = (i / 6) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 22 + Math.random() * 18;
+    fxSpawn(fxAt(pt, 'fx-pvz-bit', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 420);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'pvz_splat' });
+}
+function triggerPvzEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.pvzFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#6b9e2a');
+      else fxPvzSplat(m.to);
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#8bc34a');
+      else fxPvzPea(m.from, m.to);
+    }
+    // reuses the same screen-level check vignette/shake every other
+    // theme's check effect does (see fxCheck above) -- a generic
+    // "you're in check" beat that fits fine without any change (it reads
+    // naturally enough as "a zombie is on your lawn").
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('pvz-effect render failed (ignored):', err);
+  }
+}
+
 // ---- background music: 10 soft, slow, procedurally-generated looping
 // tracks (5 general "relaxing lobby" style, 5 using a Khmer-flavored
 // pentatonic scale) — not literal recordings, synthesized so nothing needs
@@ -5105,7 +5315,13 @@ const MUSIC_TRACKS = {
   // faster tempo and a darker scale than Arcade Hop's major-key bounce,
   // evoking action-game urgency without transcribing any existing melody.
   arcade2: { label: 'ចម្បាំង Contra Assault (chiptune, solo)', instrument: 'chip', noteLen: 140, gain: 0.08,
-    notes: [220.00, 220.00, 261.63, 220.00, 196.00, 220.00, 293.66, 261.63, 220.00, null, 174.61, null] }
+    notes: [220.00, 220.00, 261.63, 220.00, 196.00, 220.00, 293.66, 261.63, 220.00, null, 174.61, null] },
+  // An original bright, bouncy major-key riff for the Plants vs Zombies
+  // theme -- upbeat and a little comedic (skipping octave jumps), evoking
+  // a cheerful backyard-defense feel without transcribing any existing
+  // melody.
+  arcade3: { label: 'ចម្ការការពារ Lawn Defense (chiptune, solo)', instrument: 'chip', noteLen: 170, gain: 0.08,
+    notes: [349.23, 349.23, 440.00, 349.23, null, 293.66, null, 261.63, 349.23, null, 440.00, 523.25, null, null, null, null] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
@@ -5383,6 +5599,7 @@ function applyMove(m) {
   triggerMarioEffect(m, mover, captured, isCheck, isCheckmate);
   triggerContraEffect(m, mover, captured, isCheck, isCheckmate);
   triggerKidsEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerPvzEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
