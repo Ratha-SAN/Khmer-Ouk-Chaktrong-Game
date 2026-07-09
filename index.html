@@ -820,6 +820,146 @@
     0% { transform: translate(0, 0) scale(1); opacity: 1; }
     100% { transform: translate(var(--mx), var(--my)) scale(.3); opacity: 0; }
   }
+
+  /* ============ Last Airbender theme: footstep-gust move / four-element capture effects ============
+     A plain footstep gust for a normal move (no element -- the four
+     bending elements are reserved for captures, see triggerAtlaEffect),
+     and four distinct capture bursts: a curling blue water whip + falling
+     droplets, jagged brown rock shards erupting from the ground, an
+     orange fire explosion with flickering sparks, and an expanding
+     grey-white air vortex ring with swirling streaks. */
+  .fx-atla-step {
+    position: absolute; width: 10px; height: 10px; left: -5px; top: -5px; border-radius: 50%;
+    background: radial-gradient(circle, #f3f7fa, #cfe0ea 60%, transparent 85%);
+    animation: fxAtlaStep 240ms ease-out forwards;
+  }
+  @keyframes fxAtlaStep {
+    0% { transform: translate(0, 0) scale(.5); opacity: .9; }
+    100% { transform: translate(var(--mx), var(--my)) scale(1.1); opacity: 0; }
+  }
+  .fx-atla-water {
+    position: absolute; width: 40px; height: 40px; left: -20px; top: -20px; border-radius: 50%;
+    background: radial-gradient(circle, #eaf9ff 0%, #4fb0e0 45%, transparent 76%);
+    animation: fxAtlaWater 380ms ease-out forwards;
+  }
+  @keyframes fxAtlaWater {
+    0% { transform: scale(.2); opacity: 1; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  .fx-atla-drop {
+    position: absolute; width: 6px; height: 8px; left: -3px; top: -4px; border-radius: 50% 50% 50% 0;
+    background: #6fc6ec; box-shadow: 0 0 5px 1px #4fb0e0;
+    animation: fxAtlaDrop 420ms ease-in forwards;
+  }
+  @keyframes fxAtlaDrop {
+    0% { transform: translate(0, 0); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)); opacity: 0; }
+  }
+  .fx-atla-earth {
+    position: absolute; width: 38px; height: 38px; left: -19px; top: -19px; border-radius: 50%;
+    background: radial-gradient(circle, #d8c39a 0%, #8a6a3a 50%, transparent 78%);
+    animation: fxAtlaEarth 360ms ease-out forwards;
+  }
+  @keyframes fxAtlaEarth {
+    0% { transform: scale(.2); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+  .fx-atla-rock {
+    position: absolute; width: 7px; height: 9px; left: -3.5px; top: -4.5px;
+    background: #6b4a28; clip-path: polygon(50% 0%, 100% 40%, 75% 100%, 25% 100%, 0% 40%);
+    animation: fxAtlaRock 440ms ease-out forwards;
+  }
+  @keyframes fxAtlaRock {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) rotate(160deg); opacity: 0; }
+  }
+  .fx-atla-fire {
+    position: absolute; width: 44px; height: 44px; left: -22px; top: -22px; border-radius: 50%;
+    background: radial-gradient(circle, #fff3d0 0%, #ff7a2e 45%, transparent 78%);
+    animation: fxAtlaFire 360ms ease-out forwards;
+  }
+  @keyframes fxAtlaFire {
+    0% { transform: scale(.2); opacity: 1; }
+    50% { opacity: .95; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  .fx-atla-ember {
+    position: absolute; width: 5px; height: 5px; left: -2.5px; top: -2.5px; border-radius: 50%;
+    background: #ffcf70; box-shadow: 0 0 6px 2px #ff7a2e;
+    animation: fxAtlaEmber 380ms ease-out forwards;
+  }
+  @keyframes fxAtlaEmber {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) scale(.2); opacity: 0; }
+  }
+  .fx-atla-air {
+    position: absolute; width: 20px; height: 20px; left: -10px; top: -10px; border-radius: 50%;
+    border: 3px solid #e8f0f5; box-shadow: 0 0 8px 2px #cfe0ea;
+    animation: fxAtlaAir 400ms ease-out forwards;
+  }
+  @keyframes fxAtlaAir {
+    0% { transform: scale(.3); opacity: .95; }
+    100% { transform: scale(3.2); opacity: 0; }
+  }
+  .fx-atla-streak {
+    position: absolute; width: 26px; height: 3px; left: -13px; top: -1.5px; border-radius: 2px;
+    background: linear-gradient(90deg, transparent, #e8f0f5, transparent);
+    animation: fxAtlaStreak 420ms ease-out forwards;
+  }
+  @keyframes fxAtlaStreak {
+    0% { transform: rotate(var(--ang)) translateX(0); opacity: 1; }
+    100% { transform: rotate(var(--ang)) translateX(26px); opacity: 0; }
+  }
+
+  /* ============ Star Wars theme: saber-swipe move / lightsaber-clash capture effects ============
+     A colored blade swipe (blue for Jedi, red for Sith) that snaps from
+     the mover's square to its destination for a normal move, and -- the
+     explicit ask for this theme -- a lightsaber CLASH for a capture: a
+     blue/green blade and a red blade crossing in an X at the target
+     square with a bright flash and sparks, reading as a duel clash
+     regardless of which side actually captured. */
+  .fx-sw-swipe {
+    position: absolute; width: 3px; height: 4px; left: -1.5px; top: -2px; border-radius: 2px;
+    background: linear-gradient(90deg, #ffffff, var(--sabercol) 55%, transparent 100%);
+    box-shadow: 0 0 10px 3px var(--sabercol);
+    transform-origin: 0 50%;
+    animation: fxSwSwipe 200ms linear forwards;
+  }
+  @keyframes fxSwSwipe {
+    0% { width: 3px; opacity: 1; }
+    75% { opacity: 1; }
+    100% { width: var(--swordlen); opacity: 0; }
+  }
+  .fx-sw-blade-a, .fx-sw-blade-b {
+    position: absolute; width: 64px; height: 5px; left: -32px; top: -2.5px; border-radius: 3px;
+    animation: fxSwClashBlade 260ms ease-out forwards;
+  }
+  .fx-sw-blade-a { background: linear-gradient(90deg, transparent, #eafcff, #4fc3ff, #eafcff, transparent); box-shadow: 0 0 10px 3px #4fc3ff; transform: rotate(-35deg); }
+  .fx-sw-blade-b { background: linear-gradient(90deg, transparent, #fff0f0, #ff3b3b, #fff0f0, transparent); box-shadow: 0 0 10px 3px #ff3b3b; transform: rotate(35deg); }
+  @keyframes fxSwClashBlade {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    75% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .fx-sw-flash {
+    position: absolute; width: 36px; height: 36px; left: -18px; top: -18px; border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, #cfe8ff 40%, transparent 75%);
+    animation: fxSwFlash 260ms ease-out forwards;
+  }
+  @keyframes fxSwFlash {
+    0% { transform: scale(.2); opacity: 1; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  .fx-sw-spark {
+    position: absolute; width: 5px; height: 5px; left: -2.5px; top: -2.5px; border-radius: 50%;
+    background: #fff4c2; box-shadow: 0 0 6px 2px #ffd24a;
+    animation: fxSwSpark 320ms ease-out forwards;
+  }
+  @keyframes fxSwSpark {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) scale(.3); opacity: 0; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1171,6 +1311,8 @@
       <option value="pvz">Plants vs Zombies — រុក្ខជាតិទល់មនុស្សស្លាប់រស់</option>
       <option value="avatar">Avatar Vibe — អវតារ</option>
       <option value="scifi">Sci-Fi Frontier — វិទ្យាសាស្ត្រអនាគត</option>
+      <option value="atla">Last Airbender — អ្នកបញ្ជាខ្យល់</option>
+      <option value="starwars">Star Wars — សង្គ្រាមផ្កាយ</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -1260,8 +1402,9 @@
       <optgroup label="Relaxing (5)"></optgroup>
       <optgroup label="Khmer Traditional (5)"></optgroup>
       <optgroup label="Arcade (3)"></optgroup>
-      <optgroup label="Cinematic (1)"></optgroup>
+      <optgroup label="Cinematic (2)"></optgroup>
       <optgroup label="Synth (1)"></optgroup>
+      <optgroup label="World (1)"></optgroup>
     </select>
     <div class="btnrow" style="margin-top:6px">
       <button id="musicPlayBtn">▶ Play</button>
@@ -2719,6 +2862,42 @@ const THEMES = {
     pieceW: 0xd7e4f2, pieceB: 0x8a4fd0, rough: 0.4, metal: 0.1,
     labelInk: '#bfe7ff', tray: 0x141b2c,
     scifiFx: true
+  },
+  // Avatar: The Last Airbender -- a four-nations board (water-blue light
+  // squares, earth-brown dark squares) with a genuinely different piece
+  // shape per side -- the Water Tribe (White) facing the Fire Nation
+  // (Black) -- see buildAtlaPiece. Unlike every other custom theme's
+  // fixed move/capture effect pair, captures here cycle through all FOUR
+  // bending elements (water/earth/fire/air, see triggerAtlaEffect) chosen
+  // deterministically per-move so a full game shows every element, not
+  // just whichever faction captured. pieceB leans a bright vermillion
+  // rather than a dark "fire black" for the same visibility reason as the
+  // Avatar-vibe and Sci-Fi themes above.
+  atla: {
+    name: 'Last Airbender', style: 'atla',
+    bg: 0x0d1b2a, fog: null,
+    frame: 0x3a2415, tileLight: 0x3a7ea8, tileDark: 0x6b3a1e,
+    pieceW: 0xbfe3f5, pieceB: 0xd1573a, rough: 0.45, metal: 0.05,
+    labelInk: '#ffe9c7', tray: 0x2b1810,
+    atlaFx: true
+  },
+  // Star Wars -- a durasteel starship-deck board (dark gunmetal squares)
+  // with the Jedi Order (White) facing the Sith Empire (Black). Every
+  // piece carries an ignited lightsaber (a self-lit blade, not merely a
+  // reflective prop). The explicit ask for this theme was a lightsaber
+  // *capture* effect -- see triggerStarwarsEffect/fxSwClash -- a pair of
+  // crossing blue/red blades meeting in a spark flash, reading as a duel
+  // clash regardless of which side captured. pieceB is a dark red rather
+  // than true black, with a visibility floor (pieceBFloor), matching the
+  // same "intentionally dark side needs a floor" precedent as Modern
+  // Night/Magic/Magic II/Avatar.
+  starwars: {
+    name: 'Star Wars', style: 'starwars',
+    bg: 0x05070d, fog: null,
+    frame: 0x23262b, tileLight: 0x3a3f47, tileDark: 0x20242c,
+    pieceW: 0xd8c9a3, pieceB: 0x6b3030, rough: 0.5, metal: 0.05, pieceBFloor: 0.16,
+    labelInk: '#dfe6ee', tray: 0x1a1c22,
+    starwarsFx: true
   }
 };
 let themeKey = 'wood';
@@ -3109,6 +3288,29 @@ const MAT_SCIFI_GLOW_ALIEN = new THREE.MeshStandardMaterial({ color: 0xcaa3ff, e
 const MAT_SCIFI_METAL = new THREE.MeshStandardMaterial({ color: 0xc7d0da, roughness: 0.35, metalness: 0.45 });
 const MAT_SCIFI_VISOR = new THREE.MeshStandardMaterial({ color: 0xff5533, emissive: 0xaa2200, emissiveIntensity: 0.55, roughness: 0.4, metalness: 0.1 });
 const MAT_SCIFI_ALIEN_SHELL = new THREE.MeshStandardMaterial({ color: 0x6a3fa0, roughness: 0.55, metalness: 0.05 });
+// Fixed accent colors for the Last Airbender piece set (see
+// buildAtlaPiece): a pale icy blue for every Water Tribe accent (necklace,
+// healer's crescent, mount trim), a warm fur-brown for cold-weather trim,
+// a self-lit orange flame for every Fire Nation accent (crown, headpiece,
+// tower finial), and a bright gold for Fire Nation insignia/trim -- kept
+// genuinely bright (not a dark bronze) for the same reason the Sci-Fi
+// theme's chrome is bright: any material carrying real metalness needs a
+// light base color to read under this scene's low environment-map
+// intensity, learned from the Avatar theme's near-invisible first pass.
+const MAT_ATLA_ICE = new THREE.MeshStandardMaterial({ color: 0xdff3fb, roughness: 0.3, metalness: 0.05 });
+const MAT_ATLA_FUR = new THREE.MeshStandardMaterial({ color: 0x9a6a42, roughness: 0.8, metalness: 0.0 });
+const MAT_ATLA_FLAME = new THREE.MeshStandardMaterial({ color: 0xffb347, emissive: 0xff6a00, emissiveIntensity: 0.85, roughness: 0.4, metalness: 0.0 });
+const MAT_ATLA_GOLD = new THREE.MeshStandardMaterial({ color: 0xe0c04f, roughness: 0.35, metalness: 0.4 });
+// Fixed accent colors for the Star Wars piece set (see buildStarwarsPiece):
+// a brushed-metal hilt shared by every lightsaber, and three ignited-blade
+// colors (Jedi blue, Jedi green, Sith red) -- self-lit emissive materials
+// independent of the theme's own piece colors, since a saber blade glows
+// on its own rather than merely reflecting light.
+const MAT_SW_HILT = new THREE.MeshStandardMaterial({ color: 0xaab0b8, roughness: 0.35, metalness: 0.4 });
+const MAT_SW_BLADE_BLUE = new THREE.MeshStandardMaterial({ color: 0xcdeeff, emissive: 0x3fa8ff, emissiveIntensity: 1.1, roughness: 0.3, metalness: 0.0 });
+const MAT_SW_BLADE_GREEN = new THREE.MeshStandardMaterial({ color: 0xd6ffd6, emissive: 0x35d43a, emissiveIntensity: 1.1, roughness: 0.3, metalness: 0.0 });
+const MAT_SW_BLADE_RED = new THREE.MeshStandardMaterial({ color: 0xffcccc, emissive: 0xff2020, emissiveIntensity: 1.1, roughness: 0.3, metalness: 0.0 });
+const MAT_SW_DROID = new THREE.MeshStandardMaterial({ color: 0xd8d4c6, roughness: 0.45, metalness: 0.1 });
 // Magic/Magic II accent materials (theme().goldAccents): replace the old
 // full-chrome body + separate solid gold trim ring with a subtler split --
 // the base gets its own slight metal shine, and the rest of the body gets
@@ -3194,6 +3396,8 @@ function buildPiece(type, color, promoted) {
   if (style === 'pvz') return buildPvzPiece(g, add, type, promoted, color);
   if (style === 'avatar') return buildAvatarPiece(g, add, type, promoted, color);
   if (style === 'scifi') return buildScifiPiece(g, add, type, promoted, color);
+  if (style === 'atla') return buildAtlaPiece(g, add, type, promoted, color);
+  if (style === 'starwars') return buildStarwarsPiece(g, add, type, promoted, color);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
   if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18, baseMat); // collar
   switch (type) {
@@ -3676,6 +3880,194 @@ function buildScifiPiece(g, add, type, promoted, color) {
         add(new THREE.SphereGeometry(0.14, 12, 10), 0.28, MAT_SCIFI_ALIEN_SHELL);
         add(new THREE.SphereGeometry(0.03, 8, 6), 0.32, MAT_SCIFI_GLOW_ALIEN).position.z = 0.1;
         add(new THREE.ConeGeometry(0.025, 0.1, 8), 0.42, MAT_SCIFI_ALIEN_SHELL);
+      }
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.22, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Last Airbender piece set: a genuinely different shape per side, like
+// Plants vs Zombies/Avatar/Sci-Fi -- the Water Tribe (White) facing the
+// Fire Nation (Black). King: a Tribal Chief (fur hood, ice necklace) vs a
+// Fire Lord (flame crown, gold pauldrons). Queen/Neang: a Waterbender
+// (glowing water orb) vs a Firebender (glowing flame orb). Bishop/Koul: a
+// Spirit Healer (crescent charm) vs a Fire Sage (flame headpiece).
+// Knight/Ses: a sea-raven mount vs a komodo-rhino mount. Rook/Touk: an ice
+// tower vs a Fire Nation watchtower -- both read as a blocky defensive
+// tower. Pawn/Trey: a Water Tribe warrior vs a Fire Nation soldier. Note:
+// unlike every other custom theme, this one's MOVE effect is a plain
+// footstep gust (not elemental) -- the four bending elements are reserved
+// for captures only (see triggerAtlaEffect), per the theme's whole point.
+function buildAtlaPiece(g, add, type, promoted, color) {
+  add(new THREE.CylinderGeometry(0.3, 0.34, 0.14, 20), 0.07); // base
+  const water = color === E.WHITE;
+  switch (type) {
+    case E.KING:
+      if (water) {
+        add(new THREE.CylinderGeometry(0.18, 0.23, 0.48, 14), 0.38);
+        add(new THREE.ConeGeometry(0.2, 0.3, 14), 0.72, MAT_ATLA_FUR);
+        add(new THREE.TorusGeometry(0.16, 0.025, 8, 18), 0.58, MAT_ATLA_ICE).rotation.x = Math.PI / 2;
+      } else {
+        add(new THREE.CylinderGeometry(0.17, 0.22, 0.5, 14), 0.39);
+        for (let i = 0; i < 5; i++) {
+          const ang = (i - 2) * 0.22;
+          const spike = add(new THREE.ConeGeometry(0.03, 0.16, 8), 0.82, MAT_ATLA_FLAME);
+          spike.position.set(Math.sin(ang) * 0.1, 0, Math.cos(ang) * 0.1 - 0.02);
+        }
+        add(new THREE.BoxGeometry(0.14, 0.1, 0.1), 0.6, MAT_ATLA_GOLD).position.x = -0.22;
+        add(new THREE.BoxGeometry(0.14, 0.1, 0.1), 0.6, MAT_ATLA_GOLD).position.x = 0.22;
+      }
+      break;
+    case E.QUEEN:
+      if (water) {
+        add(new THREE.ConeGeometry(0.22, 0.46, 14), 0.35);
+        add(new THREE.SphereGeometry(0.12, 16, 12), 0.64, MAT_ATLA_ICE);
+      } else {
+        add(new THREE.ConeGeometry(0.22, 0.46, 14), 0.35);
+        add(new THREE.SphereGeometry(0.12, 16, 12), 0.64, MAT_ATLA_FLAME);
+      }
+      break;
+    case E.BISHOP:
+      if (water) {
+        add(new THREE.SphereGeometry(0.17, 16, 12), 0.54);
+        add(new THREE.TorusGeometry(0.1, 0.025, 8, 16, Math.PI), 0.78, MAT_ATLA_ICE).rotation.z = Math.PI;
+      } else {
+        add(new THREE.CylinderGeometry(0.15, 0.2, 0.4, 14), 0.32);
+        add(new THREE.ConeGeometry(0.14, 0.3, 14), 0.68, MAT_ATLA_FLAME);
+      }
+      break;
+    case E.KNIGHT:
+      if (water) {
+        const body = add(new THREE.CylinderGeometry(0.15, 0.19, 0.4, 12), 0.32);
+        body.rotation.z = Math.PI / 2.4;
+        const head = add(new THREE.BoxGeometry(0.16, 0.16, 0.24), 0.5);
+        head.position.z = 0.16;
+        add(new THREE.ConeGeometry(0.05, 0.16, 8), 0.64).position.set(0, 0.05, 0.22);
+      } else {
+        const body = add(new THREE.CylinderGeometry(0.17, 0.21, 0.4, 12), 0.3);
+        body.rotation.z = Math.PI / 2.4;
+        const head = add(new THREE.BoxGeometry(0.2, 0.18, 0.24), 0.48);
+        head.position.z = 0.17;
+        add(new THREE.ConeGeometry(0.035, 0.14, 8), 0.58, MAT_ATLA_GOLD).position.set(-0.06, 0.05, 0.24);
+        add(new THREE.ConeGeometry(0.035, 0.14, 8), 0.58, MAT_ATLA_GOLD).position.set(0.06, 0.05, 0.24);
+      }
+      break;
+    case E.ROOK:
+      if (water) {
+        add(new THREE.CylinderGeometry(0.22, 0.26, 0.5, 16));
+        add(new THREE.ConeGeometry(0.22, 0.22, 16), 0.66, MAT_ATLA_ICE);
+      } else {
+        add(new THREE.BoxGeometry(0.36, 0.5, 0.36), 0.34);
+        add(new THREE.ConeGeometry(0.05, 0.22, 10), 0.7, MAT_ATLA_FLAME);
+      }
+      break;
+    case E.PAWN:
+      if (water) {
+        add(new THREE.CylinderGeometry(0.09, 0.11, 0.28, 10), 0.22);
+        add(new THREE.SphereGeometry(0.13, 12, 10), 0.4);
+      } else {
+        add(new THREE.CylinderGeometry(0.09, 0.11, 0.28, 10), 0.22);
+        add(new THREE.BoxGeometry(0.16, 0.12, 0.16), 0.4);
+        add(new THREE.ConeGeometry(0.025, 0.1, 8), 0.5, MAT_ATLA_FLAME);
+      }
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.22, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Star Wars piece set: the Jedi Order (White) facing the Sith Empire
+// (Black), every piece carrying its own ignited lightsaber (a genuinely
+// self-lit blade, see MAT_SW_BLADE_*). King: a Jedi Master (single blue
+// blade) vs a Sith Lord (double-bladed red saber, Darth Maul-style).
+// Queen/Neang: a Jedi Knight (green blade) vs a Sith Apprentice (red
+// blade + shoulder armor). Bishop/Koul: a Padawan (small blade, no armor)
+// vs an Inquisitor (dark robes, red blade). Knight/Ses: a speeder-bike
+// rider vs a STAP-mounted battle droid. Rook/Touk: an X-wing nose/tower vs
+// an AT-ST-style walker tower -- both read as a blocky defensive tower.
+// Pawn/Trey: a clone trooper vs a battle droid (a genuinely different
+// silhouette, not just a recolor).
+function buildStarwarsPiece(g, add, type, promoted, color) {
+  add(new THREE.CylinderGeometry(0.3, 0.34, 0.14, 20), 0.07); // base
+  const jedi = color === E.WHITE;
+  const addSaber = (y, mat, tilt) => {
+    add(new THREE.CylinderGeometry(0.025, 0.03, 0.16, 10), y, MAT_SW_HILT).position.x = 0.16;
+    const blade = add(new THREE.CylinderGeometry(0.018, 0.018, 0.4, 10), y + 0.24, mat);
+    blade.position.x = 0.16;
+    if (tilt) blade.rotation.z = tilt;
+  };
+  switch (type) {
+    case E.KING:
+      if (jedi) {
+        add(new THREE.CylinderGeometry(0.19, 0.24, 0.5, 14));
+        add(new THREE.ConeGeometry(0.16, 0.24, 14), 0.72);
+        addSaber(0.5, MAT_SW_BLADE_BLUE);
+      } else {
+        add(new THREE.CylinderGeometry(0.19, 0.24, 0.5, 14));
+        add(new THREE.ConeGeometry(0.17, 0.26, 14), 0.72);
+        add(new THREE.CylinderGeometry(0.02, 0.025, 0.5, 10), 0.62, MAT_SW_HILT).rotation.z = Math.PI / 2;
+        add(new THREE.CylinderGeometry(0.018, 0.018, 0.22, 10), 0.62, MAT_SW_BLADE_RED).position.x = -0.28;
+        add(new THREE.CylinderGeometry(0.018, 0.018, 0.22, 10), 0.62, MAT_SW_BLADE_RED).position.x = 0.28;
+      }
+      break;
+    case E.QUEEN:
+      if (jedi) {
+        add(new THREE.CylinderGeometry(0.15, 0.19, 0.46, 14), 0.35);
+        add(new THREE.SphereGeometry(0.13, 14, 10), 0.62);
+        addSaber(0.46, MAT_SW_BLADE_GREEN);
+      } else {
+        add(new THREE.CylinderGeometry(0.15, 0.19, 0.46, 14), 0.35);
+        add(new THREE.SphereGeometry(0.13, 14, 10), 0.62);
+        add(new THREE.BoxGeometry(0.1, 0.08, 0.08), 0.58, MAT_SW_HILT).position.x = -0.2;
+        addSaber(0.46, MAT_SW_BLADE_RED);
+      }
+      break;
+    case E.BISHOP:
+      if (jedi) {
+        add(new THREE.CylinderGeometry(0.14, 0.18, 0.4, 14), 0.32);
+        add(new THREE.SphereGeometry(0.13, 14, 10), 0.58);
+        addSaber(0.4, MAT_SW_BLADE_BLUE, 0.3);
+      } else {
+        add(new THREE.CylinderGeometry(0.14, 0.18, 0.4, 14), 0.32);
+        add(new THREE.ConeGeometry(0.16, 0.3, 14), 0.66);
+        addSaber(0.4, MAT_SW_BLADE_RED, 0.3);
+      }
+      break;
+    case E.KNIGHT:
+      if (jedi) {
+        add(new THREE.BoxGeometry(0.34, 0.16, 0.2), 0.24, MAT_SW_HILT);
+        add(new THREE.CylinderGeometry(0.16, 0.16, 0.14, 12), 0.36, MAT_SW_DROID);
+        addSaber(0.36, MAT_SW_BLADE_GREEN);
+      } else {
+        add(new THREE.SphereGeometry(0.15, 14, 10), 0.5, MAT_SW_DROID);
+        add(new THREE.CylinderGeometry(0.03, 0.03, 0.22, 8), 0.28, MAT_SW_HILT).position.x = -0.1;
+        add(new THREE.CylinderGeometry(0.03, 0.03, 0.22, 8), 0.28, MAT_SW_HILT).position.x = 0.1;
+        add(new THREE.BoxGeometry(0.05, 0.14, 0.05), 0.62, MAT_SW_HILT).position.set(-0.06, 0, 0.06);
+        add(new THREE.BoxGeometry(0.05, 0.14, 0.05), 0.62, MAT_SW_HILT).position.set(0.06, 0, 0.06);
+      }
+      break;
+    case E.ROOK:
+      if (jedi) {
+        add(new THREE.CylinderGeometry(0.16, 0.2, 0.5, 14));
+        add(new THREE.ConeGeometry(0.13, 0.28, 14), 0.7, MAT_SW_HILT);
+        add(new THREE.BoxGeometry(0.4, 0.05, 0.14), 0.5, MAT_SW_DROID);
+      } else {
+        add(new THREE.BoxGeometry(0.36, 0.5, 0.36), 0.34);
+        add(new THREE.SphereGeometry(0.14, 14, 10), 0.62, MAT_SW_DROID);
+      }
+      break;
+    case E.PAWN:
+      if (jedi) {
+        add(new THREE.CylinderGeometry(0.1, 0.12, 0.3, 12), 0.23, MAT_SW_DROID);
+        add(new THREE.BoxGeometry(0.16, 0.13, 0.16), 0.42, MAT_SW_DROID);
+        addSaber(0.3, MAT_SW_BLADE_BLUE);
+      } else {
+        add(new THREE.CylinderGeometry(0.1, 0.11, 0.32, 10), 0.24, MAT_SW_DROID);
+        add(new THREE.SphereGeometry(0.09, 12, 10), 0.46, MAT_SW_DROID);
+        add(new THREE.CylinderGeometry(0.015, 0.015, 0.12, 6), 0.5, MAT_SW_HILT).position.x = -0.04;
       }
       break;
   }
@@ -4713,7 +5105,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -4960,6 +5352,41 @@ const SFX = {
     else if (kind === 'capture') { envOsc({ freq: 1800, type: 'sawtooth', dur: 0.14, gain: 0.3, freqTo: 200 }); noiseBurst({ dur: 0.12, filterFreq: 3200, q: 3, gain: 0.3, filterType: 'highpass', delay: 0.05 }); }
     else {
       for (let i = 0; i < 5; i++) envOsc({ freq: i % 2 === 0 ? 660 : 494, type: 'square', dur: 0.09, gain: 0.26, delay: i * 0.09 });
+    }
+  },
+  // Last Airbender: a soft breeze-whoosh for a move, and a single layered
+  // "elemental impact" hit for a capture -- a crack (earth) plus a
+  // sawtooth downsweep (fire) plus a low sine thud (water) all at once,
+  // standing in for whichever of the four elements the capture VFX
+  // happens to show (see triggerAtlaEffect) rather than a separate sound
+  // per element -- and a deep double war-horn call for check/checkmate.
+  atla(kind) {
+    if (kind === 'move') { noiseBurst({ dur: 0.1, filterFreq: 1400, q: 1.2, gain: 0.2, filterType: 'bandpass' }); envOsc({ freq: 500, type: 'sine', dur: 0.1, gain: 0.12, freqTo: 650 }); }
+    else if (kind === 'capture') {
+      noiseBurst({ dur: 0.14, filterFreq: 900, q: 2, gain: 0.32 });
+      envOsc({ freq: 380, type: 'sawtooth', dur: 0.16, gain: 0.28, freqTo: 90 });
+      envOsc({ freq: 220, type: 'sine', dur: 0.22, gain: 0.2, freqTo: 140, delay: 0.03 });
+    } else {
+      envOsc({ freq: 130, type: 'sawtooth', dur: 0.5, gain: 0.3, freqTo: 100 });
+      envOsc({ freq: 195, type: 'sawtooth', dur: 0.5, gain: 0.22, freqTo: 150, delay: 0.1 });
+      noiseBurst({ dur: 0.3, filterFreq: 300, q: 1, gain: 0.15, delay: 0.05 });
+    }
+  },
+  // Star Wars: an electrical hum-swing for a move (a pitch-dropping
+  // sawtooth plus a whoosh), a bright twin-blade energy clash for a
+  // capture (two crackling tones plus a sharp spark burst), and an
+  // ominous descending four-note motif for check/checkmate -- an
+  // original minor-key phrase evoking danger, not a transcription of any
+  // existing film score.
+  starwars(kind) {
+    if (kind === 'move') { envOsc({ freq: 260, type: 'sawtooth', dur: 0.14, gain: 0.22, freqTo: 90 }); noiseBurst({ dur: 0.12, filterFreq: 1800, q: 1.5, gain: 0.18, filterType: 'bandpass' }); }
+    else if (kind === 'capture') {
+      envOsc({ freq: 1400, type: 'sawtooth', dur: 0.1, gain: 0.3, freqTo: 300 });
+      envOsc({ freq: 900, type: 'square', dur: 0.12, gain: 0.22, freqTo: 200, delay: 0.02 });
+      noiseBurst({ dur: 0.1, filterFreq: 4000, q: 4, gain: 0.28, filterType: 'highpass', delay: 0.04 });
+    } else {
+      const notes = [220, 196, 174.61, 164.81];
+      notes.forEach((f, i) => envOsc({ freq: f, type: 'sawtooth', dur: 0.18, gain: 0.28, delay: i * 0.17 }));
     }
   }
 };
@@ -5732,6 +6159,141 @@ function triggerScifiEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) 
   }
 }
 
+// ============ Last Airbender theme: footstep-gust/four-element motion effects ============
+// A plain footstep gust for a normal move (fxAtlaStep), and -- the whole
+// point of this theme -- FOUR distinct capture bursts, one per bending
+// element (fxAtlaWater/fxAtlaEarth/fxAtlaFire/fxAtlaAir), chosen
+// deterministically per-move (a hash of the from/to squares) so a full
+// game shows every element rather than always the same one. Fires only
+// while atlaFx is on -- same fire-and-forget, try/catch-wrapped pattern
+// as the other custom themes above.
+function fxAtlaStep(fromSq, toSq) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  fxSpawn(fxAt(a, 'fx-atla-step', { '--mx': (b.x - a.x) + 'px', '--my': (b.y - a.y) + 'px' }), 240);
+  window.__oukFxLog.push({ tier: 1, key: 'atla_step' });
+}
+function fxAtlaWater(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-atla-water', {}), 380);
+  for (let i = 0; i < 6; i++) {
+    const spread = (Math.random() - 0.5) * 46;
+    const fall = 24 + Math.random() * 26;
+    fxSpawn(fxAt(pt, 'fx-atla-drop', { '--mx': spread + 'px', '--my': fall + 'px' }), 420);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'atla_water' });
+}
+function fxAtlaEarth(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-atla-earth', {}), 360);
+  for (let i = 0; i < 6; i++) {
+    const a2 = (i / 6) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 20 + Math.random() * 20;
+    fxSpawn(fxAt(pt, 'fx-atla-rock', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist - 10) + 'px' }), 440);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'atla_earth' });
+}
+function fxAtlaFire(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-atla-fire', {}), 360);
+  for (let i = 0; i < 7; i++) {
+    const a2 = (i / 7) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 22 + Math.random() * 18;
+    fxSpawn(fxAt(pt, 'fx-atla-ember', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 380);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'atla_fire' });
+}
+function fxAtlaAir(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-atla-air', {}), 400);
+  for (let i = 0; i < 5; i++) {
+    fxSpawn(fxAt(pt, 'fx-atla-streak', { '--ang': (i * 72) + 'deg' }), 420);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'atla_air' });
+}
+function triggerAtlaEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.atlaFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      const elements = [
+        { key: 'water', fn: fxAtlaWater, col: '#4fb0e0' },
+        { key: 'earth', fn: fxAtlaEarth, col: '#8a6a3a' },
+        { key: 'fire', fn: fxAtlaFire, col: '#ff7a2e' },
+        { key: 'air', fn: fxAtlaAir, col: '#cfe0ea' },
+      ];
+      // deterministic per-move pick (not tied to side/piece type) so a
+      // full game cycles through all four elements rather than settling
+      // on whichever one a given faction/piece always uses
+      const pick = elements[(m.from * 7 + m.to * 13) % 4];
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), pick.col);
+      else pick.fn(m.to);
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#cfe0ea');
+      else fxAtlaStep(m.from, m.to);
+    }
+    // reuses the same screen-level check vignette/shake every other
+    // theme's check effect does (see fxCheck above) -- a generic
+    // "you're in check" beat that fits fine without any change (it reads
+    // naturally enough as a war-horn alert).
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('atla-effect render failed (ignored):', err);
+  }
+}
+
+// ============ Star Wars theme: saber-swipe/lightsaber-clash motion effects ============
+// A colored blade swipe for a normal move (fxSwSwipe -- blue for a Jedi
+// mover, red for a Sith mover), and -- the explicit ask for this theme --
+// a lightsaber CLASH for a capture (fxSwClash): a blue/green blade and a
+// red blade crossing in an X with a flash and sparks, reading as a duel
+// regardless of which side captured. Fires only while starwarsFx is on --
+// same fire-and-forget, try/catch-wrapped pattern as the other custom
+// themes above.
+function fxSwSwipe(fromSq, toSq, side) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.max(3, Math.hypot(dx, dy));
+  const ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  const col = side === E.WHITE ? '#4fc3ff' : '#ff3b3b';
+  fxSpawn(fxAt(a, 'fx-sw-swipe', { '--swordlen': len + 'px', '--sabercol': col, transform: `rotate(${ang}deg)` }), 200);
+  window.__oukFxLog.push({ tier: 1, key: 'sw_swipe' });
+}
+function fxSwClash(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-sw-blade-a', {}), 260);
+  fxSpawn(fxAt(pt, 'fx-sw-blade-b', {}), 260);
+  fxSpawn(fxAt(pt, 'fx-sw-flash', {}), 260);
+  for (let i = 0; i < 8; i++) {
+    const a2 = (i / 8) * Math.PI * 2 + Math.random() * 0.3;
+    const dist = 18 + Math.random() * 22;
+    fxSpawn(fxAt(pt, 'fx-sw-spark', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 320);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'sw_clash' });
+}
+function triggerStarwarsEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.starwarsFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    const side = E.colorOf(moverPiece);
+    if (capturedPiece !== E.EMPTY) {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#ff3b3b');
+      else fxSwClash(m.to);
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), side === E.WHITE ? '#4fc3ff' : '#ff3b3b');
+      else fxSwSwipe(m.from, m.to, side);
+    }
+    // reuses the same screen-level check vignette/shake every other
+    // theme's check effect does (see fxCheck above) -- a generic
+    // "you're in check" beat that fits fine without any change (it reads
+    // naturally enough as an Imperial threat klaxon).
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('starwars-effect render failed (ignored):', err);
+  }
+}
+
 // ---- background music: 10 soft, slow, procedurally-generated looping
 // tracks (5 general "relaxing lobby" style, 5 using a Khmer-flavored
 // pentatonic scale) — not literal recordings, synthesized so nothing needs
@@ -5802,17 +6364,30 @@ const MUSIC_TRACKS = {
   // transcription of any existing score.
   synth1: { label: 'ជីពចរអវកាស Cosmic Pulse (chiptune, solo)', instrument: 'chip', noteLen: 150, gain: 0.08,
     filterHz: 2400,
-    notes: [293.66, 293.66, 440.00, 293.66, 349.23, null, 293.66, 220.00, null, 349.23, 440.00, 523.25, null, null, null, null] }
+    notes: [293.66, 293.66, 440.00, 293.66, 349.23, null, 293.66, 220.00, null, 349.23, 440.00, 523.25, null, null, null, null] },
+  // An original slow pentatonic flute-and-pluck theme for Avatar: The Last
+  // Airbender -- evoking the four nations' folk-instrument feel without
+  // transcribing any existing score.
+  world1: { label: 'បួនធាតុ Four Nations (flute + pluck mix)', instrument: 'flute', instrument2: 'pluck', noteLen: 620, gain: 0.09,
+    filterHz: 1800, sustain: 0.5,
+    notes: [293.66, 349.23, 392.00, null, 440.00, 392.00, 349.23, null] },
+  // An original slow, tense pad-and-piano theme for the Star Wars theme --
+  // a spacious, ominous cinematic feel (paired with Avatar-vibe's
+  // Bioluminescent Canopy in the Cinematic group) evoking galactic-scale
+  // stakes without transcribing any existing film score.
+  cine2: { label: 'កងទ័ពផ្កាយ Galactic Overture (pad + piano mix)', instrument: 'pad', instrument2: 'piano', noteLen: 1400, gain: 0.08,
+    filterHz: 1300, detune: 3,
+    notes: [174.61, 207.65, 220.00, null, 196.00, 174.61, null, null] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
   const groups = sel.querySelectorAll('optgroup');
-  const relaxGroup = groups[0], khmerGroup = groups[1], arcadeGroup = groups[2], cineGroup = groups[3], synthGroup = groups[4];
+  const relaxGroup = groups[0], khmerGroup = groups[1], arcadeGroup = groups[2], cineGroup = groups[3], synthGroup = groups[4], worldGroup = groups[5];
   Object.keys(MUSIC_TRACKS).forEach(key => {
     const t = MUSIC_TRACKS[key];
     const opt = document.createElement('option');
     opt.value = key; opt.textContent = t.label;
-    (key.startsWith('khmer') ? khmerGroup : key.startsWith('arcade') ? arcadeGroup : key.startsWith('cine') ? cineGroup : key.startsWith('synth') ? synthGroup : relaxGroup).appendChild(opt);
+    (key.startsWith('khmer') ? khmerGroup : key.startsWith('arcade') ? arcadeGroup : key.startsWith('cine') ? cineGroup : key.startsWith('synth') ? synthGroup : key.startsWith('world') ? worldGroup : relaxGroup).appendChild(opt);
   });
   sel.value = 'khmer1';
 }
@@ -6083,6 +6658,8 @@ function applyMove(m) {
   triggerPvzEffect(m, mover, captured, isCheck, isCheckmate);
   triggerAvatarEffect(m, mover, captured, isCheck, isCheckmate);
   triggerScifiEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerAtlaEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerStarwarsEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
