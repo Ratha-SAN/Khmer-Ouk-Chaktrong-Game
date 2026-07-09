@@ -960,6 +960,49 @@
     0% { transform: translate(0, 0) scale(1); opacity: 1; }
     100% { transform: translate(var(--mx), var(--my)) scale(.3); opacity: 0; }
   }
+
+  /* ============ Mountain Valley theme: drifting-leaf move / stone-and-leaf-burst capture effects ============
+     A single leaf that drifts and tumbles from the mover's square to its
+     destination for a normal move (softer than a snapping projectile --
+     this theme is calm, not warring), and a mixed burst of tumbling
+     stone chips and scattering leaves for a capture -- "something in
+     nature gave way" rather than an explosion. */
+  .fx-nature-leaf {
+    position: absolute; width: 9px; height: 9px; left: -4.5px; top: -4.5px; border-radius: 0 60% 0 60%;
+    background: #6fb86a; box-shadow: 0 0 4px 1px #4f9a4a;
+    animation: fxNatureLeaf 320ms ease-in-out forwards;
+  }
+  @keyframes fxNatureLeaf {
+    0% { transform: translate(0, 0) rotate(0deg) scale(.8); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) rotate(140deg) scale(1); opacity: 0; }
+  }
+  .fx-nature-burst {
+    position: absolute; width: 36px; height: 36px; left: -18px; top: -18px; border-radius: 50%;
+    background: radial-gradient(circle, #eef5e6 0%, #8a9a6e 50%, transparent 78%);
+    animation: fxNatureBurst 360ms ease-out forwards;
+  }
+  @keyframes fxNatureBurst {
+    0% { transform: scale(.2); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+  .fx-nature-chip {
+    position: absolute; width: 6px; height: 6px; left: -3px; top: -3px;
+    background: #7a6a52; clip-path: polygon(50% 0%, 100% 40%, 75% 100%, 25% 100%, 0% 40%);
+    animation: fxNatureChip 420ms ease-out forwards;
+  }
+  @keyframes fxNatureChip {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) rotate(180deg); opacity: 0; }
+  }
+  .fx-nature-scatter {
+    position: absolute; width: 8px; height: 8px; left: -4px; top: -4px; border-radius: 0 60% 0 60%;
+    background: #4f9a4a;
+    animation: fxNatureScatter 460ms ease-out forwards;
+  }
+  @keyframes fxNatureScatter {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) rotate(-160deg); opacity: 0; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1313,6 +1356,7 @@
       <option value="scifi">Sci-Fi Frontier — វិទ្យាសាស្ត្រអនាគត</option>
       <option value="atla">Last Airbender — អ្នកបញ្ជាខ្យល់</option>
       <option value="starwars">Star Wars — សង្គ្រាមផ្កាយ</option>
+      <option value="nature">Mountain Valley — ជ្រលងភ្នំ</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -1399,7 +1443,7 @@
     <div class="acc-body">
     <select id="musicSel">
       <option value="none">No music</option>
-      <optgroup label="Relaxing (5)"></optgroup>
+      <optgroup label="Relaxing (6)"></optgroup>
       <optgroup label="Khmer Traditional (5)"></optgroup>
       <optgroup label="Arcade (3)"></optgroup>
       <optgroup label="Cinematic (2)"></optgroup>
@@ -2898,6 +2942,21 @@ const THEMES = {
     pieceW: 0xd8c9a3, pieceB: 0x6b3030, rough: 0.5, metal: 0.05, pieceBFloor: 0.16,
     labelInk: '#dfe6ee', tray: 0x1a1c22,
     starwarsFx: true
+  },
+  // Mountain Valley: a calmer nature theme (mountain, tree, river) rather
+  // than a warring-factions one, but still gives each side its own
+  // distinct piece shape -- Forest & River spirits (White, living green)
+  // facing Mountain & Stone giants (Black, grey rock) -- see
+  // buildNaturePiece. Its own drifting-leaf move / stone-and-leaf-burst
+  // capture motion effects (natureFx, see triggerNatureEffect) and a
+  // rustling-breeze / branch-snap / distant-thunder SFX bank.
+  nature: {
+    name: 'Mountain Valley', style: 'nature',
+    bg: 0x9fd3e8, fog: null,
+    frame: 0x4a3823, tileLight: 0xa8c98a, tileDark: 0x5f7a52,
+    pieceW: 0x6fb86a, pieceB: 0x7a7d82, rough: 0.6, metal: 0.0,
+    labelInk: '#eafbe0', tray: 0x3a2b1c,
+    natureFx: true
   }
 };
 let themeKey = 'wood';
@@ -3311,6 +3370,18 @@ const MAT_SW_BLADE_BLUE = new THREE.MeshStandardMaterial({ color: 0xcdeeff, emis
 const MAT_SW_BLADE_GREEN = new THREE.MeshStandardMaterial({ color: 0xd6ffd6, emissive: 0x35d43a, emissiveIntensity: 1.1, roughness: 0.3, metalness: 0.0 });
 const MAT_SW_BLADE_RED = new THREE.MeshStandardMaterial({ color: 0xffcccc, emissive: 0xff2020, emissiveIntensity: 1.1, roughness: 0.3, metalness: 0.0 });
 const MAT_SW_DROID = new THREE.MeshStandardMaterial({ color: 0xd8d4c6, roughness: 0.45, metalness: 0.1 });
+// Fixed accent colors for the Mountain Valley piece set (see
+// buildNaturePiece): a shared bark-brown for tree trunks/stumps, two
+// leaf greens for canopy/foliage, a river blue for water accents, a
+// pale snow-cap white, and a grey-green moss for the mountain side's
+// lichen patches. All kept non-metallic (the Avatar theme's lesson was
+// specifically about metalness -- these are plain matte materials, so
+// there's no equivalent risk of reading too dark).
+const MAT_NATURE_BARK = new THREE.MeshStandardMaterial({ color: 0x6b4a2c, roughness: 0.8, metalness: 0.0 });
+const MAT_NATURE_LEAF = new THREE.MeshStandardMaterial({ color: 0x4f9a4a, roughness: 0.6, metalness: 0.0 });
+const MAT_NATURE_WATER = new THREE.MeshStandardMaterial({ color: 0x4fa8d8, roughness: 0.3, metalness: 0.05 });
+const MAT_NATURE_SNOW = new THREE.MeshStandardMaterial({ color: 0xf4f8fb, roughness: 0.5, metalness: 0.0 });
+const MAT_NATURE_MOSS = new THREE.MeshStandardMaterial({ color: 0x7a9463, roughness: 0.75, metalness: 0.0 });
 // Magic/Magic II accent materials (theme().goldAccents): replace the old
 // full-chrome body + separate solid gold trim ring with a subtler split --
 // the base gets its own slight metal shine, and the rest of the body gets
@@ -3398,6 +3469,7 @@ function buildPiece(type, color, promoted) {
   if (style === 'scifi') return buildScifiPiece(g, add, type, promoted, color);
   if (style === 'atla') return buildAtlaPiece(g, add, type, promoted, color);
   if (style === 'starwars') return buildStarwarsPiece(g, add, type, promoted, color);
+  if (style === 'nature') return buildNaturePiece(g, add, type, promoted, color);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
   if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18, baseMat); // collar
   switch (type) {
@@ -4068,6 +4140,99 @@ function buildStarwarsPiece(g, add, type, promoted, color) {
         add(new THREE.CylinderGeometry(0.1, 0.11, 0.32, 10), 0.24, MAT_SW_DROID);
         add(new THREE.SphereGeometry(0.09, 12, 10), 0.46, MAT_SW_DROID);
         add(new THREE.CylinderGeometry(0.015, 0.015, 0.12, 6), 0.5, MAT_SW_HILT).position.x = -0.04;
+      }
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.22, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Mountain Valley piece set: a genuinely different shape per side, like
+// every other custom theme above, but a calmer pairing -- Forest & River
+// spirits (White) facing Mountain & Stone giants (Black), not warring
+// factions. King: an Ancient Tree (trunk + leafy canopy) vs a Mountain
+// Peak (rock cone with a snow cap). Queen/Neang: a River Spirit (a
+// flowing water orb) vs a Stone Guardian (a carved totem). Bishop/Koul: a
+// Sapling with a perched bird vs a mossy Boulder. Knight/Ses: a Stag
+// (branching antlers) vs a Mountain Goat (curled horns). Rook/Touk: a
+// Waterfall Tower vs a Rock Cairn -- both read as a blocky defensive
+// tower. Pawn/Trey: a Sprout vs a Pebble.
+function buildNaturePiece(g, add, type, promoted, color) {
+  add(new THREE.CylinderGeometry(0.3, 0.34, 0.14, 20), 0.07); // base
+  const forest = color === E.WHITE;
+  switch (type) {
+    case E.KING:
+      if (forest) {
+        add(new THREE.CylinderGeometry(0.12, 0.16, 0.42, 12), 0.35, MAT_NATURE_BARK);
+        add(new THREE.SphereGeometry(0.22, 16, 12), 0.66, MAT_NATURE_LEAF);
+        add(new THREE.SphereGeometry(0.14, 14, 10), 0.86, MAT_NATURE_LEAF);
+      } else {
+        add(new THREE.ConeGeometry(0.24, 0.68, 16), 0.42);
+        add(new THREE.ConeGeometry(0.09, 0.16, 14), 0.78, MAT_NATURE_SNOW);
+      }
+      break;
+    case E.QUEEN:
+      if (forest) {
+        add(new THREE.ConeGeometry(0.2, 0.4, 16), 0.34, MAT_NATURE_WATER);
+        add(new THREE.SphereGeometry(0.13, 16, 12), 0.6, MAT_NATURE_WATER);
+        add(new THREE.TorusGeometry(0.15, 0.025, 8, 18), 0.5, MAT_NATURE_WATER).rotation.x = Math.PI / 2;
+      } else {
+        add(new THREE.CylinderGeometry(0.16, 0.2, 0.46, 4), 0.35);
+        add(new THREE.BoxGeometry(0.05, 0.05, 0.05), 0.5, MAT_NATURE_SNOW).position.set(-0.08, 0, 0.15);
+        add(new THREE.BoxGeometry(0.05, 0.05, 0.05), 0.5, MAT_NATURE_SNOW).position.set(0.08, 0, 0.15);
+        add(new THREE.SphereGeometry(0.1, 12, 10), 0.66, MAT_NATURE_MOSS);
+      }
+      break;
+    case E.BISHOP:
+      if (forest) {
+        add(new THREE.CylinderGeometry(0.06, 0.08, 0.36, 10), 0.26, MAT_NATURE_BARK);
+        add(new THREE.SphereGeometry(0.16, 14, 10), 0.5, MAT_NATURE_LEAF);
+        add(new THREE.SphereGeometry(0.05, 10, 8), 0.62, MAT_NATURE_SNOW).position.set(0.1, 0, 0.06);
+      } else {
+        add(new THREE.SphereGeometry(0.19, 16, 12), 0.42);
+        for (let i = 0; i < 4; i++) {
+          const ang = i * Math.PI / 2 + 0.4;
+          const patch = add(new THREE.SphereGeometry(0.05, 8, 6), 0.46, MAT_NATURE_MOSS);
+          patch.position.set(Math.cos(ang) * 0.15, 0, Math.sin(ang) * 0.15);
+        }
+      }
+      break;
+    case E.KNIGHT:
+      if (forest) {
+        const body = add(new THREE.CylinderGeometry(0.14, 0.18, 0.38, 12), 0.32);
+        body.rotation.z = Math.PI / 2.4;
+        const head = add(new THREE.BoxGeometry(0.15, 0.15, 0.22), 0.5);
+        head.position.z = 0.15;
+        add(new THREE.ConeGeometry(0.03, 0.2, 8), 0.68, MAT_NATURE_BARK).position.set(-0.06, 0, 0.2);
+        add(new THREE.ConeGeometry(0.03, 0.2, 8), 0.68, MAT_NATURE_BARK).position.set(0.06, 0, 0.2);
+      } else {
+        const body = add(new THREE.CylinderGeometry(0.15, 0.19, 0.38, 12), 0.32);
+        body.rotation.z = Math.PI / 2.4;
+        const head = add(new THREE.BoxGeometry(0.16, 0.15, 0.22), 0.5);
+        head.position.z = 0.15;
+        add(new THREE.TorusGeometry(0.06, 0.02, 6, 12, Math.PI * 1.3), 0.6, MAT_NATURE_SNOW).position.set(-0.05, 0.02, 0.2);
+        add(new THREE.TorusGeometry(0.06, 0.02, 6, 12, Math.PI * 1.3), 0.6, MAT_NATURE_SNOW).position.set(0.05, 0.02, 0.2);
+      }
+      break;
+    case E.ROOK:
+      if (forest) {
+        add(new THREE.CylinderGeometry(0.22, 0.26, 0.5, 16));
+        add(new THREE.CylinderGeometry(0.06, 0.09, 0.52, 10), 0.35, MAT_NATURE_WATER).position.x = 0.14;
+      } else {
+        add(new THREE.CylinderGeometry(0.24, 0.28, 0.18, 16));
+        add(new THREE.CylinderGeometry(0.18, 0.22, 0.16, 16), 0.24, MAT_NATURE_MOSS);
+        add(new THREE.CylinderGeometry(0.12, 0.16, 0.16, 16), 0.42);
+        add(new THREE.ConeGeometry(0.08, 0.16, 14), 0.58, MAT_NATURE_SNOW);
+      }
+      break;
+    case E.PAWN:
+      if (forest) {
+        add(new THREE.CylinderGeometry(0.05, 0.07, 0.22, 10), 0.18, MAT_NATURE_BARK);
+        add(new THREE.SphereGeometry(0.12, 12, 10), 0.32, MAT_NATURE_LEAF);
+      } else {
+        add(new THREE.SphereGeometry(0.15, 12, 10), 0.22);
+        add(new THREE.SphereGeometry(0.04, 8, 6), 0.32, MAT_NATURE_MOSS).position.x = 0.1;
       }
       break;
   }
@@ -5105,7 +5270,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -5388,6 +5553,16 @@ const SFX = {
       const notes = [220, 196, 174.61, 164.81];
       notes.forEach((f, i) => envOsc({ freq: f, type: 'sawtooth', dur: 0.18, gain: 0.28, delay: i * 0.17 }));
     }
+  },
+  // Mountain Valley: a soft rustling-breeze whoosh for a move, a snapping
+  // branch/tumbling-rock thud for a capture, and a distant rolling
+  // thunder rumble for check/checkmate -- calmer and more organic than
+  // any other theme's alarm-shaped SFX bank, matching this theme's
+  // gentler nature-not-war tone.
+  nature(kind) {
+    if (kind === 'move') { noiseBurst({ dur: 0.14, filterFreq: 2200, q: 0.9, gain: 0.16, filterType: 'bandpass' }); noiseBurst({ dur: 0.1, filterFreq: 3000, q: 1.2, gain: 0.1, filterType: 'bandpass', delay: 0.05 }); }
+    else if (kind === 'capture') { noiseBurst({ dur: 0.08, filterFreq: 1200, q: 3, gain: 0.32 }); envOsc({ freq: 140, type: 'triangle', dur: 0.18, gain: 0.28, freqTo: 70, delay: 0.02 }); noiseBurst({ dur: 0.16, filterFreq: 700, q: 1.5, gain: 0.22, delay: 0.06 }); }
+    else { envOsc({ freq: 70, type: 'sawtooth', dur: 0.9, gain: 0.3, freqTo: 45 }); noiseBurst({ dur: 0.7, filterFreq: 250, q: 0.8, gain: 0.22, delay: 0.1 }); }
   }
 };
 window.__oukSfxLog = [];
@@ -6294,6 +6469,55 @@ function triggerStarwarsEffect(m, moverPiece, capturedPiece, isCheck, isCheckmat
   }
 }
 
+// ============ Mountain Valley theme: drifting-leaf/stone-burst motion effects ============
+// A single tumbling leaf that drifts from the mover's square to its
+// destination for a normal move (fxNatureLeaf), and a mixed burst of
+// tumbling stone chips and scattering leaves for a capture (fxNatureBurst
+// -- "something in nature gave way", not an explosion). Fires only while
+// natureFx is on -- same fire-and-forget, try/catch-wrapped pattern as
+// the other custom themes above.
+function fxNatureLeaf(fromSq, toSq) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  fxSpawn(fxAt(a, 'fx-nature-leaf', { '--mx': (b.x - a.x) + 'px', '--my': (b.y - a.y) + 'px' }), 320);
+  window.__oukFxLog.push({ tier: 1, key: 'nature_leaf' });
+}
+function fxNatureBurst(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-nature-burst', {}), 360);
+  for (let i = 0; i < 4; i++) {
+    const a2 = (i / 4) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 18 + Math.random() * 16;
+    fxSpawn(fxAt(pt, 'fx-nature-chip', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist - 8) + 'px' }), 420);
+  }
+  for (let i = 0; i < 4; i++) {
+    const a2 = (i / 4) * Math.PI * 2 + Math.random() * 0.4 + 0.8;
+    const dist = 20 + Math.random() * 18;
+    fxSpawn(fxAt(pt, 'fx-nature-scatter', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 460);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'nature_burst' });
+}
+function triggerNatureEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.natureFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#8a9a6e');
+      else fxNatureBurst(m.to);
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#6fb86a');
+      else fxNatureLeaf(m.from, m.to);
+    }
+    // reuses the same screen-level check vignette/shake every other
+    // theme's check effect does (see fxCheck above) -- a generic
+    // "you're in check" beat that fits fine without any change (it reads
+    // naturally enough as a distant-thunder warning).
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('nature-effect render failed (ignored):', err);
+  }
+}
+
 // ---- background music: 10 soft, slow, procedurally-generated looping
 // tracks (5 general "relaxing lobby" style, 5 using a Khmer-flavored
 // pentatonic scale) — not literal recordings, synthesized so nothing needs
@@ -6320,6 +6544,13 @@ const MUSIC_TRACKS = {
   relax5: { label: 'ភ្លេងសណ្ឋាគារ៥ Still Water (guitar, solo)', instrument: 'guitar', noteLen: 1700, gain: 0.08,
     filterHz: 1400,
     notes: [329.63, 329.63, 392.00, 349.23] },
+  // An original slow acoustic guitar-and-pad piece for the Mountain
+  // Valley theme -- an open, breathing outdoor feel (unhurried, wide
+  // filter) rather than the indoor "lobby lounge" mood of relax1-5, not a
+  // transcription of any existing melody.
+  relax6: { label: 'ជ្រលងភ្នំ Mountain Air (guitar + pad mix)', instrument: 'guitar', instrument2: 'pad', noteLen: 1550, gain: 0.08,
+    filterHz: 2000, sustain: 0.4,
+    notes: [246.94, 293.66, 329.63, null, 392.00, 329.63, 293.66, null] },
   khmer1: { label: 'ភ្លេងខ្មែរ១ Khmer Roneat (bell, solo)', instrument: 'bell', noteLen: 560, gain: 0.09,
     notes: [293.66, 349.23, 392.00, 440.00, 523.25, 440.00, 392.00, 349.23] },
   khmer2: { label: 'ភ្លេងខ្មែរ២ Khmer Kong Vong (pad, solo)', instrument: 'pad', noteLen: 1350, gain: 0.08,
@@ -6660,6 +6891,7 @@ function applyMove(m) {
   triggerScifiEffect(m, mover, captured, isCheck, isCheckmate);
   triggerAtlaEffect(m, mover, captured, isCheck, isCheckmate);
   triggerStarwarsEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerNatureEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
