@@ -28,6 +28,12 @@
     --surface-deep: #17110b;
     --text-muted: #b7a687;
     --text-faint: #cdbfa0;
+    /* rainbow-mode accents (see body.ui-vibrant below) -- unused unless a
+       theme opts in via vibrantUi (currently just Kids Playroom), so
+       their fallback values here never actually show */
+    --accent2: var(--accent); --on-accent2: var(--on-accent);
+    --accent3: var(--accent); --on-accent3: var(--on-accent);
+    --accent4: var(--accent); --on-accent4: var(--on-accent);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
@@ -119,6 +125,25 @@
   details.acc[open] > summary::after { transform: rotate(180deg); }
   details.acc > summary:hover { background: var(--surface-1); }
   details.acc > .acc-body { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+  /* ============ Rainbow UI mode (vibrantUi themes, currently just Kids Playroom) ============
+     Cycles the theme's other saturated colors as solid background "pills"
+     behind the panel's collapsible section headers -- each paired with
+     its own guaranteed-contrasting on-accent text (see deriveUiPalette)
+     -- so a bold multi-hue theme's UI reads as playfully colorful as its
+     board, instead of collapsing to one accent hue the way every other
+     (more tonally-unified) theme's panel does. A solid fill rather than
+     colored text specifically so a yellow-derived accent still reads
+     brightly instead of needing to be darkened into mud for text
+     contrast against the light panel. */
+  body.ui-vibrant details.acc > summary { background: var(--accent); color: var(--on-accent); border-radius: 8px 8px 0 0; }
+  body.ui-vibrant details.acc > summary::after { color: inherit; opacity: .75; }
+  body.ui-vibrant details.acc:nth-of-type(4n+2) > summary { background: var(--accent2); color: var(--on-accent2); }
+  body.ui-vibrant details.acc:nth-of-type(4n+3) > summary { background: var(--accent3); color: var(--on-accent3); }
+  body.ui-vibrant details.acc:nth-of-type(4n+4) > summary { background: var(--accent4); color: var(--on-accent4); }
+  body.ui-vibrant details.acc > summary:hover { filter: brightness(1.08); }
+  body.ui-vibrant #tabs button:nth-child(2).active { background: var(--accent2); color: var(--on-accent2); }
+  body.ui-vibrant .piecebtns button:nth-child(3n+2).active { background: var(--accent2); color: var(--on-accent2); }
+  body.ui-vibrant .piecebtns button:nth-child(3n+3).active { background: var(--accent3); color: var(--on-accent3); }
   /* right-panel hide/show toggle */
   #panelToggle {
     position: absolute; top: 12px; right: 12px; z-index: 6; width: 34px; height: 34px;
@@ -2908,7 +2933,14 @@ const THEMES = {
     frame: 0xff8a4a, tileLight: 0xffe14d, tileDark: 0x2ec4b6,
     pieceW: 0xff6b6b, pieceB: 0x4a6cf7, rough: 0.5, metal: 0.0,
     labelInk: '#ffffff', tray: 0xff8a4a,
-    kidsFx: true
+    kidsFx: true,
+    // opts into the rainbow multi-accent UI palette (see deriveUiPalette's
+    // vibrantUi branch) instead of the single-accent panel every other
+    // theme gets -- this theme's whole board is already a bold 4-color
+    // family (orange/yellow/teal/red/blue), so a single derived accent
+    // read as comparatively drab; cycling several of those colors across
+    // the panel's section headers keeps the UI as playful as the board.
+    vibrantUi: true
   },
   // Plants vs Zombies: a sunny backyard-lawn board (alternating grass
   // stripes, like the game's own lawn) with a genuinely different piece
@@ -3575,14 +3607,23 @@ function uiClamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 // iteratively nudge lightness until real WCAG contrast targets are met
 // (4.5:1 for body text, 3:1 for large/UI-component text) instead of
 // just assuming a fixed dark panel always works.
-function pickUiAccentSeedHsl(t) {
-  const candidates = [t.pieceW, t.pieceB, t.tileLight].filter(c => c != null);
-  let best = null, bestScore = -1;
+// Scores each candidate on saturation AND how well its natural relative
+// luminance already fits the target UI polarity (a light panel wants an
+// accent that's naturally on the darker/richer side, a dark panel wants
+// one on the brighter side) -- picking by saturation alone can choose a
+// hue like yellow for a light UI, which has such high relative luminance
+// that the WCAG contrast guard below has to crush its lightness into a
+// muddy olive to pass, defeating the point of picking a vivid color.
+// Scoring in the natural-fit direction up front means the guard only
+// ever needs a small nudge, not a hue-ruining rescue.
+function pickUiAccentSeedHsl(t, isLightUi) {
+  const candidates = [t.pieceW, t.pieceB, t.tileLight, t.tileDark].filter(c => c != null);
+  let best = null, bestScore = -Infinity;
   for (const c of candidates) {
     const hsl = uiHexToHsl(c);
-    // favor saturated AND not-too-dark/too-light colors, so the accent
-    // reads as a lively "brand" hue rather than a washed-out or muddy one
-    const score = hsl.s * (1 - Math.abs(hsl.l - 55) / 100);
+    const lum = uiRelLuminance(uiHexToRgb(c));
+    const fit = (isLightUi ? (1 - lum) : lum) * 100;
+    const score = hsl.s * 0.6 + fit * 0.4;
     if (score > bestScore) { bestScore = score; best = hsl; }
   }
   return best || { h: 40, s: 60, l: 55 };
@@ -3606,41 +3647,82 @@ function deriveUiPalette(t) {
     panelFg = uiHslToHex(fg);
   }
 
-  const accentSeed = pickUiAccentSeedHsl(t);
-  let accent = { h: accentSeed.h, s: uiClamp(Math.max(accentSeed.s, 55), 55, 92), l: isLightUi ? 40 : 58 };
-  let accentHex = uiHslToHex(accent);
-  for (let i = 0; i < 14 && uiContrastRatio(accentHex, panelBg) < 3; i++) {
-    accent.l = uiClamp(accent.l + (isLightUi ? -5 : 5), 12, 88);
-    accentHex = uiHslToHex(accent);
+  // Takes a seed hue/saturation and runs it through the same
+  // boost-saturation + WCAG-contrast-guard pipeline used for the primary
+  // accent, returning the {accent, hover, dim} hex trio -- factored out
+  // so the Kids Playroom's rainbow mode (vibrantUi, below) can generate
+  // several fully contrast-safe accent colors, not just one. The primary
+  // accent needs to stay readable as PLAIN TEXT directly on the panel
+  // (headings, links, borders), so it's guarded against panel-bg -- but
+  // the rainbow mode's secondary accents are only ever used as solid
+  // background pills with their own guaranteed-contrasting on-accent
+  // text, so guardAgainstPanel:false skips that guard, letting a
+  // yellow-derived accent stay genuinely bright instead of being
+  // darkened toward mud just to pass as text color it's never used as.
+  function resolveUiAccent(seedHsl, guardAgainstPanel = true) {
+    let accent = { h: seedHsl.h, s: uiClamp(Math.max(seedHsl.s, 55), 55, 92), l: isLightUi ? 40 : 58 };
+    let accentHex = uiHslToHex(accent);
+    if (guardAgainstPanel) {
+      for (let i = 0; i < 14 && uiContrastRatio(accentHex, panelBg) < 3; i++) {
+        accent.l = uiClamp(accent.l + (isLightUi ? -5 : 5), 12, 88);
+        accentHex = uiHslToHex(accent);
+      }
+    }
+    const hoverHex = uiHslToHex({ h: accent.h, s: accent.s, l: uiClamp(accent.l + (isLightUi ? -9 : 9), 8, 92) });
+    const dimHex = uiHslToHex({ h: accent.h, s: accent.s * 0.65, l: isLightUi ? uiClamp(accent.l + 22, 0, 100) : uiClamp(accent.l - 24, 0, 100) });
+    return { hex: accentHex, hover: hoverHex, dim: dimHex, hsl: accent };
   }
-  const accentHoverHex = uiHslToHex({ h: accent.h, s: accent.s, l: uiClamp(accent.l + (isLightUi ? -9 : 9), 8, 92) });
-  const accentDimHex = uiHslToHex({ h: accent.h, s: accent.s * 0.65, l: isLightUi ? uiClamp(accent.l + 22, 0, 100) : uiClamp(accent.l - 24, 0, 100) });
+  const accentSeed = pickUiAccentSeedHsl(t, isLightUi);
+  const primaryAccent = resolveUiAccent(accentSeed);
+  const accentHex = primaryAccent.hex, accentHoverHex = primaryAccent.hover, accentDimHex = primaryAccent.dim;
   // text placed on top of a solid accent-colored button: whichever of a
   // near-black or near-white (both hue-tinted for cohesion) contrasts
   // better against the accent itself, since a bright theme can just as
   // easily produce a light accent as a dark one
   const onAccentDark = uiHslToHex({ h: surfHue, s: 20, l: 10 });
   const onAccentLight = uiHslToHex({ h: surfHue, s: 15, l: 97 });
-  const onAccentHex = uiContrastRatio(onAccentDark, accentHex) >= uiContrastRatio(onAccentLight, accentHex) ? onAccentDark : onAccentLight;
+  const onAccentOf = hex => uiContrastRatio(onAccentDark, hex) >= uiContrastRatio(onAccentLight, hex) ? onAccentDark : onAccentLight;
+  const onAccentHex = onAccentOf(accentHex);
 
   const lineHex = uiHslToHex({ h: surfHue, s: surfSat * 0.6, l: isLightUi ? baseL - 16 : baseL + 15 });
   const surface = i => uiHslToHex({ h: surfHue, s: surfSat, l: uiClamp(baseL + (isLightUi ? -3.2 : 3.2) * i, 0, 100) });
   const textMuted = uiHslToHex({ ...fg, l: isLightUi ? uiClamp(fg.l + 38, 0, 100) : uiClamp(fg.l - 38, 0, 100) });
   const textFaint = uiHslToHex({ ...fg, l: isLightUi ? uiClamp(fg.l + 26, 0, 100) : uiClamp(fg.l - 24, 0, 100) });
 
-  return {
+  const pal = {
     '--panel-bg': panelBg, '--panel-fg': panelFg,
     '--accent': accentHex, '--accent-dim': accentDimHex, '--accent-hover': accentHoverHex, '--on-accent': onAccentHex,
     '--line': lineHex,
     '--surface-0': surface(0.7), '--surface-1': surface(1.6), '--surface-2': surface(2.5), '--surface-3': surface(3.6),
     '--surface-deep': surface(-1.3),
     '--text-muted': textMuted, '--text-faint': textFaint,
+    '--ui-vibrant': t.vibrantUi ? '1' : '0',
   };
+  // Rainbow mode: playful multi-hue themes (currently just Kids Playroom)
+  // opt in via vibrantUi so their panel doesn't collapse down to a single
+  // accent color the way every other (more tonally-unified) theme's does
+  // -- each of the theme's other saturated colors gets its own fully
+  // contrast-guarded accent variant, cycled across the panel's section
+  // headers by the "body.ui-vibrant" CSS rules.
+  if (t.vibrantUi) {
+    const others = [t.pieceB, t.tileLight, t.tileDark, t.pieceW]
+      .filter(c => c != null)
+      .map(c => uiHexToHsl(c))
+      .filter(h => Math.abs(h.h - accentSeed.h) > 20); // skip near-duplicates of the primary hue
+    for (let i = 0; i < 3; i++) {
+      const seed = others[i % Math.max(1, others.length)] || accentSeed;
+      const variant = resolveUiAccent(seed, false);
+      pal[`--accent${i + 2}`] = variant.hex;
+      pal[`--on-accent${i + 2}`] = onAccentOf(variant.hex);
+    }
+  }
+  return pal;
 }
 function applyUiPalette(t) {
   const pal = deriveUiPalette(t);
   const root = document.documentElement.style;
   for (const k in pal) root.setProperty(k, pal[k]);
+  document.body.classList.toggle('ui-vibrant', !!t.vibrantUi);
   window.__oukUiPalette = pal; // debug hook, see window.__ouk.uiPalette()
 }
 function applyPieceLuminescence() {
