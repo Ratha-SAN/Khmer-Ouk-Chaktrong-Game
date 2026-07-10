@@ -144,6 +144,14 @@
   body.ui-vibrant #tabs button:nth-child(2).active { background: var(--accent2); color: var(--on-accent2); }
   body.ui-vibrant .piecebtns button:nth-child(3n+2).active { background: var(--accent2); color: var(--on-accent2); }
   body.ui-vibrant .piecebtns button:nth-child(3n+3).active { background: var(--accent3); color: var(--on-accent3); }
+  /* Ordinary buttons/selects default to a neutral border instead of an
+     accent-tinted one for rainbow-mode themes -- with 4 colors already
+     cycling across the section headers, tinting every single button
+     border with the primary accent on top of that reads as a wash of
+     one color over the whole panel rather than a deliberate rainbow. */
+  body.ui-vibrant select, body.ui-vibrant button { border-color: var(--line); }
+  body.ui-vibrant button:hover:not(:disabled) { border-color: var(--accent-dim); }
+  body.ui-vibrant #tabs button { border-color: var(--line); }
   /* right-panel hide/show toggle */
   #panelToggle {
     position: absolute; top: 12px; right: 12px; z-index: 6; width: 34px; height: 34px;
@@ -3617,15 +3625,6 @@ function uiClamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 // Scoring in the natural-fit direction up front means the guard only
 // ever needs a small nudge, not a hue-ruining rescue.
 function pickUiAccentSeedHsl(t, isLightUi) {
-  // Rainbow (vibrantUi) themes anchor the PRIMARY accent to the board's
-  // own frame color instead of scoring piece/tile candidates: the frame
-  // wraps the entire board and is the single most visually dominant hue,
-  // so it reads as the theme's true "brand" color -- whereas the generic
-  // scorer below can end up favoring a piece color like the black side's
-  // (e.g. Kids Playroom's blue pieces, which are a small minority of the
-  // board's actual area), overrepresenting it across every button/tab/
-  // border in the panel relative to how little you actually see it.
-  if (t.vibrantUi && t.frame != null) return uiHexToHsl(t.frame);
   const candidates = [t.pieceW, t.pieceB, t.tileLight, t.tileDark].filter(c => c != null);
   let best = null, bestScore = -Infinity;
   for (const c of candidates) {
@@ -3636,6 +3635,35 @@ function pickUiAccentSeedHsl(t, isLightUi) {
     if (score > bestScore) { bestScore = score; best = hsl; }
   }
   return best || { h: 40, s: 60, l: 55 };
+}
+function uiHueDist(a, b) { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); }
+// Picks `count` hues out of `candidates` that maximize the SMALLEST
+// pairwise hue-wheel distance between any two of them -- the textbook
+// color-theory fix for a palette that "reads as one dominant color
+// family" despite technically using several different hex values: two
+// hues 20-30 degrees apart (e.g. this game's orange frame and red piece
+// color) sit in the same perceptual family and reinforce each other
+// instead of reading as distinct, so simply having "4 different colors"
+// isn't enough -- they need to actually be spread around the wheel.
+// Small candidate lists only (5 or fewer in practice), so a brute-force
+// search over every combination is cheap and exact rather than a greedy
+// approximation.
+function pickSpreadHues(candidates, count) {
+  if (candidates.length <= count) return candidates.slice();
+  let best = null, bestMinDist = -1;
+  const combo = (arr, k, start, chosen) => {
+    if (chosen.length === k) {
+      let minDist = Infinity;
+      for (let i = 0; i < chosen.length; i++) {
+        for (let j = i + 1; j < chosen.length; j++) minDist = Math.min(minDist, uiHueDist(chosen[i].h, chosen[j].h));
+      }
+      if (minDist > bestMinDist) { bestMinDist = minDist; best = chosen.slice(); }
+      return;
+    }
+    for (let i = start; i < arr.length; i++) { chosen.push(arr[i]); combo(arr, k, i + 1, chosen); chosen.pop(); }
+  };
+  combo(candidates, count, 0, []);
+  return best;
 }
 function deriveUiPalette(t) {
   const surfaceSeed = uiHexToHsl(t.tray != null ? t.tray : t.frame);
@@ -3681,7 +3709,21 @@ function deriveUiPalette(t) {
     const dimHex = uiHslToHex({ h: accent.h, s: accent.s * 0.65, l: isLightUi ? uiClamp(accent.l + 22, 0, 100) : uiClamp(accent.l - 24, 0, 100) });
     return { hex: accentHex, hover: hoverHex, dim: dimHex, hsl: accent };
   }
-  const accentSeed = pickUiAccentSeedHsl(t, isLightUi);
+  // Rainbow (vibrantUi) themes pick their whole 4-color set up front via
+  // pickSpreadHues, maximizing the smallest hue-wheel gap between any two
+  // -- e.g. Kids Playroom's orange frame and red piece color sit only 21
+  // degrees apart (the same perceptual "warm" family), so naively using
+  // both as separate accents just reads as "everything is orange/red"
+  // once repeated across tabs/buttons/headers, no matter how many
+  // technically-distinct hex values are behind it. Sorting the winning
+  // set by hue walks it around the wheel in a natural rainbow order.
+  let vibrantSpread = null;
+  if (t.vibrantUi) {
+    const allHues = [t.frame, t.pieceW, t.pieceB, t.tileLight, t.tileDark]
+      .filter(c => c != null).map(c => uiHexToHsl(c));
+    vibrantSpread = pickSpreadHues(allHues, 4).sort((a, b) => a.h - b.h);
+  }
+  const accentSeed = vibrantSpread ? vibrantSpread[0] : pickUiAccentSeedHsl(t, isLightUi);
   const primaryAccent = resolveUiAccent(accentSeed);
   const accentHex = primaryAccent.hex, accentHoverHex = primaryAccent.hover, accentDimHex = primaryAccent.dim;
   // text placed on top of a solid accent-colored button: whichever of a
@@ -3709,24 +3751,17 @@ function deriveUiPalette(t) {
   };
   // Rainbow mode: playful multi-hue themes (currently just Kids Playroom)
   // opt in via vibrantUi so their panel doesn't collapse down to a single
-  // accent color the way every other (more tonally-unified) theme's does
-  // -- each of the theme's other saturated colors gets its own fully
-  // contrast-guarded accent variant, cycled across the panel's section
-  // headers by the "body.ui-vibrant" CSS rules. Ordered by how much of
-  // the actual board each color covers -- pieceW (all the White pieces)
-  // and the two tile colors (half the board each) before pieceB, whose
-  // small minority of back-row pieces would otherwise get repeated across
-  // the panel out of proportion to how little of it you actually see.
-  if (t.vibrantUi) {
-    const others = [t.pieceW, t.tileDark, t.tileLight, t.pieceB]
-      .filter(c => c != null)
-      .map(c => uiHexToHsl(c))
-      .filter(h => Math.abs(h.h - accentSeed.h) > 20); // skip near-duplicates of the primary hue
-    for (let i = 0; i < 3; i++) {
-      const seed = others[i % Math.max(1, others.length)] || accentSeed;
-      const variant = resolveUiAccent(seed, false);
-      pal[`--accent${i + 2}`] = variant.hex;
-      pal[`--on-accent${i + 2}`] = onAccentOf(variant.hex);
+  // accent color the way every other (more tonally-unified) theme's does.
+  // The remaining 3 members of the already wheel-balanced vibrantSpread
+  // set (see above) become accent2/3/4, each resolved without the
+  // panel-contrast guard since they're only ever used as solid
+  // background pills with their own guaranteed-contrasting on-accent
+  // text (see the CSS), not as plain text color.
+  if (vibrantSpread) {
+    for (let i = 1; i < vibrantSpread.length; i++) {
+      const variant = resolveUiAccent(vibrantSpread[i], false);
+      pal[`--accent${i + 1}`] = variant.hex;
+      pal[`--on-accent${i + 1}`] = onAccentOf(variant.hex);
     }
   }
   return pal;
