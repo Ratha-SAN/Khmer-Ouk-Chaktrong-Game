@@ -1,0 +1,13 @@
+{
+  "name": "អុកចត្រង្គ — Ouk Chatrang (Khmer Chess)",
+  "short_name": "Ouk Chatrang",
+  "description": "Traditional Cambodian chess (Ouk Chatrang) with 24 themes, training lessons, puzzles, and a 5-level computer opponent.",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#221a12",
+  "theme_color": "#221a12",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

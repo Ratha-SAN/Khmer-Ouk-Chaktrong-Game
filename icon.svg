@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- app icon: a gold Ouk Chatrang piece (Sdach silhouette) on the game's
+       dark-wood panel color -->
+  <rect width="128" height="128" rx="24" fill="#221a12"/>
+  <rect x="6" y="6" width="116" height="116" rx="20" fill="none" stroke="#d4a548" stroke-width="3"/>
+  <g fill="#d4a548">
+    <ellipse cx="64" cy="102" rx="30" ry="8"/>
+    <path d="M42 100 Q40 76 52 62 L76 62 Q88 76 86 100 Z"/>
+    <path d="M50 60 Q48 44 64 34 Q80 44 78 60 Z"/>
+    <circle cx="64" cy="28" r="6"/>
+    <circle cx="64" cy="17" r="3.4"/>
+  </g>
+</svg>

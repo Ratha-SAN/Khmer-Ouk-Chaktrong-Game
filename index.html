@@ -4,6 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>អុកចត្រង្គ — Ouk Chatrang (Khmer Chess)</title>
+<!-- PWA: installable + offline-capable (see manifest.webmanifest / sw.js) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#221a12">
+<script>
+  // register the service worker (https/localhost only -- a plain file://
+  // open of this single-file game keeps working exactly as before)
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+</script>
 <style>
   /* Base values below are the Classic Wood (default/startup) palette --
      overwritten immediately on load, and on every theme switch, by
@@ -86,6 +99,33 @@
     padding: 22px 40px; font-size: 24px; text-align: center; display: none; z-index: 5;
   }
   #banner small { display: block; font-size: 14px; margin-top: 8px; color: var(--text-faint); }
+  /* game-over banner action buttons: the highest-friction moment in the
+     game used to be checkmate -- the banner announced the result but
+     playing again meant hunting for "New game" in the settings panel. */
+  #banner .btnrow { margin-top: 14px; justify-content: center; }
+  #banner .btnrow button { font-size: 14px; padding: 8px 14px; flex: 0 1 auto; }
+  #banner .btnrow button.primary { background: var(--accent); color: var(--on-accent); font-weight: 700; border: none; }
+  #banner .btnrow button.primary:hover { background: var(--accent-hover); }
+  /* post-game replay stepper, floated over the bottom of the board */
+  #reviewBar {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 6;
+    display: flex; align-items: center; gap: 6px;
+    background: color-mix(in srgb, var(--panel-bg) 92%, transparent);
+    border: 1px solid var(--accent-dim); border-radius: 10px; padding: 6px 10px;
+  }
+  #reviewBar span { font-size: 13px; min-width: 64px; text-align: center; color: var(--accent); font-weight: 700; }
+  #reviewBar button { padding: 6px 10px; }
+  #movelist div.cur { color: var(--accent); font-weight: 700; }
+  #movelist .swing { color: var(--danger); }
+  body.reviewing #movelist div { cursor: pointer; }
+  body.reviewing #movelist div:hover { text-decoration: underline; }
+  /* display-language toggle: bilingual labels are split at load into
+     .t-kh/.t-en runs (with the separators between them as .t-sep), so a
+     single-language mode shows one clean label instead of the stacked
+     bilingual text -- see wrapLangRuns(). Monolingual labels and dynamic
+     text are left untouched and always show. */
+  body.lang-kh .t-en, body.lang-en .t-kh,
+  body.lang-kh .t-sep, body.lang-en .t-sep { display: none; }
   #panel {
     flex: 0 0 330px; background: var(--panel-bg); border-left: 1px solid var(--line);
     display: flex; flex-direction: column; overflow-y: auto; padding: 14px; gap: 12px;
@@ -1282,6 +1322,15 @@
   <div id="movelist"></div>
   <div id="thinking">កំពុងគិត… Computer is thinking…</div>
   <div id="banner"></div>
+  <div id="reviewBar" style="display:none">
+    <button id="revStart" title="First position">⏮</button>
+    <button id="revPrev" title="Previous move">◀</button>
+    <span id="reviewCounter">0 / 0</span>
+    <button id="revNext" title="Next move">▶</button>
+    <button id="revEnd" title="Final position">⏭</button>
+    <button id="revCopy" title="Copy the game as text">📋 Copy</button>
+    <button id="revExit" title="Exit review">✕</button>
+  </div>
   <div id="fxLayer" aria-hidden="true"></div>
   <div id="fxPortalLayer" aria-hidden="true"></div>
   <button id="panelToggle" title="Hide/show settings panel">◧</button>
@@ -1290,6 +1339,7 @@
     <button id="zoomOutBtn" title="Zoom Out">－</button>
     <button id="zoomResetBtn" title="Reset View">⟲</button>
     <button id="topViewBtn" title="Top View">⬒</button>
+    <button id="flipViewBtn" title="Flip Board View">⇅</button>
   </div>
 </div>
 
@@ -1331,6 +1381,10 @@
       <button id="pick2p">លេង២នាក់<br>2 Player</button>
       <button id="pickAi">ជាមួយកុំព្យូទ័រ<br>vs Computer</button>
     </div>
+    <div id="clockPick" style="margin-top:14px">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">⏱ ពេលកំណត់ Time control</div>
+      <div class="btnrow" id="clockBtns"></div>
+    </div>
     <div id="aiOptions" style="display:none">
       <div class="levelgrid" id="levelBtns"></div>
       <div class="sidepick">
@@ -1354,6 +1408,14 @@
     <button id="tabPlay" class="active">លេង Play</button>
     <button id="tabTrain">រៀន Training</button>
   </div>
+  <div id="langRow" style="display:flex;align-items:center;gap:8px">
+    <span style="font-size:14px" title="Display language">🌐</span>
+    <select id="langSel" style="flex:1;margin:0">
+      <option value="both">ខ្មែរ + English</option>
+      <option value="kh">ខ្មែរ</option>
+      <option value="en">English</option>
+    </select>
+  </div>
 
   <div id="status">White to move</div>
 
@@ -1370,8 +1432,14 @@
     <div class="btnrow" style="margin-top:6px">
       <button id="newBtn">New game ល្បែងថ្មី</button>
       <button id="undoBtn">Undo ត្រឡប់</button>
+      <button id="hintBtn" title="Suggest a good move">💡 Hint ជំនួយ</button>
     </div>
     <div class="btnrow" style="margin-top:6px">
+      <select id="saveSlotSel" style="flex:1 1 100%">
+        <option value="1">Slot 1 — ទទេ empty</option>
+        <option value="2">Slot 2 — ទទេ empty</option>
+        <option value="3">Slot 3 — ទទេ empty</option>
+      </select>
       <button id="saveBtn">រក្សាទុក Save</button>
       <button id="loadBtn">ផ្ទុក Load</button>
     </div>
@@ -1383,6 +1451,10 @@
     <label style="margin-top:8px">
       <input type="checkbox" id="autoCountChk">
       ចាប់ផ្ដើមរាប់ដោយស្វ័យប្រវត្តិ Auto-start counting when eligible
+    </label>
+    <label>
+      <input type="checkbox" id="autoFlipChk">
+      បង្វិលក្ដារតាមវេន Auto-rotate view each turn (2 Player)
     </label>
     </div>
   </details>
@@ -1411,6 +1483,10 @@
       <div class="btnrow" style="margin-top:8px">
         <button id="guideAnswerBtn" style="display:none">▶ ដើរចម្លើយ Play the answer</button>
       </div>
+    </fieldset>
+    <fieldset>
+      <legend>ល្បែងផ្គុំ — Puzzles</legend>
+      <div class="piecebtns" id="puzzleBtns"></div>
     </fieldset>
     <div id="lessonText"></div>
   </div>
@@ -3106,6 +3182,17 @@ let flashMsg = '';
 let gameStartTs = null;      // Date.now() when the current play-mode game began
 let frozenElapsed = null;    // ms captured once the game ends, so the HUD clock stops
 let pendingAiLevel = 3, pendingSide = E.WHITE; // choices being made in the mode-select screen
+let hintMove = null;         // engine-suggested move currently shown as a square tint
+let hintBusy = false;        // a hint request is in flight on the worker
+let reviewMode = false;      // stepping back through a finished game
+let reviewIndex = 0;         // how many moves of the finished game are applied
+let reviewFinal = null;      // {snap, lastMove} of the final position, to restore on exit
+let reviewSwings = null;     // per-move captured-value list for the ❗ big-swing markers
+let clockCfg = null;         // {base, inc} seconds, or null = no clocks
+let clockMs = [0, 0];        // remaining ms per side [WHITE, BLACK]
+let clockTurnStart = null;   // timestamp when the side to move's clock started running
+let timeoutResult = null;    // {loser} once somebody's flag falls
+let pendingClock = null;     // time control being chosen on the mode-select screen
 let overlayOpen = true;      // start screen is up at load
 let trainEnterTs = null;     // Date.now() when a training excursion began, to pause the play clock
 
@@ -5056,6 +5143,10 @@ function updateSquareTints() {
       squareMeshes[s].material.color.lerp(new THREE.Color(0xffe066), 0.45);
   }
   if (selected >= 0) squareMeshes[selected].material.color.lerp(new THREE.Color(0x66ccff), 0.5);
+  if (hintMove) {
+    for (const s of [hintMove.from, hintMove.to])
+      squareMeshes[s].material.color.lerp(new THREE.Color(0x7fb069), 0.55);
+  }
   if (checkRing) { scene.remove(checkRing); checkRing = null; }
   if (state && !gameOver && uiMode === 'play' && E.inCheck(state, state.turn)) {
     const k = E.kingSq(state, state.turn);
@@ -7289,6 +7380,13 @@ const undoBtn = document.getElementById('undoBtn');
 function sideName(c) { return c === E.WHITE ? 'White ស' : 'Black ខ្មៅ'; }
 
 function describeStatus() {
+  // a fallen flag ends the game even though the engine's own gameStatus
+  // (checkmate/stalemate/count-limit) knows nothing about clocks
+  if (timeoutResult) {
+    gameOver = true;
+    const w = 1 - timeoutResult.loser;
+    return { text: 'Time out — ' + sideName(w) + ' wins', banner: 'អស់ពេល — Time out<br>' + sideName(w) + ' wins' };
+  }
   const st = E.gameStatus(state);
   if (st) {
     gameOver = true;
@@ -7308,7 +7406,7 @@ function describeStatus() {
 function refreshStatus() {
   if (uiMode === 'train') {
     const g = typeof currentGuideExample === 'function' ? currentGuideExample() : null;
-    const label = g ? g.kh : (NAMES[lessonType].kh + ' ' + NAMES[lessonType].tr);
+    const label = activePuzzle ? activePuzzle.title : (g ? g.kh : (NAMES[lessonType].kh + ' ' + NAMES[lessonType].tr));
     statusEl.innerHTML = 'រៀន Training — ' + label +
       (flashMsg ? ' <span class="flash">' + flashMsg + '</span>' : '');
     bannerEl.style.display = 'none';
@@ -7316,8 +7414,18 @@ function refreshStatus() {
   }
   const d = describeStatus();
   statusEl.innerHTML = d.text;
-  if (d.banner) {
-    bannerEl.innerHTML = d.banner + '<small>Press “New game” to play again</small>'; bannerEl.style.display = 'block';
+  if (d.banner && !reviewMode) {
+    bannerEl.innerHTML = d.banner +
+      '<div class="btnrow">' +
+      '<button id="bannerRematch" class="primary">លេងម្ដងទៀត Rematch</button>' +
+      '<button id="bannerReview">មើលឡើងវិញ Review</button>' +
+      '<button id="bannerChangeMode">ប្ដូររបៀប Change Mode</button>' +
+      '</div>';
+    bannerEl.style.display = 'block';
+    document.getElementById('bannerRematch').onclick = () => { bannerEl.style.display = 'none'; resetGame(); };
+    document.getElementById('bannerReview').onclick = () => enterReview();
+    document.getElementById('bannerChangeMode').onclick = () => { bannerEl.style.display = 'none'; modeScreenOrigin = 'game'; openModeScreen(); };
+    wrapLangRuns(bannerEl); // keep the banner's bilingual labels honoring the language toggle
     if (!gameEndTracked) {
       gameEndTracked = true;
       const st = E.gameStatus(state);
@@ -7364,10 +7472,113 @@ function refreshCountPanel() {
 }
 
 function refreshMoveList() {
-  movelistEl.innerHTML = moveEntries.map((e, i) =>
-    '<div><span class="no">' + (i % 2 === 0 ? (i / 2 + 1) + '.' : '…') + '</span>' + e + '</div>').join('');
-  movelistEl.scrollTop = movelistEl.scrollHeight;
+  movelistEl.innerHTML = moveEntries.map((e, i) => {
+    const swing = reviewMode && reviewSwings && reviewSwings[i] >= 280 ? ' <span class="swing" title="big material swing">❗</span>' : '';
+    const cur = reviewMode && i === reviewIndex - 1 ? ' class="cur"' : '';
+    return '<div' + cur + ' data-mv="' + i + '"><span class="no">' + (i % 2 === 0 ? (i / 2 + 1) + '.' : '…') + '</span>' + e + swing + '</div>';
+  }).join('');
+  if (reviewMode) {
+    movelistEl.querySelectorAll('[data-mv]').forEach(d => { d.onclick = () => reviewGoto(+d.dataset.mv + 1); });
+    const cur = movelistEl.querySelector('.cur');
+    if (cur) cur.scrollIntoView({ block: 'nearest' });
+  } else movelistEl.scrollTop = movelistEl.scrollHeight;
 }
+
+// ---------- post-game review: step back through the finished game ----------
+// history[k].snap is the position with k moves played (pushed before each
+// move), and history[k].lastMove is the move that produced it -- so
+// review position k for k<N comes straight from history, and k=N is the
+// final position captured on entry.
+const UI_VAL = { [E.QUEEN]: 180, [E.BISHOP]: 280, [E.KNIGHT]: 420, [E.ROOK]: 580, [E.PAWN]: 100, [E.KING]: 0 };
+function boardMaterial(board, side) {
+  let s = 0;
+  for (const p of board) if (p !== E.EMPTY && E.colorOf(p) === side) s += E.isProm(p) ? UI_VAL[E.QUEEN] : UI_VAL[E.typeOf(p)];
+  return s;
+}
+// per-move material lost by the side that got captured FROM -- used to
+// flag the game's big swings (a Koul or better changing hands) with ❗
+function computeReviewSwings() {
+  reviewSwings = [];
+  const N = history.length;
+  for (let i = 0; i < N; i++) {
+    const before = history[i].snap;
+    const after = i + 1 < N ? history[i + 1].snap : reviewFinal.snap;
+    const victim = 1 - before.turn;
+    reviewSwings.push(boardMaterial(before.board, victim) - boardMaterial(after.board, victim));
+  }
+}
+function enterReview() {
+  if (!gameOver || reviewMode || uiMode !== 'play') return;
+  reviewMode = true;
+  document.body.classList.add('reviewing');
+  reviewFinal = { snap: E.toJSON(state), lastMove };
+  reviewIndex = history.length;
+  computeReviewSwings();
+  bannerEl.style.display = 'none';
+  document.getElementById('reviewBar').style.display = 'flex';
+  reviewRender();
+}
+function exitReview(silent) {
+  if (!reviewMode) return;
+  reviewMode = false;
+  document.body.classList.remove('reviewing');
+  state = E.fromJSON(reviewFinal.snap);
+  lastMove = reviewFinal.lastMove;
+  reviewFinal = null; reviewSwings = null;
+  document.getElementById('reviewBar').style.display = 'none';
+  if (!silent) refreshAll();
+}
+function reviewGoto(k) {
+  if (!reviewMode) return;
+  reviewIndex = Math.max(0, Math.min(history.length, k));
+  reviewRender();
+}
+function reviewRender() {
+  const k = reviewIndex, N = history.length;
+  if (k < N) { state = E.fromJSON(history[k].snap); lastMove = history[k].lastMove; }
+  else { state = E.fromJSON(reviewFinal.snap); lastMove = reviewFinal.lastMove; }
+  selected = -1; legalForSelected = [];
+  clearMarkers();
+  rebuildPieces(); rebuildCaptured(); updateSquareTints(); refreshMoveList();
+  document.getElementById('reviewCounter').textContent = k + ' / ' + N;
+  statusEl.innerHTML = 'មើលឡើងវិញ Review — ' + k + ' / ' + N;
+}
+function gameTextExport() {
+  const finalState = reviewMode ? E.fromJSON(reviewFinal.snap) : state;
+  const st = E.gameStatus(finalState);
+  let result = 'unfinished';
+  if (timeoutResult) result = sideName(1 - timeoutResult.loser) + ' wins on time';
+  else if (st) result = st.type === 'checkmate' ? sideName(st.winner) + ' wins by checkmate' : 'Draw (' + st.type + ')';
+  const lines = [
+    'Ouk Chatrang (Khmer Chess)',
+    'Mode: ' + document.getElementById('modeReadoutText').textContent,
+    'Date: ' + new Date().toISOString().slice(0, 10),
+    'Result: ' + result, ''
+  ];
+  for (let i = 0; i < moveEntries.length; i += 2)
+    lines.push((i / 2 + 1) + '. ' + moveEntries[i] + (moveEntries[i + 1] ? '   ' + moveEntries[i + 1] : ''));
+  return lines.join('\n');
+}
+function copyGameText() {
+  const text = gameTextExport();
+  const done = () => showSaveStatus('ចម្លងរួច Copied!');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+  } else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) { showSaveStatus('Copy failed'); }
+  ta.remove();
+}
+document.getElementById('revStart').onclick = () => reviewGoto(0);
+document.getElementById('revPrev').onclick = () => reviewGoto(reviewIndex - 1);
+document.getElementById('revNext').onclick = () => reviewGoto(reviewIndex + 1);
+document.getElementById('revEnd').onclick = () => reviewGoto(history.length);
+document.getElementById('revCopy').onclick = copyGameText;
+document.getElementById('revExit').onclick = () => exitReview(false);
 
 function refreshAll() {
   rebuildPieces();
@@ -7399,6 +7610,16 @@ function applyMove(m) {
   moveEntries.push(notation(m, mover, captured, promoted));
   lastMove = m;
   selected = -1; legalForSelected = [];
+  hintMove = null; // a shown hint is consumed/stale once any move is made
+  hintBusy = false;
+  document.getElementById('hintBtn').disabled = false;
+  // chess clocks: charge the elapsed think time to the side that just
+  // moved, credit their increment, and start the opponent's clock
+  if (clockCfg && !timeoutResult) {
+    const c = E.colorOf(mover);
+    if (clockTurnStart != null) clockMs[c] = Math.max(0, clockMs[c] - (Date.now() - clockTurnStart) + clockCfg.inc * 1000);
+    clockTurnStart = Date.now();
+  }
   clearMarkers();
   refreshAll();
   const isCheck = E.inCheck(state, state.turn);
@@ -7419,14 +7640,50 @@ function applyMove(m) {
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
+  // hotseat auto-flip: turn the board to face whoever is now to move
+  if (autoFlipEnabled && mode === 'hotseat' && !gameOver) setViewSide(state.turn, true);
 }
 
 // training: free exploration — White keeps the move, promotion is celebrated
 function applyTrainingMove(m) {
+  // an active puzzle checks the player's own attempt: a wrong try is
+  // reverted so they can retry; a mate-goal puzzle accepts any move that
+  // actually checkmates (engine-verified), a move-goal one matches the
+  // single best move
+  const puzzleSnap = (activePuzzle && !puzzleSolved) ? E.toJSON(state) : null;
   const mover = state.board[m.from];
   const wasPawn = E.typeOf(mover) === E.PAWN;
   const captured = state.board[m.to];
   E.makeMove(state, m);
+  if (puzzleSnap) {
+    let ok;
+    if (activePuzzle.goal === 'mate') {
+      const st = E.gameStatus(state); // Black to move here, before the training turn-reset
+      ok = !!(st && st.type === 'checkmate' && st.winner === E.WHITE);
+    } else {
+      ok = E.sqName(m.from) === activePuzzle.answer.from && E.sqName(m.to) === activePuzzle.answer.to;
+    }
+    if (!ok) {
+      state = E.fromJSON(puzzleSnap);
+      flashMsg = '✘ មិនមែនទេ Not it — try again';
+      selected = -1; legalForSelected = [];
+      clearMarkers();
+      refreshAll();
+      playMoveSound('move');
+      return;
+    }
+    puzzleSolved = true;
+    state.turn = E.WHITE;
+    lastMove = m;
+    flashMsg = '✔ ដោះស្រាយបានហើយ! Solved!';
+    selected = -1; legalForSelected = [];
+    puzzleLessonText();
+    clearMarkers();
+    refreshAll();
+    playMoveSound('check');
+    try { fxCheck(E.kingSq(state, E.BLACK)); } catch (e) { /* celebration only */ }
+    return;
+  }
   state.turn = E.WHITE;
   const promoted = wasPawn && E.isProm(state.board[m.to]);
   flashMsg = promoted ? 'ត្រីឡើងនាងហើយ! Promoted to Neang!' : '';
@@ -7471,7 +7728,7 @@ let worker = null, workerOk = false;
 try {
   const src = document.getElementById('engine-src').textContent +
     ';self.onmessage=function(e){var S=OukEngine.fromJSON(e.data.state);' +
-    'var m=OukEngine.chooseAiMove(S,e.data.level);self.postMessage(m);};';
+    'var m=OukEngine.chooseAiMove(S,e.data.level);self.postMessage({tag:e.data.tag||"ai",move:m});};';
   worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
   workerOk = true;
 } catch (err) {
@@ -7499,12 +7756,39 @@ function scheduleAI() {
     }, wait);
   };
   if (workerOk) {
-    worker.onmessage = (e) => finish(e.data);
-    worker.postMessage({ state: E.toJSON(state), level });
+    // a stale hint reply may still be in flight; drop it rather than
+    // mistaking it for the AI's chosen move
+    worker.onmessage = (e) => { if (e.data && e.data.tag === 'hint') return; finish(e.data.move); };
+    worker.postMessage({ state: E.toJSON(state), level, tag: 'ai' });
   } else {
     setTimeout(() => finish(E.chooseAiMove(state, level)), 30);
   }
 }
+
+// ---------- hint: ask the engine for a strong move for the side to move ----------
+function requestHint() {
+  if (uiMode !== 'play' || gameOver || aiBusy || hintBusy || reviewMode) return;
+  if (mode !== 'hotseat' && state.turn !== humanSide) return;
+  hintBusy = true;
+  document.getElementById('hintBtn').disabled = true;
+  thinkingEl.style.display = 'block';
+  const finish = (m) => {
+    hintBusy = false;
+    document.getElementById('hintBtn').disabled = false;
+    thinkingEl.style.display = 'none';
+    if (m && uiMode === 'play' && !gameOver && !reviewMode) {
+      hintMove = m;
+      updateSquareTints();
+    }
+  };
+  if (workerOk) {
+    worker.onmessage = (e) => { if (!(e.data && e.data.tag === 'hint')) return; finish(e.data.move); };
+    worker.postMessage({ state: E.toJSON(state), level: 4, tag: 'hint' });
+  } else {
+    setTimeout(() => finish(E.chooseAiMove(state, 4)), 30);
+  }
+}
+document.getElementById('hintBtn').onclick = requestHint;
 
 // ---------- picking ----------
 const ray = new THREE.Raycaster();
@@ -7528,6 +7812,7 @@ function pickSquare(e) {
 }
 
 function onBoardClick(e) {
+  if (reviewMode) return; // replay is read-only; step with the review bar
   if (uiMode === 'play') {
     if (gameOver || aiBusy) return;
     if (mode !== 'hotseat' && state.turn !== humanSide) return;
@@ -7631,6 +7916,7 @@ const LESSON_ORDER = [E.PAWN, E.ROOK, E.KNIGHT, E.BISHOP, E.QUEEN, E.KING];
 
 function loadLesson() {
   guideKey = null; // leaving the strategy guide, if it was active
+  if (typeof activePuzzle !== 'undefined') { activePuzzle = null; document.querySelectorAll('#puzzleBtns button').forEach(b => b.classList.remove('active')); }
   document.getElementById('guideAnswerBtn').style.display = 'none';
   markGuideButtons();
   const l = LESSONS[lessonType][lessonLevel];
@@ -8215,6 +8501,7 @@ function renderGuideGameStep() {
 
 function loadGuideExample(tier, key) {
   guideGameStopAuto();
+  if (typeof activePuzzle !== 'undefined') { activePuzzle = null; document.querySelectorAll('#puzzleBtns button').forEach(b => b.classList.remove('active')); }
   guideTier = tier; guideKey = key;
   const ex = currentGuideExample();
   if (ex.game) { loadGuideGame(tier, key); return; }
@@ -8282,6 +8569,84 @@ document.getElementById('guideAnswerBtn').onclick = () => {
   if (mv) applyTrainingMove(mv);
 };
 
+// ---------- puzzles: solve-it-yourself positions with checked answers ----------
+// Unlike the strategy guide's worked examples (which show and explain the
+// answer), each puzzle sets up a position and CHECKS the player's own
+// attempt -- a wrong try is reverted so they can retry, a right one gets a
+// celebration. 'mate' puzzles accept ANY move that delivers checkmate
+// (verified with the real engine, not by matching one hardcoded square);
+// 'move' puzzles match the single best move.
+const PUZZLES = [
+  {
+    key: 'pz1', btn: '១ Mate<br>in 1', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — the ladder', goal: 'mate',
+    task: { kh: 'ស្វែងរកអុកងាប់ក្នុងមួយជើង។ ទូកពីរធ្វើការជាមួយគ្នា — មួយបិទជួរទី៧ រួចហើយ។', en: 'Find checkmate in one move. Two Tuuk work together: one already seals the 7th rank.' },
+    setup: (add) => { add('a8', E.KING, E.BLACK); add('h7', E.ROOK, E.WHITE); add('g1', E.ROOK, E.WHITE); add('e1', E.KING, E.WHITE); }
+  },
+  {
+    key: 'pz2', btn: '២ Back<br>rank', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — back rank', goal: 'mate',
+    task: { kh: 'ស្ដេចខ្មៅជាប់នៅជួរក្រោយ ដោយត្រីរបស់ខ្លួនឯង។ ស្វែងរកអុកងាប់ក្នុងមួយជើង។', en: 'The Black Sdach is trapped on its back rank by its own Trey. Find mate in one.' },
+    setup: (add) => { add('e8', E.KING, E.BLACK); add('d7', E.PAWN, E.BLACK); add('e7', E.PAWN, E.BLACK); add('f7', E.PAWN, E.BLACK); add('a1', E.ROOK, E.WHITE); add('e1', E.KING, E.WHITE); }
+  },
+  {
+    key: 'pz3', btn: '៣ Smother<br>mate', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — smothered', goal: 'mate',
+    task: { kh: 'ស្ដេចខ្មៅព័ទ្ធជុំវិញដោយកូនអុករបស់ខ្លួនឯង។ សេះអាចធ្វើអ្វីដែលគ្មានកូនអុកផ្សេងអាចធ្វើបាន!', en: 'The Black Sdach is smothered by its own pieces. Only a Ses can strike here!' },
+    setup: (add) => { add('h8', E.KING, E.BLACK); add('g8', E.ROOK, E.BLACK); add('g7', E.PAWN, E.BLACK); add('h7', E.PAWN, E.BLACK); add('e5', E.KNIGHT, E.WHITE); add('e1', E.KING, E.WHITE); }
+  },
+  {
+    key: 'pz4', btn: '៤ Koul<br>mate', title: 'អុកងាប់ក្នុង១ជើង Mate in 1 — with the Koul', goal: 'mate',
+    task: { kh: 'ស្ដេចរបស់អ្នកគាំទ្រកូលរបស់អ្នក។ ស្វែងរកអុកងាប់ក្នុងមួយជើង។', en: 'Your Sdach supports your Koul. Find mate in one.' },
+    setup: (add) => { add('h8', E.KING, E.BLACK); add('g6', E.KING, E.WHITE); add('h6', E.BISHOP, E.WHITE); }
+  },
+  {
+    key: 'pz5', btn: '៥ Ses<br>strike', title: 'រកជើងល្អបំផុត Best move — Ses strike', goal: 'move', answer: { from: 'b5', to: 'c7' },
+    task: { kh: 'នាងខ្មៅគ្មានការការពារ។ ចាប់វាដោយសេះ — វាក៏អុកស្ដេចដែរ!', en: 'The Black Neang is undefended. Capture it with your Ses — it even checks the Sdach!' },
+    setup: (add) => { add('e8', E.KING, E.BLACK); add('c7', E.QUEEN, E.BLACK); add('b5', E.KNIGHT, E.WHITE); add('e1', E.KING, E.WHITE); }
+  },
+  {
+    key: 'pz6', btn: '៦ Trey<br>catch', title: 'រកជើងល្អបំផុត Best move — Trey catches a Tuuk', goal: 'move', answer: { from: 'c4', to: 'd5' },
+    task: { kh: 'ទូកខ្មៅឈរនៅចំពោះមុខត្រីរបស់អ្នក។ ត្រីចាប់យកតាមអង្កត់ទ្រូង!', en: 'A Black Tuuk stands within reach of your Trey. Trey captures diagonally forward!' },
+    setup: (add) => { add('h8', E.KING, E.BLACK); add('d5', E.ROOK, E.BLACK); add('c4', E.PAWN, E.WHITE); add('a1', E.KING, E.WHITE); }
+  },
+];
+let activePuzzle = null, puzzleSolved = false;
+function puzzleLessonText() {
+  const pz = activePuzzle;
+  document.getElementById('lessonText').innerHTML =
+    '<span class="gterm">' + pz.title + '</span>' +
+    '<span class="gwhy">' + pz.task.kh + '<span class="en">' + pz.task.en + '</span></span>' +
+    (puzzleSolved ? '<span class="gresult">✔ ដោះស្រាយបានហើយ! Solved — pick another puzzle.</span>' : '<span class="gflag">ស To move: White — ដើរកូនអុកដោយខ្លួនឯង make your own move on the board.</span>');
+}
+function loadPuzzle(key) {
+  guideGameStopAuto();
+  activePuzzle = PUZZLES.find(p => p.key === key);
+  puzzleSolved = false;
+  guideKey = null;
+  state = E.emptyState(currentVariant());
+  activePuzzle.setup((name, t, c, prom) => { state.board[E.sqIndex(name)] = E.mk(t, c, prom || false); });
+  state.kingMoved = [true, true]; state.queenMoved = [true, true];
+  state.turn = E.WHITE;
+  baselineCounts = countMultiset(state.board);
+  history = []; moveEntries = []; lastMove = null; flashMsg = '';
+  gameOver = false;
+  selected = -1; legalForSelected = [];
+  document.getElementById('guideAnswerBtn').style.display = 'none';
+  document.querySelectorAll('#puzzleBtns button').forEach(b => b.classList.toggle('active', b.dataset.key === key));
+  document.querySelectorAll('#pieceBtns button, #guideBtns button').forEach(b => b.classList.remove('active'));
+  puzzleLessonText();
+  clearMarkers();
+  refreshAll();
+}
+(function buildPuzzleButtons() {
+  const holder = document.getElementById('puzzleBtns');
+  PUZZLES.forEach(p => {
+    const b = document.createElement('button');
+    b.innerHTML = p.btn;
+    b.dataset.key = p.key;
+    b.onclick = () => loadPuzzle(p.key);
+    holder.appendChild(b);
+  });
+})();
+
 // ---------- play/train mode switching ----------
 function setUiMode(m) {
   if (m === uiMode || aiBusy) return;
@@ -8319,7 +8684,7 @@ document.getElementById('tabTrain').onclick = () => setUiMode('train');
 // ---------- controls ----------
 document.getElementById('newBtn').onclick = newGame;
 undoBtn.onclick = () => {
-  if (uiMode === 'train' || aiBusy || history.length === 0) return;
+  if (uiMode === 'train' || aiBusy || history.length === 0 || reviewMode) return;
   let steps = 1;
   if (mode !== 'hotseat' && history.length >= 2 && state.turn === humanSide) steps = 2;
   if (mode !== 'hotseat' && state.turn !== humanSide) steps = 1;
@@ -8330,6 +8695,15 @@ undoBtn.onclick = () => {
     lastMove = h.lastMove;
   }
   selected = -1; legalForSelected = [];
+  hintMove = null;
+  // undoing out of a flag fall: clear the timeout and give the flagged
+  // side a small grace balance so play can actually resume rather than
+  // instantly re-flagging on the next tick
+  if (timeoutResult) {
+    clockMs[timeoutResult.loser] = Math.max(clockMs[timeoutResult.loser], 15000);
+    timeoutResult = null;
+  }
+  if (clockCfg) clockTurnStart = Date.now();
   clearMarkers();
   gameOver = false;
   refreshAll();
@@ -8352,11 +8726,20 @@ applyRulesLang();
 // resets the board using whatever mode/humanSide are currently set; both
 // "New game" and a confirmed mode-select pick funnel through this
 function resetGame() {
+  if (reviewMode) exitReview(true); // discard any in-progress replay of the previous game
   state = E.initialState(currentVariant());
   baselineCounts = countMultiset(state.board);
   history = []; moveEntries = []; lastMove = null;
   selected = -1; legalForSelected = []; gameOver = false; aiBusy = false;
   gameStartTs = Date.now(); frozenElapsed = null;
+  hintMove = null; hintBusy = false;
+  document.getElementById('hintBtn').disabled = false;
+  timeoutResult = null;
+  clockMs = clockCfg ? [clockCfg.base * 1000, clockCfg.base * 1000] : [0, 0];
+  clockTurnStart = clockCfg ? Date.now() : null;
+  // face the board from the human's own seat: White's for hotseat (until
+  // auto-flip takes over), the chosen side's when playing the computer
+  setViewSide(mode === 'hotseat' ? E.WHITE : humanSide, false);
   clearMarkers();
   refreshAll();
   refreshModeReadout();
@@ -8365,6 +8748,7 @@ function resetGame() {
 function newGame() { resetGame(); }
 function startGameWithMode(modeStr, side) {
   mode = modeStr; humanSide = side;
+  clockCfg = pendingClock; // time control chosen on the mode-select screen
   gameEndTracked = false;
   resetGame();
   trackEvent('game_start', { mode: modeStr, side: side === E.WHITE ? 'white' : 'black' });
@@ -8395,6 +8779,30 @@ function buildLevelButtons() {
 function markLevelButtons() {
   document.querySelectorAll('#levelBtns button').forEach(b => b.classList.toggle('active', +b.dataset.level === pendingAiLevel));
 }
+// time-control picker on the mode-select screen: None (default, the
+// classic untimed game) or a few standard base+increment presets
+const CLOCK_PRESETS = [
+  { key: 'none', label: 'គ្មាន None', cfg: null },
+  { key: '5+0', label: '5+0', cfg: { base: 300, inc: 0 } },
+  { key: '10+0', label: '10+0', cfg: { base: 600, inc: 0 } },
+  { key: '15+10', label: '15+10', cfg: { base: 900, inc: 10 } },
+];
+function buildClockButtons() {
+  const holder = document.getElementById('clockBtns');
+  holder.innerHTML = '';
+  CLOCK_PRESETS.forEach(p => {
+    const b = document.createElement('button');
+    b.textContent = p.label;
+    b.dataset.clock = p.key;
+    b.onclick = () => {
+      pendingClock = p.cfg;
+      holder.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+    };
+    holder.appendChild(b);
+  });
+  holder.querySelector('button').classList.add('active'); // None
+}
+buildClockButtons();
 document.querySelectorAll('.sidebtn').forEach(b => {
   b.onclick = () => {
     pendingSide = +b.dataset.side;
@@ -8441,8 +8849,27 @@ function showStartScreen() {
 }
 document.getElementById('cancelGameBtn').onclick = showStartScreen;
 
-// ---------- save / load game (localStorage) ----------
-const SAVE_KEY = 'oukChatrangSave';
+// ---------- save / load game (localStorage, 3 named slots) ----------
+const SAVE_KEY = 'oukChatrangSave'; // legacy single-slot key, read as a fallback for slot 1
+const saveKeyFor = (slot) => slot === 1 ? SAVE_KEY : SAVE_KEY + '.slot' + slot;
+function currentSaveSlot() { return +document.getElementById('saveSlotSel').value || 1; }
+// slot labels show when each occupied slot was saved, so picking one to
+// load (or knowing which one is safe to overwrite) doesn't need trial and error
+function refreshSaveSlotLabels() {
+  for (const opt of document.getElementById('saveSlotSel').options) {
+    const n = +opt.value;
+    let raw = null;
+    try { raw = localStorage.getItem(saveKeyFor(n)); } catch (e) {}
+    let label = 'Slot ' + n + ' — ទទេ empty';
+    if (raw) {
+      try {
+        const p = JSON.parse(raw);
+        label = 'Slot ' + n + (p.savedAt ? ' — ' + new Date(p.savedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ' — saved');
+      } catch (e) { label = 'Slot ' + n + ' — saved'; }
+    }
+    opt.textContent = label;
+  }
+}
 function showSaveStatus(msg) {
   const el = document.getElementById('saveStatus');
   el.textContent = msg;
@@ -8454,16 +8881,22 @@ function saveGame() {
     v: 1, state: E.toJSON(state), mode, humanSide,
     history, moveEntries, lastMove, baselineCounts, gameOver,
     elapsed: frozenElapsed !== null ? frozenElapsed : (gameStartTs ? Date.now() - gameStartTs : 0),
-    themeKey, pieceStyleOverride, khmerBoardStyle, variant: currentVariant()
+    themeKey, pieceStyleOverride, khmerBoardStyle, variant: currentVariant(),
+    savedAt: Date.now(),
+    clockCfg, timeoutResult,
+    // fold the running side's elapsed time in, so the clock resumes from
+    // the true remaining balance rather than from the last move boundary
+    clockMs: clockCfg ? [clockRemaining(E.WHITE), clockRemaining(E.BLACK)] : [0, 0]
   };
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+    localStorage.setItem(saveKeyFor(currentSaveSlot()), JSON.stringify(payload));
+    refreshSaveSlotLabels();
     showSaveStatus('រក្សាទុករួច Saved!');
   } catch (e) { showSaveStatus('Save failed: ' + e.message); }
 }
 function loadGame() {
   let raw;
-  try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { raw = null; }
+  try { raw = localStorage.getItem(saveKeyFor(currentSaveSlot())); } catch (e) { raw = null; }
   if (!raw) { showSaveStatus('គ្មានហ្គេមរក្សាទុក No saved game'); return; }
   let payload;
   try { payload = JSON.parse(raw); } catch (e) { showSaveStatus('ឯកសារខូច Corrupt save'); return; }
@@ -8476,6 +8909,12 @@ function loadGame() {
   gameOver = !!payload.gameOver;
   gameStartTs = Date.now() - (payload.elapsed || 0);
   frozenElapsed = gameOver ? (payload.elapsed || 0) : null;
+  if (reviewMode) exitReview(true);
+  clockCfg = payload.clockCfg || null;
+  clockMs = payload.clockMs || [0, 0];
+  timeoutResult = payload.timeoutResult || null;
+  clockTurnStart = clockCfg && !gameOver ? Date.now() : null;
+  hintMove = null;
   if (payload.variant) {
     const radio = document.querySelector('input[name=variant][value="' + payload.variant + '"]');
     if (radio) radio.checked = true;
@@ -8512,9 +8951,33 @@ function loadGame() {
 }
 document.getElementById('saveBtn').onclick = saveGame;
 document.getElementById('loadBtn').onclick = loadGame;
+refreshSaveSlotLabels();
 
 // ---------- top-left HUD: move count + played time ----------
+function fmtClock(ms) {
+  const secs = Math.max(0, Math.ceil(ms / 1000));
+  return String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
+}
+// per-player clocks: the running side's display includes the time elapsed
+// since their turn started; a flag fall ends the game (see describeStatus)
+function clockRemaining(side) {
+  let rem = clockMs[side];
+  if (!gameOver && !timeoutResult && clockTurnStart != null && state && state.turn === side && uiMode === 'play')
+    rem -= Date.now() - clockTurnStart;
+  return rem;
+}
+function checkFlagFall() {
+  if (!clockCfg || gameOver || timeoutResult || uiMode !== 'play' || clockTurnStart == null || reviewMode) return;
+  if (clockRemaining(state.turn) <= 0) {
+    clockMs[state.turn] = 0;
+    clockTurnStart = null;
+    timeoutResult = { loser: state.turn };
+    playMoveSound('check');
+    refreshAll();
+  }
+}
 function tickHud() {
+  checkFlagFall();
   const hud = document.getElementById('hud');
   if (uiMode !== 'play' || overlayOpen || !gameStartTs) { hud.style.display = 'none'; return; }
   hud.style.display = 'block';
@@ -8524,11 +8987,18 @@ function tickHud() {
   const secs = Math.floor(elapsed / 1000);
   const mm = String(Math.floor(secs / 60)).padStart(2, '0');
   const ss = String(secs % 60).padStart(2, '0');
-  hud.innerHTML =
+  let html =
     '<div class="stat"><span class="lbl">ជើង<br>move</span><b>' + moveEntries.length + '</b></div>' +
     '<div class="stat"><span class="lbl">ពេល<br>Time</span><b>' + mm + ':' + ss + '</b></div>';
+  if (clockCfg) {
+    const wLow = clockRemaining(E.WHITE) < 30000, bLow = clockRemaining(E.BLACK) < 30000;
+    html +=
+      '<div class="stat"><span class="lbl">ស<br>White</span><b' + (wLow ? ' style="color:#ff5a5a"' : '') + '>' + fmtClock(clockRemaining(E.WHITE)) + '</b></div>' +
+      '<div class="stat"><span class="lbl">ខ្មៅ<br>Black</span><b' + (bLow ? ' style="color:#ff5a5a"' : '') + '>' + fmtClock(clockRemaining(E.BLACK)) + '</b></div>';
+  }
+  hud.innerHTML = html;
 }
-setInterval(tickHud, 500);
+setInterval(tickHud, 250);
 
 // Bridge for the mobile React toolbar (a plain classic script, not a
 // module, so it cannot see these module-scoped functions directly).
@@ -8891,6 +9361,11 @@ window.__ouk = {
   pieceWColor: () => MAT_W.color.getHex(),
   uiPalette: () => Object.assign({}, window.__oukUiPalette),
   uiVar: (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim(),
+  hintMove: () => hintMove ? { from: hintMove.from, to: hintMove.to } : null,
+  reviewState: () => ({ reviewMode, reviewIndex, historyLen: history.length }),
+  clockState: () => ({ clockCfg, remaining: clockCfg ? [clockRemaining(E.WHITE), clockRemaining(E.BLACK)] : null, timeoutResult }),
+  puzzleState: () => ({ key: activePuzzle ? activePuzzle.key : null, solved: puzzleSolved }),
+  viewSide: () => viewSide,
   matAccentBColor: () => MAT_ACCENT_B.color.getHex().toString(16),
   matBaseBColor: () => MAT_BASE_B.color.getHex().toString(16),
   lightSnapshot: () => ({
@@ -9050,7 +9525,14 @@ function zoomBy(factor) {
 // touch UI first mounts (see the deferred React script) and again on
 // orientationchange, but not on every incidental resize, so it never
 // undoes a zoom level the player picked deliberately.
-const BOARD_FIT_RADIUS = 8;
+// 6.0 rather than the original conservative 8: on a portrait phone the
+// binding constraint is the HORIZONTAL fov, and the board's horizontal
+// half-extent (board + frame + rank labels, ~5.7 at the near edge where
+// perspective is widest) is what actually has to fit -- not the far
+// corner's full 3D diagonal the old sphere radius allowed for. Verified
+// against a 390x844 viewport: files a and h plus their labels stay fully
+// on screen while the board fills the width instead of ~70% of it.
+const BOARD_FIT_RADIUS = 6.0;
 function fitCameraToBoard() {
   const w = sceneDiv.clientWidth, h = sceneDiv.clientHeight;
   if (!w || !h) return;
@@ -9087,9 +9569,55 @@ function topView() {
   camera.position.set(0, dist, 0.001);
   controls.update();
 }
+// ---------- board-view flipping (for the Black-side player) ----------
+// Rotates the camera's azimuth around the board center while keeping its
+// distance and elevation, so the Black player can view the board from
+// their own side. Animated (not an instant jump) so a hotseat auto-flip
+// after every move reads as "the board turning to face you" rather than
+// a disorienting teleport.
+let viewSide = E.WHITE;       // which side the camera currently faces the board as
+let viewAnimRaf = null;
+function setViewSide(side, animate) {
+  viewSide = side;
+  const dir = camera.position.clone().sub(controls.target);
+  const radius = Math.hypot(dir.x, dir.z);
+  const y = dir.y;
+  const targetAz = side === E.WHITE ? 0 : Math.PI; // azimuth: 0 = White's seat, PI = Black's
+  const startAz = Math.atan2(dir.x, dir.z);
+  let delta = targetAz - startAz;
+  while (delta > Math.PI) delta -= 2 * Math.PI;
+  while (delta < -Math.PI) delta += 2 * Math.PI;
+  if (Math.abs(delta) < 0.01) return;
+  if (viewAnimRaf) cancelAnimationFrame(viewAnimRaf);
+  if (!animate || fxPrefersReducedMotion()) {
+    const az = targetAz;
+    camera.position.set(controls.target.x + radius * Math.sin(az), controls.target.y + y, controls.target.z + radius * Math.cos(az));
+    controls.update();
+    return;
+  }
+  const t0 = performance.now(), dur = 450;
+  const step = (now) => {
+    const t = Math.min(1, (now - t0) / dur);
+    const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOutQuad
+    const az = startAz + delta * ease;
+    camera.position.set(controls.target.x + radius * Math.sin(az), controls.target.y + y, controls.target.z + radius * Math.cos(az));
+    controls.update();
+    if (t < 1) viewAnimRaf = requestAnimationFrame(step);
+    else viewAnimRaf = null;
+  };
+  viewAnimRaf = requestAnimationFrame(step);
+}
+let autoFlipEnabled = false;
+document.getElementById('autoFlipChk').onchange = (e) => {
+  autoFlipEnabled = e.target.checked;
+  // snap the view to the side to move right away so the very next move
+  // isn't played from the wrong seat
+  if (autoFlipEnabled && uiMode === 'play' && mode === 'hotseat' && !gameOver) setViewSide(state.turn, true);
+};
+document.getElementById('flipViewBtn').onclick = () => setViewSide(viewSide === E.WHITE ? E.BLACK : E.WHITE, true);
 document.getElementById('zoomInBtn').onclick = () => zoomBy(0.8);
 document.getElementById('zoomOutBtn').onclick = () => zoomBy(1.25);
-document.getElementById('zoomResetBtn').onclick = resetView;
+document.getElementById('zoomResetBtn').onclick = () => { resetView(); viewSide = E.WHITE; };
 document.getElementById('topViewBtn').onclick = topView;
 
 // ---------- hide/show the settings panel ----------
@@ -9107,6 +9635,82 @@ function loop() {
   retrackPieceLabels(); // keep piece-name labels perspective-corrected and centered on every viewport
   renderer.render(scene, camera);
 }
+
+// ---------- display-language toggle (whole UI, not just the Rules modal) ----------
+// Splits every STATIC bilingual label ("ខ្មែរ English" in one text node)
+// into <span class="t-kh">/<span class="t-en"> runs, with the neutral
+// separator characters between two differing runs wrapped as .t-sep --
+// so the CSS can show one clean single-language UI. Only text nodes whose
+// element contains BOTH scripts are touched (a monolingual label never
+// risks being hidden into an empty button), and dynamic regions
+// (#status, #movelist, #lessonText, the Rules modal with its own toggle,
+// selects/options where spans aren't allowed) are skipped entirely.
+function wrapLangRuns(root) {
+  if (!root) return;
+  const KH = /[ក-៿᧠-᧿]/, EN = /[A-Za-z0-9]/;
+  const skipEl = (el) => {
+    const tag = el.tagName;
+    if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'SELECT' || tag === 'OPTION' || tag === 'TEXTAREA') return true;
+    if (['modal', 'movelist', 'status', 'lessonText', 'boardTitle'].includes(el.id)) return true;
+    if (el.classList.contains('t-kh') || el.classList.contains('t-en') || el.classList.contains('t-sep')) return true;
+    return false;
+  };
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      for (let el = node.parentElement; el && el !== root.parentElement; el = el.parentElement) if (skipEl(el)) return NodeFilter.FILTER_REJECT;
+      const t = node.nodeValue;
+      return KH.test(t) && /[A-Za-z]/.test(t) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+    }
+  });
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const node of nodes) {
+    const frag = document.createDocumentFragment();
+    let runClass = null, buf = '', sepBuf = '';
+    const flushRun = () => {
+      if (!buf) return;
+      const s = document.createElement('span');
+      s.className = runClass === 'kh' ? 't-kh' : 't-en';
+      s.textContent = buf;
+      frag.appendChild(s);
+      buf = '';
+    };
+    const flushSep = () => {
+      if (!sepBuf) return;
+      const s = document.createElement('span');
+      s.className = 't-sep';
+      s.textContent = sepBuf;
+      frag.appendChild(s);
+      sepBuf = '';
+    };
+    for (const ch of node.nodeValue) {
+      const cls = KH.test(ch) ? 'kh' : EN.test(ch) ? 'en' : null;
+      if (cls === null) { sepBuf += ch; continue; }
+      if (cls === runClass) { buf += sepBuf + ch; sepBuf = ''; }
+      else { flushRun(); flushSep(); runClass = cls; buf = ch; }
+    }
+    flushRun(); flushSep();
+    node.parentNode.replaceChild(frag, node);
+  }
+}
+const LANG_PREF_KEY = 'oukLangPref';
+function applyLangPref(v) {
+  document.body.classList.toggle('lang-kh', v === 'kh');
+  document.body.classList.toggle('lang-en', v === 'en');
+  try { localStorage.setItem(LANG_PREF_KEY, v); } catch (e) {}
+}
+(function initLangToggle() {
+  wrapLangRuns(document.getElementById('panel'));
+  wrapLangRuns(document.getElementById('startScreen'));
+  wrapLangRuns(document.getElementById('modeScreen'));
+  wrapLangRuns(document.getElementById('reviewBar'));
+  const sel = document.getElementById('langSel');
+  let saved = 'both';
+  try { saved = localStorage.getItem(LANG_PREF_KEY) || 'both'; } catch (e) {}
+  sel.value = saved;
+  applyLangPref(saved);
+  sel.onchange = (e) => applyLangPref(e.target.value);
+})();
 
 applyTheme('wood');
 resize();
