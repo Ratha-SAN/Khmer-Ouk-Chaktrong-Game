@@ -1127,6 +1127,78 @@
     0% { transform: translate(0, 0) scale(1); opacity: 1; }
     100% { transform: translate(var(--mx), var(--my)) scale(.3); opacity: 0; }
   }
+
+  /* ============ Gem Blitz theme: match-3 arcade effects ============
+     The most effect-heavy theme in the game, Bejeweled-style: moves leave
+     a trail of twinkling 4-point star glints; captures explode the square
+     into flying faceted gem shards + a white flash + a floating "+points"
+     score popup; chained captures escalate a center-screen COMBO banner
+     that grows bigger and hotter with the multiplier. */
+  .fx-gem-star {
+    position: absolute; width: 14px; height: 14px; left: -7px; top: -7px;
+    background: var(--gemcol, #fff);
+    clip-path: polygon(50% 0%, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0% 50%, 39% 39%);
+    filter: drop-shadow(0 0 4px var(--gemcol, #fff));
+    animation: fxGemStar 360ms ease-out forwards;
+  }
+  @keyframes fxGemStar {
+    0% { transform: scale(0) rotate(0deg); opacity: 1; }
+    45% { transform: scale(1.2) rotate(45deg); opacity: 1; }
+    100% { transform: scale(.2) rotate(90deg); opacity: 0; }
+  }
+  .fx-gem-shard {
+    position: absolute; width: 10px; height: 12px; left: -5px; top: -6px;
+    background: var(--gemcol); clip-path: polygon(50% 0%, 100% 35%, 78% 100%, 22% 100%, 0% 35%);
+    filter: drop-shadow(0 0 5px var(--gemcol));
+    animation: fxGemShard 520ms cubic-bezier(.2,.7,.4,1) forwards;
+  }
+  @keyframes fxGemShard {
+    0% { transform: translate(0, 0) rotate(0deg) scale(1.1); opacity: 1; }
+    100% { transform: translate(var(--mx), var(--my)) rotate(var(--rot)) scale(.4); opacity: 0; }
+  }
+  .fx-gem-flash {
+    position: absolute; width: 54px; height: 54px; left: -27px; top: -27px; border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, #ffe9b0 35%, transparent 70%);
+    animation: fxGemFlash 300ms ease-out forwards;
+  }
+  @keyframes fxGemFlash {
+    0% { transform: scale(.2); opacity: 1; }
+    100% { transform: scale(1.9); opacity: 0; }
+  }
+  .fx-gem-ring {
+    position: absolute; width: 24px; height: 24px; left: -12px; top: -12px; border-radius: 50%;
+    border: 3px solid #ffe9b0; box-shadow: 0 0 12px 3px #ffc23b, inset 0 0 8px #ffc23b;
+    animation: fxGemRing 420ms ease-out forwards;
+  }
+  @keyframes fxGemRing {
+    0% { transform: scale(.3); opacity: 1; }
+    100% { transform: scale(3.4); opacity: 0; }
+  }
+  .fx-gem-score {
+    position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
+    font-weight: 800; font-size: 22px; color: #ffe9b0; white-space: nowrap;
+    text-shadow: 0 0 8px #ffc23b, 0 2px 4px rgba(0,0,0,.8);
+    animation: fxGemScore 900ms ease-out forwards;
+  }
+  @keyframes fxGemScore {
+    0% { transform: translate(-50%, -50%) scale(.4); opacity: 0; }
+    15% { transform: translate(-50%, -60%) scale(1.25); opacity: 1; }
+    100% { transform: translate(-50%, -220%) scale(1); opacity: 0; }
+  }
+  .fx-gem-combo {
+    position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%);
+    font-weight: 900; font-size: var(--combosize, 34px); letter-spacing: 2px; white-space: nowrap;
+    color: var(--combocol, #ffc23b);
+    text-shadow: 0 0 14px var(--combocol, #ffc23b), 0 0 40px var(--combocol, #ffc23b), 0 3px 6px rgba(0,0,0,.85);
+    animation: fxGemCombo 1000ms cubic-bezier(.2,1.4,.4,1) forwards;
+  }
+  @keyframes fxGemCombo {
+    0% { transform: translate(-50%, -50%) scale(.2) rotate(-6deg); opacity: 0; }
+    18% { transform: translate(-50%, -50%) scale(1.15) rotate(2deg); opacity: 1; }
+    30% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+    75% { transform: translate(-50%, -50%) scale(1.02); opacity: 1; }
+    100% { transform: translate(-50%, -62%) scale(1.1); opacity: 0; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1518,6 +1590,7 @@
       <option value="starwars">Star Wars — សង្គ្រាមផ្កាយ</option>
       <option value="nature">Mountain Valley — ជ្រលងភ្នំ</option>
       <option value="cambodia">Kingdom of Wonder — នគរដ៏អស្ចារ្យ</option>
+      <option value="gems">Gem Blitz — ត្បូងភ្លឺចាំង</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -1606,7 +1679,7 @@
       <option value="none">No music</option>
       <optgroup label="Relaxing (6)"></optgroup>
       <optgroup label="Khmer Traditional (5)"></optgroup>
-      <optgroup label="Arcade (3)"></optgroup>
+      <optgroup label="Arcade (4)"></optgroup>
       <optgroup label="Cinematic (2)"></optgroup>
       <optgroup label="Synth (1)"></optgroup>
       <optgroup label="World (1)"></optgroup>
@@ -3147,6 +3220,23 @@ const THEMES = {
     pieceW: 0xe8c988, pieceB: 0x2a3f8f, rough: 0.5, metal: 0.05,
     labelInk: '#fff4d6', tray: 0x14204d,
     cambodiaFx: true
+  },
+  // Gem Blitz: a jewel-box arcade board (deep midnight-violet squares
+  // with a dark chrome rail) built for pure match-3-style EXCITEMENT --
+  // the most effect-heavy theme in the game. Faceted, glowing gem pieces
+  // (amber Fire side vs amethyst Ice side, see buildGemPiece), and, the
+  // whole point, an arcade scoring layer no other theme has: captures
+  // explode into flying gem shards with a floating "+points" score popup,
+  // and chained captures (within two moves of each other) escalate a
+  // combo multiplier with center-screen COMBO banners and rising-pitch
+  // sparkle SFX (gemFx, see triggerGemEffect).
+  gems: {
+    name: 'Gem Blitz', style: 'gems',
+    bg: 0x0d0a1e, fog: null,
+    frame: 0x2a2438, tileLight: 0x4a3d78, tileDark: 0x241c42,
+    pieceW: 0xffc23b, pieceB: 0xa05df0, rough: 0.25, metal: 0.1,
+    labelInk: '#e8dcff', tray: 0x1a1530,
+    gemFx: true
   }
 };
 let themeKey = 'wood';
@@ -3595,6 +3685,17 @@ const MAT_KH_GOLD = new THREE.MeshStandardMaterial({ color: 0xe0b84a, roughness:
 const MAT_KH_FLAG_RED = new THREE.MeshStandardMaterial({ color: 0xd8303a, roughness: 0.45, metalness: 0.0 });
 const MAT_KH_FLAG_BLUE = new THREE.MeshStandardMaterial({ color: 0x2a3f8f, roughness: 0.45, metalness: 0.05 });
 const MAT_KH_LOTUS = new THREE.MeshStandardMaterial({ color: 0xf3d8e6, roughness: 0.5, metalness: 0.0 });
+// Fixed gem materials for the Gem Blitz piece set (see buildGemPiece):
+// five classic jewel hues, one per piece rank, each self-lit (emissive)
+// so they read as glowing arcade gems rather than lit stone --
+// flatShading so the low-poly facets catch light as hard sparkling
+// planes instead of smoothing away.
+const MAT_GEM_RUBY = new THREE.MeshStandardMaterial({ color: 0xff3b6b, emissive: 0x99102e, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.1, flatShading: true });
+const MAT_GEM_AMBER = new THREE.MeshStandardMaterial({ color: 0xffb830, emissive: 0x995f08, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.1, flatShading: true });
+const MAT_GEM_EMERALD = new THREE.MeshStandardMaterial({ color: 0x3bff8a, emissive: 0x0e9944, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.1, flatShading: true });
+const MAT_GEM_SAPPHIRE = new THREE.MeshStandardMaterial({ color: 0x3b9dff, emissive: 0x0e4f99, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.1, flatShading: true });
+const MAT_GEM_AMETHYST = new THREE.MeshStandardMaterial({ color: 0xb13bff, emissive: 0x580e99, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.1, flatShading: true });
+const MAT_GEM_SILVER = new THREE.MeshStandardMaterial({ color: 0xd8dae2, roughness: 0.3, metalness: 0.35, flatShading: true });
 // Magic/Magic II accent materials (theme().goldAccents): replace the old
 // full-chrome body + separate solid gold trim ring with a subtler split --
 // the base gets its own slight metal shine, and the rest of the body gets
@@ -3906,6 +4007,7 @@ function buildPiece(type, color, promoted) {
   if (style === 'starwars') return buildStarwarsPiece(g, add, type, promoted, color);
   if (style === 'nature') return buildNaturePiece(g, add, type, promoted, color);
   if (style === 'cambodia') return buildCambodiaPiece(g, add, type, promoted, color);
+  if (style === 'gems') return buildGemPiece(g, add, type, promoted, color);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
   if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18, baseMat); // collar
   switch (type) {
@@ -4772,6 +4874,54 @@ function buildCambodiaPiece(g, add, type, promoted, color) {
       break;
   }
   if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.22, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Gem Blitz piece set: every piece is a faceted jewel on a silver setting,
+// match-3-arcade style -- each RANK gets its own classic gem cut AND its
+// own fixed jewel hue as the crown stone (King=ruby octahedron,
+// Neang=amethyst icosahedron, Koul=emerald dodecahedron, Ses=sapphire
+// twin-spike, Touk=amber pillar cut, Trey=small round brilliant), so a
+// glance at the color tells you the rank exactly like gem types in a
+// match-3 grid. The BODY under the stone keeps the side color (amber Fire
+// vs amethyst Ice, via the shared mat) so the two sides stay instantly
+// distinguishable.
+function buildGemPiece(g, add, type, promoted, color) {
+  add(new THREE.CylinderGeometry(0.28, 0.33, 0.12, 8), 0.06, MAT_GEM_SILVER); // faceted silver base
+  const spin = (mesh, a) => { mesh.rotation.y = a || Math.PI / 5; return mesh; };
+  switch (type) {
+    case E.KING:
+      add(new THREE.CylinderGeometry(0.16, 0.24, 0.4, 8), 0.32);
+      add(new THREE.CylinderGeometry(0.24, 0.16, 0.1, 8), 0.57, MAT_GEM_SILVER);
+      spin(add(new THREE.OctahedronGeometry(0.24, 0), 0.82, MAT_GEM_RUBY));
+      add(new THREE.OctahedronGeometry(0.06, 0), 1.06, MAT_GEM_RUBY);
+      break;
+    case E.QUEEN:
+      add(new THREE.CylinderGeometry(0.14, 0.22, 0.36, 8), 0.3);
+      spin(add(new THREE.IcosahedronGeometry(0.2, 0), 0.68, MAT_GEM_AMETHYST));
+      break;
+    case E.BISHOP:
+      add(new THREE.CylinderGeometry(0.13, 0.21, 0.34, 8), 0.29);
+      spin(add(new THREE.DodecahedronGeometry(0.18, 0), 0.62, MAT_GEM_EMERALD));
+      break;
+    case E.KNIGHT:
+      add(new THREE.CylinderGeometry(0.14, 0.22, 0.3, 8), 0.27);
+      // twin sapphire spikes -- reads as the Ses's ears/leap
+      add(new THREE.ConeGeometry(0.09, 0.34, 4), 0.58, MAT_GEM_SAPPHIRE).position.z = 0.08;
+      add(new THREE.ConeGeometry(0.07, 0.24, 4), 0.52, MAT_GEM_SAPPHIRE).position.z = -0.08;
+      break;
+    case E.ROOK:
+      // pillar-cut amber column, the defensive tower
+      add(new THREE.CylinderGeometry(0.19, 0.23, 0.44, 6), 0.34, MAT_GEM_AMBER);
+      add(new THREE.CylinderGeometry(0.23, 0.19, 0.1, 6), 0.6, MAT_GEM_AMBER);
+      break;
+    case E.PAWN:
+      add(new THREE.CylinderGeometry(0.1, 0.16, 0.16, 8), 0.2);
+      spin(add(new THREE.OctahedronGeometry(0.13, 0), 0.4, MAT_GEM_SAPPHIRE), Math.PI / 7);
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -5810,7 +5960,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -6120,6 +6270,26 @@ const SFX = {
       noiseBurst({ dur: 0.5, filterFreq: 400, q: 1, gain: 0.28 });
       envOsc({ freq: 140, type: 'sine', dur: 0.6, gain: 0.3, delay: 0.35 });
       noiseBurst({ dur: 0.4, filterFreq: 400, q: 1, gain: 0.24, delay: 0.35 });
+    }
+  },
+  // Gem Blitz: a bright two-note sparkle for a move, and -- the match-3
+  // signature -- a glass-shatter + boom for a capture whose chime pitch
+  // RISES with the current capture combo (gemComboCount, maintained by
+  // triggerGemEffect), the same escalating-reward feel as chained
+  // matches; check/checkmate gets a big dramatic two-chord hit.
+  gems(kind) {
+    if (kind === 'move') { envOsc({ freq: 1200, type: 'triangle', dur: 0.06, gain: 0.18 }); envOsc({ freq: 1800, type: 'triangle', dur: 0.08, gain: 0.14, delay: 0.05 }); }
+    else if (kind === 'capture') {
+      const combo = Math.max(1, Math.min(typeof gemComboCount === 'number' ? gemComboCount : 1, 6));
+      noiseBurst({ dur: 0.16, filterFreq: 5200, q: 2.5, gain: 0.3, filterType: 'highpass' }); // glass shatter
+      envOsc({ freq: 140, type: 'sine', dur: 0.2, gain: 0.3, freqTo: 70 }); // boom
+      // rising combo chime: each chained capture rings a step higher
+      const base = 660 * Math.pow(1.2, combo - 1);
+      envOsc({ freq: base, type: 'triangle', dur: 0.1, gain: 0.24, delay: 0.05 });
+      envOsc({ freq: base * 1.5, type: 'triangle', dur: 0.14, gain: 0.2, delay: 0.14 });
+    } else {
+      [392, 494, 587].forEach((f, i) => envOsc({ freq: f, type: 'sawtooth', dur: 0.3, gain: 0.16, delay: i * 0.02 }));
+      [523, 659, 784].forEach((f, i) => envOsc({ freq: f, type: 'sawtooth', dur: 0.4, gain: 0.16, delay: 0.22 + i * 0.02 }));
     }
   }
 };
@@ -7122,6 +7292,90 @@ function triggerCambodiaEffect(m, moverPiece, capturedPiece, isCheck, isCheckmat
   }
 }
 
+// ============ Gem Blitz theme: match-3 arcade shatter/score/combo effects ============
+// The most effect-heavy theme in the game. Moves scatter twinkling star
+// glints along the path; a capture shatters the square into flying gem
+// shards + flash + shockwave ring, floats a "+points" score popup
+// (captured piece's value x the current combo), and chained captures --
+// any capture landing within two moves of the previous one, by either
+// side, like rapid matches in a match-3 -- escalate a center-screen COMBO
+// banner that grows bigger and hotter each step. gemComboCount also
+// drives the rising capture-chime pitch in SFX.gems.
+const GEM_FX_COLORS = ['#ff3b6b', '#ffb830', '#3bff8a', '#3b9dff', '#b13bff'];
+let gemComboCount = 0;
+let gemLastCaptureAt = -99; // moveEntries.length when the last capture happened
+function fxGemTrail(fromSq, toSq) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  for (let i = 0; i < 5; i++) {
+    const t = i / 4;
+    const pt = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    const el = fxAt(pt, 'fx-gem-star', { '--gemcol': GEM_FX_COLORS[i % GEM_FX_COLORS.length] });
+    el.style.animationDelay = (i * 40) + 'ms';
+    fxSpawn(el, 360 + i * 40 + 40);
+  }
+  window.__oukFxLog.push({ tier: 1, key: 'gem_trail' });
+}
+function fxGemShatter(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-gem-flash', {}), 300);
+  fxSpawn(fxAt(pt, 'fx-gem-ring', {}), 420);
+  for (let i = 0; i < 12; i++) {
+    const ang = (i / 12) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 26 + Math.random() * 34;
+    fxSpawn(fxAt(pt, 'fx-gem-shard', {
+      '--gemcol': GEM_FX_COLORS[i % GEM_FX_COLORS.length],
+      '--mx': (Math.cos(ang) * dist) + 'px',
+      '--my': (Math.sin(ang) * dist - 14) + 'px',
+      '--rot': (Math.random() * 520 - 260) + 'deg',
+    }), 520);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'gem_shatter' });
+}
+function fxGemScore(sq, points) {
+  const el = fxAt(fxScreenPoint(sq), 'fx-gem-score', {});
+  el.textContent = '+' + points;
+  fxSpawn(el, 900);
+}
+function fxGemCombo(count) {
+  // hotter and bigger as the combo climbs: gold -> orange -> red-hot
+  const col = count >= 4 ? '#ff3b3b' : count === 3 ? '#ff8a2a' : '#ffc23b';
+  const label = count >= 4 ? 'x' + count + ' BLAZING!' : 'COMBO x' + count;
+  const el = fxAt({ x: 0, y: 0 }, 'fx-gem-combo', { '--combocol': col, '--combosize': Math.min(30 + count * 6, 60) + 'px' });
+  el.style.left = '50%'; el.style.top = '30%'; // centered banner, not square-anchored
+  el.textContent = '💎 ' + label;
+  fxSpawn(el, 1000);
+  window.__oukFxLog.push({ tier: 2, key: 'gem_combo', count });
+}
+function triggerGemEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.gemFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      // combo bookkeeping: a fresh game (index moved backwards) resets it
+      if (moveEntries.length < gemLastCaptureAt) { gemComboCount = 0; gemLastCaptureAt = -99; }
+      gemComboCount = (moveEntries.length - gemLastCaptureAt <= 2) ? gemComboCount + 1 : 1;
+      gemLastCaptureAt = moveEntries.length;
+      const value = E.isProm(capturedPiece) ? UI_VAL[E.QUEEN] : UI_VAL[E.typeOf(capturedPiece)];
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#ffc23b');
+      else {
+        fxGemShatter(m.to);
+        fxGemScore(m.to, (value || 100) * gemComboCount);
+        if (gemComboCount >= 2) fxGemCombo(gemComboCount);
+      }
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#b13bff');
+      else fxGemTrail(m.from, m.to);
+    }
+    // reuses the same screen-level check vignette/shake every other
+    // theme's check effect does (see fxCheck above) -- it already reads
+    // as an arcade "danger!" moment.
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('gem-effect render failed (ignored):', err);
+  }
+}
+
 // ---- background music: 10 soft, slow, procedurally-generated looping
 // tracks (5 general "relaxing lobby" style, 5 using a Khmer-flavored
 // pentatonic scale) — not literal recordings, synthesized so nothing needs
@@ -7185,6 +7439,13 @@ const MUSIC_TRACKS = {
   // melody.
   arcade3: { label: 'ចម្ការការពារ Lawn Defense (chiptune, solo)', instrument: 'chip', noteLen: 170, gain: 0.08,
     notes: [349.23, 349.23, 440.00, 349.23, null, 293.66, null, 261.63, 349.23, null, 440.00, 523.25, null, null, null, null] },
+  // An original fast, glittering major-key arpeggio for the Gem Blitz
+  // theme -- rapid cascading runs (the quickest tempo of any track here)
+  // with bell doubling for sparkle, evoking a match-3 arcade's constant
+  // shimmer without transcribing any existing game's score.
+  arcade4: { label: 'ត្បូងភ្លឺ Gem Rush (chiptune + bell mix)', instrument: 'chip', instrument2: 'bell', noteLen: 130, gain: 0.07,
+    filterHz: 3200,
+    notes: [523.25, 659.26, 783.99, 1046.50, 783.99, 659.26, 523.25, null, 587.33, 739.99, 880.00, 1174.66, 880.00, 739.99, null, null] },
   // An original slow, spacious pad+bell drone for the Avatar-vibe theme --
   // a mystical, ambient night-forest feel (not a chiptune loop like the
   // other theme tracks), evoking Pandora's bioluminescent canopy without
@@ -7625,6 +7886,10 @@ function applyMove(m) {
   const isCheck = E.inCheck(state, state.turn);
   const mateStatus = E.gameStatus(state);
   const isCheckmate = !!(mateStatus && mateStatus.type === 'checkmate');
+  // Gem Blitz's effect runs BEFORE the sound: it maintains the capture
+  // combo counter that SFX.gems reads for its rising-pitch capture chime,
+  // so the chime must see the freshly-updated combo, not last capture's.
+  triggerGemEffect(m, mover, captured, isCheck, isCheckmate);
   playMoveSound(isCheck ? 'check' : (captured !== E.EMPTY ? 'capture' : 'move'));
   triggerSkillEffect(m, mover, captured, isCheck, isCheckmate);
   triggerMarioEffect(m, mover, captured, isCheck, isCheckmate);
