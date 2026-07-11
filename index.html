@@ -148,8 +148,6 @@
   }
   #status .check { color: var(--danger); font-weight: 600; }
   #status .flash { color: var(--ok); font-weight: 600; }
-  fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
-  legend { font-size: 12px; color: var(--text-muted); padding: 0 6px; }
   /* collapsible settings sections */
   details.acc {
     border: 1px solid var(--line); border-radius: 8px; background: var(--surface-0); overflow: hidden;
@@ -337,25 +335,57 @@
      single-language document at a time. */
   #modal .box[data-lang="kh"] .en { display: none; }
   #modal .box[data-lang="en"] .kh { display: none; }
-  /* full-screen overlays: start screen + mode selection */
+  /* full-screen overlays: start screen + mode selection -- a fixed brand
+     look (independent of whichever board theme is active) inspired by the
+     game's own promo art: a deep indigo-violet backdrop with soft cyan and
+     magenta glow pools, a warm-gold title/primary-action treatment, and a
+     glassy violet-bordered panel. Implemented as a scoped override of the
+     same custom properties every button/heading in these two overlays
+     already keys off (--accent, --panel-bg, --surface-2/3, etc.), so the
+     whole cascade -- level-grid buttons, side picks, hover states -- picks
+     up the look automatically instead of needing a rule per element. */
   .fullOverlay {
-    position: fixed; inset: 0; background: color-mix(in srgb, var(--surface-deep) 88%, transparent); display: flex;
-    align-items: center; justify-content: center; z-index: 20; text-align: center;
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 20; text-align: center;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 18%, rgba(130,70,230,.38), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 88% 88%, rgba(79,216,255,.16), transparent 55%),
+      radial-gradient(ellipse 60% 50% at 8% 92%, rgba(255,79,197,.14), transparent 55%),
+      color-mix(in srgb, #0d0620 85%, transparent);
+    --panel-bg: #1c1038; --panel-fg: #ece4ff; --accent: #ffcf6b; --accent-dim: #a0813a;
+    --accent-hover: #ffe08a; --on-accent: #241407; --surface-deep: #0d0620;
+    --surface-2: #241542; --surface-3: #32205c; --text-muted: #b3a0e0; --text-faint: #d9cdfa;
+    --line: #4a3570;
   }
   .fullOverlay .box {
-    background: var(--panel-bg); border: 2px solid var(--accent); border-radius: 14px;
+    background: linear-gradient(180deg, rgba(32,18,64,.94), rgba(14,8,28,.96));
+    border: 1px solid rgba(180,140,255,.35); border-radius: 16px;
     max-width: 480px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 30px 26px;
+    box-shadow: 0 0 0 1px rgba(120,70,220,.2), 0 0 40px 6px rgba(140,80,255,.22),
+      0 0 70px 14px rgba(79,216,255,.08), 0 24px 60px rgba(0,0,0,.55);
   }
-  #startScreen .box h1 { font-size: 30px; color: var(--accent); margin-bottom: 6px; }
+  #startScreen .box h1 {
+    font-size: 30px; margin-bottom: 6px;
+    background: linear-gradient(180deg, #fff3d6, #ffcf6b 55%, #e6a53a);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 18px rgba(255,207,107,.4));
+  }
   #startScreen .box p { font-size: 14px; color: var(--text-faint); margin-bottom: 24px; }
   #startScreen .box button {
-    font-size: 18px; padding: 14px 40px; background: var(--accent); color: var(--on-accent);
-    font-weight: 700; border: none;
+    font-size: 18px; padding: 14px 40px; background: linear-gradient(135deg, #ffcf6b, #ff9f43);
+    color: var(--on-accent); font-weight: 700; border: none;
+    box-shadow: 0 0 24px 3px rgba(255,207,107,.4), 0 8px 20px rgba(0,0,0,.35);
   }
-  #startScreen .box button:hover { background: var(--accent-hover); }
-  #modeScreen h2 { font-size: 18px; color: var(--accent); margin-bottom: 16px; }
+  #startScreen .box button:hover { filter: brightness(1.08); }
+  #modeScreen h2 { font-size: 18px; color: var(--accent); margin-bottom: 16px; text-shadow: 0 0 16px rgba(255,207,107,.3); }
   #modeScreen .bigpick { display: flex; gap: 10px; }
-  #modeScreen .bigpick button { flex: 1; padding: 20px 10px; font-size: 18px; line-height: 1.4; }
+  #modeScreen .bigpick button {
+    flex: 1; padding: 20px 10px; font-size: 18px; line-height: 1.4;
+    background: linear-gradient(160deg, rgba(50,30,90,.85), rgba(22,12,45,.9));
+    border: 1px solid rgba(180,140,255,.3); color: var(--panel-fg);
+  }
+  #modeScreen .bigpick button:nth-child(1) { box-shadow: 0 0 18px 1px rgba(255,207,107,.35); border-color: rgba(255,207,107,.5); }
+  #modeScreen .bigpick button:nth-child(2) { box-shadow: 0 0 18px 1px rgba(79,216,255,.35); border-color: rgba(79,216,255,.5); }
+  #modeScreen .bigpick button:hover { filter: brightness(1.18); }
   .levelgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 12px; }
   .levelgrid button { padding: 8px 2px; font-size: 12px; line-height: 1.35; }
   .levelgrid button.active, .sidebtn.active { background: var(--accent); color: var(--on-accent); font-weight: 700; }
@@ -364,7 +394,7 @@
   #modeScreen .btnrow { justify-content: center; }
   #confirmAi {
     font-size: 18px; padding: 14px 40px; background: var(--accent); color: var(--on-accent);
-    font-weight: 700; border: none;
+    font-weight: 700; border: none; box-shadow: 0 0 24px 3px rgba(255,207,107,.4), 0 8px 20px rgba(0,0,0,.35);
   }
   #confirmAi:hover { background: var(--accent-hover); }
   #modeCancel { background: transparent; border-color: var(--accent-dim); color: var(--text-muted); }
@@ -1608,8 +1638,9 @@
   </div>
 
   <div id="trainPanel">
-    <fieldset>
-      <legend>រៀនដើរកូនអុក — Learn the pieces</legend>
+    <details class="acc" id="trainLearnSec" open>
+      <summary>រៀនដើរកូនអុក — Learn the pieces</summary>
+      <div class="acc-body">
       <div class="piecebtns" id="pieceBtns"></div>
       <div class="subtabs" style="margin-top:8px">
         <button id="subBasic" class="active">មូលដ្ឋាន Basic</button>
@@ -1618,9 +1649,11 @@
       <div class="btnrow" style="margin-top:8px">
         <button id="lessonReset">ចាប់ផ្ដើមឡើងវិញ Reset</button>
       </div>
-    </fieldset>
-    <fieldset>
-      <legend>ក្បួនអុក — Strategy guide (worked examples)</legend>
+      </div>
+    </details>
+    <details class="acc" id="trainGuideSec">
+      <summary>ក្បួនអុក — Strategy guide (worked examples)</summary>
+      <div class="acc-body">
       <div class="subtabs">
         <button id="guideTier1">កម្រិត១<br>Basics</button>
         <button id="guideTier2">កម្រិត២<br>Tactics</button>
@@ -1630,11 +1663,14 @@
       <div class="btnrow" style="margin-top:8px">
         <button id="guideAnswerBtn" style="display:none">▶ ដើរចម្លើយ Play the answer</button>
       </div>
-    </fieldset>
-    <fieldset>
-      <legend>ល្បែងផ្គុំ — Puzzles</legend>
+      </div>
+    </details>
+    <details class="acc" id="trainPuzzleSec">
+      <summary>ល្បងប្រាជ្ញា — Puzzles</summary>
+      <div class="acc-body">
       <div class="piecebtns" id="puzzleBtns"></div>
-    </fieldset>
+      </div>
+    </details>
     <div id="lessonText"></div>
   </div>
 
@@ -3134,12 +3170,18 @@ const THEMES = {
   // identity. rough/metal/clearcoat are all tuned toward a glossier, more
   // reflective "polished gem" finish than a typical theme's, for a
   // sparkling rather than matte-candy read.
+  // Each Girly theme's frame and tray now lean on its dominant hue's
+  // COMPLEMENT (opposite it on the color wheel) rather than a deeper tint
+  // of the same hue -- a classic, tasteful pairing (blush + sage, lavender
+  // + lime, gold + periwinkle) that gives the board furniture some real
+  // color contrast instead of reading as one hue in a row of shades.
   girlyPink: {
     name: 'Girly Pink', style: 'girly',
     bg: 0xffe3ee, fog: null,
-    frame: 0xe8a8c4, tileLight: 0xffeef5, tileDark: 0x9c3d68,
+    // sage green (pink's complement) frame + tray
+    frame: 0x8fae86, tileLight: 0xffeef5, tileDark: 0x9c3d68,
     pieceW: 0xfff3f8, pieceB: 0xd6488a, rough: 0.12, metal: 0.35,
-    labelInk: '#7a2a4c', tray: 0xf7c9dc,
+    labelInk: '#7a2a4c', tray: 0xd9ecd0,
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
     // pink leads (King + Pawn/Sapphire slot), purple second (Queen + Rook/
     // Amber slot), yellow as the accent (Bishop/Emerald slot)
@@ -3152,9 +3194,10 @@ const THEMES = {
   girlyPurple: {
     name: 'Girly Purple', style: 'girly',
     bg: 0xede2ff, fog: null,
-    frame: 0xa87ec8, tileLight: 0xf2e8ff, tileDark: 0x6a3d9c,
+    // muted lime (violet's complement) frame + tray
+    frame: 0xb3c46e, tileLight: 0xf2e8ff, tileDark: 0x6a3d9c,
     pieceW: 0xf8f0ff, pieceB: 0x7a3ab0, rough: 0.12, metal: 0.35,
-    labelInk: '#442870', tray: 0xd9c2f2,
+    labelInk: '#442870', tray: 0xe6efc9,
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
     // purple leads (King + Pawn/Sapphire slot), yellow second (Queen +
     // Rook/Amber slot), pink as the accent (Bishop/Emerald slot)
@@ -3167,9 +3210,10 @@ const THEMES = {
   girlyYellow: {
     name: 'Girly Yellow', style: 'girly',
     bg: 0xfff6d8, fog: null,
-    frame: 0xf0c246, tileLight: 0xfff8e2, tileDark: 0xa87a1a,
+    // periwinkle blue (gold's complement) frame + tray
+    frame: 0x8fa3d6, tileLight: 0xfff8e2, tileDark: 0xa87a1a,
     pieceW: 0xfffaf0, pieceB: 0xdc9a10, rough: 0.12, metal: 0.35,
-    labelInk: '#6b4a10', tray: 0xf5e3a8,
+    labelInk: '#6b4a10', tray: 0xdbe4f7,
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
     // yellow leads (King + Pawn/Sapphire slot), pink second (Queen + Rook/
     // Amber slot), purple as the accent (Bishop/Emerald slot)
@@ -3192,6 +3236,14 @@ const THEMES = {
     pieceW: 0xff6b6b, pieceB: 0x4a6cf7, rough: 0.5, metal: 0.0,
     labelInk: '#ffffff', tray: 0xff8a4a,
     kidsFx: true,
+    // on-board piece-name labels (see pieceLabelMaterial): the English
+    // line matches the Khmer line's own size instead of reading noticeably
+    // smaller, drops the semi-bold weight every other theme's English line
+    // uses (plainer reads better at that size), and is tinted with the
+    // theme's own secondary board color (teal, its dark-square hue) rather
+    // than the generic White/Black label palette, so the tag feels part of
+    // the theme's own bold-primary-color identity.
+    pieceLabelEnMatchKh: true, pieceLabelEnHex: 0x2ec4b6,
     // opts into the rainbow multi-accent UI palette (see deriveUiPalette's
     // vibrantUi branch) instead of the single-accent panel every other
     // theme gets -- this theme's whole board is already a bold 4-color
@@ -5335,10 +5387,18 @@ function fillTextInkCentered(ctx, text, cx, y) {
   ctx.textAlign = prevAlign;
 }
 function pieceLabelMaterial(type, color, lang) {
-  const key = type + '_' + color + '_' + lang;
+  // theme-scoped cache key: a theme (currently just Kids Playroom, see
+  // pieceLabelEnMatchKh/pieceLabelEnHex below) can override the English
+  // line's size/weight/color, so the same type+color+lang combo needs a
+  // separate cached texture per theme instead of reusing whichever
+  // theme's version happened to render first.
+  const key = type + '_' + color + '_' + lang + '_' + themeKey;
   if (pieceLabelMats[key]) return pieceLabelMats[key];
   const n = NAMES[type];
   const pal = LABEL_PALETTE[color];
+  const t = theme();
+  const enMatchKh = !!t.pieceLabelEnMatchKh;
+  const enColor = t.pieceLabelEnHex != null ? '#' + t.pieceLabelEnHex.toString(16).padStart(6, '0') : pal.tr;
   const cv = document.createElement('canvas');
   cv.width = 180; cv.height = 104;
   const ctx = cv.getContext('2d');
@@ -5354,15 +5414,15 @@ function pieceLabelMaterial(type, color, lang) {
     ctx.font = '600 56px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif';
     fillTextInkCentered(ctx, n.kh, 90, 68);
   } else if (lang === 'en') {
-    ctx.fillStyle = pal.tr;
-    ctx.font = '600 38px "Segoe UI",sans-serif';
+    ctx.fillStyle = enColor;
+    ctx.font = (enMatchKh ? '400 56px' : '600 38px') + ' "Segoe UI",sans-serif';
     ctx.fillText(n.tr, 90, 66);
   } else {
     ctx.fillStyle = pal.kh;
     ctx.font = '600 46px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif';
     fillTextInkCentered(ctx, n.kh, 90, 50);
-    ctx.fillStyle = pal.tr;
-    ctx.font = '600 30px "Segoe UI",sans-serif';
+    ctx.fillStyle = enColor;
+    ctx.font = (enMatchKh ? '400 46px' : '600 30px') + ' "Segoe UI",sans-serif';
     ctx.fillText(n.tr, 90, 86);
   }
   const tex = new THREE.CanvasTexture(cv);
@@ -8585,7 +8645,28 @@ const LESSONS = {
 };
 const LESSON_ORDER = [E.PAWN, E.ROOK, E.KNIGHT, E.BISHOP, E.QUEEN, E.KING];
 
+// ---------- Training panel: single-open accordion ----------
+// The three Training sections (Learn the pieces / Strategy guide /
+// Puzzles) are collapsible <details class="acc">, and act as an accordion
+// -- opening one auto-closes the other two, whether that's the user
+// clicking a <summary> directly or picking a piece/example/puzzle inside
+// one (loadLesson/loadGuideExample/loadPuzzle all call this). The single
+// shared #lessonText description is physically reparented into whichever
+// section is currently active, so it always renders directly under it
+// instead of fixed at the bottom of the whole panel.
+const TRAIN_SECTIONS = ['trainLearnSec', 'trainGuideSec', 'trainPuzzleSec'];
+function activateTrainSection(id) {
+  TRAIN_SECTIONS.forEach(sid => { document.getElementById(sid).open = (sid === id); });
+  document.getElementById(id).querySelector('.acc-body').appendChild(document.getElementById('lessonText'));
+}
+TRAIN_SECTIONS.forEach(sid => {
+  document.getElementById(sid).addEventListener('toggle', () => {
+    if (document.getElementById(sid).open) activateTrainSection(sid);
+  });
+});
+
 function loadLesson() {
+  activateTrainSection('trainLearnSec');
   guideKey = null; // leaving the strategy guide, if it was active
   if (typeof activePuzzle !== 'undefined') { activePuzzle = null; document.querySelectorAll('#puzzleBtns button').forEach(b => b.classList.remove('active')); }
   document.getElementById('guideAnswerBtn').style.display = 'none';
@@ -9171,6 +9252,7 @@ function renderGuideGameStep() {
 }
 
 function loadGuideExample(tier, key) {
+  activateTrainSection('trainGuideSec');
   guideGameStopAuto();
   if (typeof activePuzzle !== 'undefined') { activePuzzle = null; document.querySelectorAll('#puzzleBtns button').forEach(b => b.classList.remove('active')); }
   guideTier = tier; guideKey = key;
@@ -9288,6 +9370,7 @@ function puzzleLessonText() {
     (puzzleSolved ? '<span class="gresult">✔ ដោះស្រាយបានហើយ! Solved — pick another puzzle.</span>' : '<span class="gflag">ស To move: White — ដើរកូនអុកដោយខ្លួនឯង make your own move on the board.</span>');
 }
 function loadPuzzle(key) {
+  activateTrainSection('trainPuzzleSec');
   guideGameStopAuto();
   activePuzzle = PUZZLES.find(p => p.key === key);
   puzzleSolved = false;
@@ -9413,6 +9496,18 @@ function resetGame() {
 }
 function newGame() { resetGame(); }
 function startGameWithMode(modeStr, side) {
+  // Change Mode can be opened from Training as well as from an ongoing
+  // game, so starting a new Play-mode game here must force uiMode back to
+  // 'play' and show its panels itself -- setUiMode('play') would instead
+  // try to restore the *pre-training* snapshot (savedPlay), clobbering the
+  // fresh game this function is about to create. Bypass it the same way
+  // the save/load-game restore path already does.
+  savedPlay = null;
+  uiMode = 'play';
+  document.getElementById('playPanel').style.display = 'block';
+  document.getElementById('variantPanel').style.display = 'block';
+  document.getElementById('movelist').style.display = 'block';
+  document.getElementById('trainPanel').style.display = 'none';
   mode = modeStr; humanSide = side;
   clockCfg = pendingClock; // time control chosen on the mode-select screen
   gameEndTracked = false;
