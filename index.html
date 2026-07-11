@@ -436,7 +436,21 @@
     #panel, #panel select, #panel button, #panel input[type="range"] { font-size: 15px; }
     #panel button { padding: 11px 10px; min-height: 44px; }
     details.acc > summary { padding: 13px 12px; font-size: 14px; }
-    #camControls { top: 12px; }
+    /* 2-row x 3-column grid (instead of the desktop single column) --
+       5 buttons read as a long thin strip stacked vertically on a phone,
+       eating a lot of the board's vertical space; a compact grid keeps
+       the same buttons reachable in far less height. The 6th cell (row
+       2, col 3) is simply left empty by the 5th button's natural
+       row-major grid placement. Pushed down below the centered board
+       title (top: 12px, same start as the title, is too far left/high
+       once the cluster is 3 buttons wide instead of 1 -- it clipped
+       into the centered title text on narrow phones) instead of hugging
+       the very top like the old single column did. */
+    #camControls {
+      top: 60px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
+      gap: 6px; width: calc(44px * 3 + 6px * 2);
+    }
+    #camControls button { width: auto; }
     #boardTitle { font-size: 20px; top: 14px; }
     #hud { font-size: 11px; }
     /* cap to ~4 visible lines (line-height 1.7em/line) instead of the
@@ -471,7 +485,11 @@
       overflow-x: visible; overflow-y: auto; justify-content: flex-start; }
     #mobileToolbar button { flex: 0 0 auto; margin: 3px 0; min-height: 44px; }
     #panel { padding-bottom: 12px; padding-right: 68px; }
-    #camControls { right: 68px; }
+    /* short landscape screens are tight on vertical room and the title
+       shrinks + the toolbar's own right-hand column already pushes the
+       cluster away from center, so it can safely hug the top like the
+       old single-column layout instead of the portrait rule's top:60px */
+    #camControls { top: 12px; right: 68px; }
     #boardTitle { top: 12px; font-size: 15px; }
     #boardTitle small { font-size: 9px; }
   }
@@ -1655,11 +1673,11 @@
     <details class="acc" id="trainLearnSec" open>
       <summary>រៀនដើរកូនអុក — Learn the pieces</summary>
       <div class="acc-body">
-      <div class="piecebtns" id="pieceBtns"></div>
-      <div class="subtabs" style="margin-top:8px">
+      <div class="subtabs">
         <button id="subBasic" class="active">មូលដ្ឋាន Basic</button>
         <button id="subAdv">កម្រិតខ្ពស់ Advanced</button>
       </div>
+      <div class="piecebtns" id="pieceBtns" style="margin-top:8px"></div>
       <div class="btnrow" style="margin-top:8px">
         <button id="lessonReset">ចាប់ផ្ដើមឡើងវិញ Reset</button>
       </div>
@@ -3202,14 +3220,26 @@ const THEMES = {
   // instead of sun-bleached.
   girlyPink: {
     name: 'Girly Pink', style: 'girly',
-    bg: 0xffe3ee, fog: null,
-    // sage green (pink's complement) frame + tray
-    frame: 0x8fae86, tileLight: 0xffeef5, tileDark: 0x9c3d68,
-    pieceW: 0xfff3f8, pieceB: 0xd6488a, rough: 0.12, metal: 0.35,
+    bg: 0xffeef1, fog: null,
+    // sage green (pink's complement) frame + tray. tileDark/pieceB were
+    // originally a wine-maroon board under hot-fuchsia pieces -- same hue
+    // family as intended, but a low LIGHTNESS on both read as heavy/dated
+    // "wine bar" rather than delicate, and the two didn't sit in a
+    // believable jewelry relationship. Re-tuned to real "dusty rose"/
+    // "pastel rose gold" reference hex values (~#c79098, ~#ffd6d1) instead
+    // of a from-scratch guess: tileDark now sits at rose-gold lightness
+    // (a soft, warm mid-tone board instead of dark wine), pieceB is a
+    // richer rose a shade darker than the board -- the same "board hue
+    // and Black-piece hue as close tonal twins" relationship Girly
+    // Purple/Yellow already use successfully -- rather than jumping to an
+    // unrelated neon fuchsia.
+    frame: 0x8fae86, tileLight: 0xffeef5, tileDark: 0xc97b95,
+    pieceW: 0xfff3f8, pieceB: 0xb8496f, rough: 0.12, metal: 0.35,
     labelInk: '#7a2a4c', tray: 0xd9ecd0,
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
     ambientScale: 0.9, hemiScale: 0.85,
     ambientColorOverride: 0xfff0f6, hemiSkyColorOverride: 0xffd9e8, hemiGroundColorOverride: 0x3f4f34,
+    girlyFx: true,
     // pink leads (King + Pawn/Sapphire slot), purple second (Queen + Rook/
     // Amber slot), yellow as the accent (Bishop/Emerald slot)
     gemPalette: {
@@ -3228,6 +3258,7 @@ const THEMES = {
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
     ambientScale: 0.9, hemiScale: 0.85,
     ambientColorOverride: 0xf4ecff, hemiSkyColorOverride: 0xe6d4ff, hemiGroundColorOverride: 0x424f26,
+    girlyFx: true,
     // purple leads (King + Pawn/Sapphire slot), yellow second (Queen +
     // Rook/Amber slot), pink as the accent (Bishop/Emerald slot)
     gemPalette: {
@@ -3246,6 +3277,7 @@ const THEMES = {
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
     ambientScale: 0.9, hemiScale: 0.85,
     ambientColorOverride: 0xfff8e0, hemiSkyColorOverride: 0xffedb8, hemiGroundColorOverride: 0x2c3a52,
+    girlyFx: true,
     // yellow leads (King + Pawn/Sapphire slot), pink second (Queen + Rook/
     // Amber slot), purple as the accent (Bishop/Emerald slot)
     gemPalette: {
@@ -7778,6 +7810,81 @@ function triggerGemEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
     console.warn('gem-effect render failed (ignored):', err);
   }
 }
+// ============ Girly (Pink/Purple/Yellow) themes: gem-sparkle motion effects ============
+// Reuses the exact star/shard/flash/ring visuals Gem Blitz pioneered above
+// (fx-gem-star/fx-gem-shard/fx-gem-flash/fx-gem-ring -- no new CSS needed)
+// but pulls its own color set from the ACTIVE theme's own gemPalette
+// instead of Gem Blitz's fixed classic ruby/amber/emerald/sapphire/
+// amethyst set, so Girly Pink sparkles pink/purple/yellow and so on for
+// each variant. Always mixes in a genuine pure-white spark alongside the
+// tinted ones: a real faceted jewel's brightest glints are colorless --
+// pure light catching a facet head-on -- not just a colored twinkle, so an
+// all-tinted sparkle set reads as plasticky rather than gem-like. No
+// combo/score arcade layer (that's Gem Blitz's own match-3 identity) --
+// just the twinkle trail and a capture shatter, matching the calmer
+// "fine jewelry" mood already established for buildGemPiece's Girly
+// variant.
+function girlyFxColors() {
+  const gp = theme().gemPalette || {};
+  const cols = new Set();
+  for (const key in gp) {
+    const pair = gp[key];
+    if (Array.isArray(pair)) pair.forEach(hex => cols.add('#' + hex.toString(16).padStart(6, '0')));
+  }
+  return Array.from(cols);
+}
+function fxGirlyTrail(fromSq, toSq) {
+  const cols = girlyFxColors();
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  for (let i = 0; i < 5; i++) {
+    const tt = i / 4;
+    const pt = { x: a.x + (b.x - a.x) * tt, y: a.y + (b.y - a.y) * tt };
+    // every other glint is forced pure white so the trail always shows
+    // real white sparks, not just theme-tinted ones (see comment above)
+    const col = i % 2 === 0 ? '#ffffff' : cols[i % cols.length];
+    const el = fxAt(pt, 'fx-gem-star', { '--gemcol': col });
+    el.style.animationDelay = (i * 40) + 'ms';
+    fxSpawn(el, 360 + i * 40 + 40);
+  }
+  window.__oukFxLog.push({ tier: 1, key: 'girly_trail' });
+}
+function fxGirlyShatter(sq) {
+  const cols = girlyFxColors();
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-gem-flash', {}), 300);
+  fxSpawn(fxAt(pt, 'fx-gem-ring', {}), 420);
+  for (let i = 0; i < 12; i++) {
+    const ang = (i / 12) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 26 + Math.random() * 34;
+    const col = i % 3 === 0 ? '#ffffff' : cols[i % cols.length];
+    fxSpawn(fxAt(pt, 'fx-gem-shard', {
+      '--gemcol': col,
+      '--mx': (Math.cos(ang) * dist) + 'px',
+      '--my': (Math.sin(ang) * dist - 14) + 'px',
+      '--rot': (Math.random() * 520 - 260) + 'deg',
+    }), 520);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'girly_shatter' });
+}
+function triggerGirlyEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.girlyFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#ffffff');
+      else fxGirlyShatter(m.to);
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#ffffff');
+      else fxGirlyTrail(m.from, m.to);
+    }
+    // reuses the same screen-level check vignette/shake every other
+    // theme's check effect does (see fxCheck above).
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('girly-effect render failed (ignored):', err);
+  }
+}
 // ============ ANNO Mutationem-vibe theme: neon-trail/glitch-burst motion effects ============
 // A dual-tone neon streak that snaps from the mover's square to its
 // destination for a normal move (fxAnnoTrail -- a stretched gradient
@@ -7826,19 +7933,27 @@ function triggerAnnoEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
     console.warn('anno-effect render failed (ignored):', err);
   }
 }
-// Ambient "sprinkle" twinkles: while Gem Blitz is the active theme, stray
-// star glints pop at random board squares every second or so, keeping the
-// whole board alive with sparkle between moves -- skipped while an
-// overlay covers the board, when the tab is hidden, and under
+// Ambient "sprinkle" twinkles: while Gem Blitz OR a Girly theme is active,
+// stray star glints pop at random board squares every second or so,
+// keeping the whole board alive with sparkle between moves -- skipped
+// while an overlay covers the board, when the tab is hidden, and under
 // prefers-reduced-motion. Deliberately NOT pushed to __oukFxLog (they're
-// atmosphere, not gameplay events, and would drown the log).
+// atmosphere, not gameplay events, and would drown the log). Girly themes
+// pull their own gemPalette-derived color set (girlyFxColors, see above)
+// instead of Gem Blitz's fixed classic set, and force one of the two
+// twinkles per tick to a genuine white spark rather than leaving it to
+// chance, so real white glints reliably show up in the ambient sparkle,
+// not just theme-tinted ones.
 setInterval(() => {
   try {
-    if (!theme().gemFx || overlayOpen || document.hidden || fxPrefersReducedMotion()) return;
+    const t = theme();
+    if (!(t.gemFx || t.girlyFx) || overlayOpen || document.hidden || fxPrefersReducedMotion()) return;
+    const cols = t.girlyFx ? girlyFxColors() : GEM_FX_COLORS;
     for (let i = 0; i < 2; i++) {
       const pt = fxScreenPoint((Math.random() * 64) | 0);
+      const col = (t.girlyFx && i === 0) ? '#ffffff' : cols[(Math.random() * cols.length) | 0];
       const el = fxAt({ x: pt.x + (Math.random() - 0.5) * 34, y: pt.y + (Math.random() - 0.5) * 34 },
-        'fx-gem-star', { '--gemcol': GEM_FX_COLORS[(Math.random() * GEM_FX_COLORS.length) | 0] });
+        'fx-gem-star', { '--gemcol': col });
       el.style.animationDuration = '700ms';
       el.style.animationDelay = (i * 180) + 'ms';
       fxSpawn(el, 700 + i * 180 + 60);
@@ -8443,6 +8558,7 @@ function applyMove(m) {
   triggerNatureEffect(m, mover, captured, isCheck, isCheckmate);
   triggerCambodiaEffect(m, mover, captured, isCheck, isCheckmate);
   triggerAnnoEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerGirlyEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
