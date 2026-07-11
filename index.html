@@ -436,19 +436,18 @@
     #panel, #panel select, #panel button, #panel input[type="range"] { font-size: 15px; }
     #panel button { padding: 11px 10px; min-height: 44px; }
     details.acc > summary { padding: 13px 12px; font-size: 14px; }
-    /* 2-row x 3-column grid (instead of the desktop single column) --
+    /* 3-row x 2-column grid (instead of the desktop single column) --
        5 buttons read as a long thin strip stacked vertically on a phone,
        eating a lot of the board's vertical space; a compact grid keeps
-       the same buttons reachable in far less height. The 6th cell (row
-       2, col 3) is simply left empty by the 5th button's natural
-       row-major grid placement. Pushed down below the centered board
-       title (top: 12px, same start as the title, is too far left/high
-       once the cluster is 3 buttons wide instead of 1 -- it clipped
-       into the centered title text on narrow phones) instead of hugging
-       the very top like the old single column did. */
+       the same buttons reachable in far less height while staying
+       narrow enough to hug the top-right corner without clipping into
+       the centered board title (a wider 3-column layout needed pushing
+       down below the title to avoid that same overlap). The 6th cell
+       (row 3, col 2) is simply left empty by the 5th button's natural
+       row-major grid placement. */
     #camControls {
-      top: 60px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
-      gap: 6px; width: calc(44px * 3 + 6px * 2);
+      top: 12px; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr);
+      gap: 6px; width: calc(44px * 2 + 6px * 1);
     }
     #camControls button { width: auto; }
     #boardTitle { font-size: 20px; top: 14px; }
@@ -3204,16 +3203,24 @@ const THEMES = {
   // system (warm cream #faf9f5 paper, near-black ink #141413, a clay/
   // terracotta accent family around #d97757) instead of three unrelated
   // photo moodboards -- Claude's own design language is explicitly warm
-  // and muted rather than cold or neon (its terracotta rejects the cold
-  // blues most AI products default to), so all three themes now share
-  // the SAME warm cream scene background, the SAME near-black ink frame/
-  // tray/label-ink, and the SAME warm-cream (not stark white) White
-  // pieces -- one consistent "brand," not three separately-colored board
-  // sets -- while each theme's own accent (a clay-rose, a dusty mauve, a
-  // warm ochre-gold, all pulled from the same muted, low-saturation
-  // family as Claude's own terracotta) leads its board tone and its
-  // gemPalette's King/Pawn cuts, the same "one hue leads, the other two
-  // support" structure as before. The piece finish also moved from a
+  // rather than cold or neon (its terracotta rejects the cold blues most
+  // AI products default to), so all three themes now share the SAME warm
+  // cream scene background, the SAME near-black ink frame/tray, and the
+  // SAME warm-cream (not stark white) White pieces -- one consistent
+  // "brand," not three separately-colored board sets -- while each
+  // theme's own accent (a clay-rose, a vivid plum, a vivid amber-gold)
+  // leads its board tone and its gemPalette's King/Pawn cuts, the same
+  // "one hue leads, the other two support" structure as before. A first
+  // pass kept these accents as muted as Claude's own neutrals, but a flat
+  // muted hue across the WHOLE board reads as washed-out rather than
+  // sophisticated at this scale, so the accents were pushed back up to a
+  // rich, saturated "jewel-tone" version of the same hue family instead
+  // -- vivid, but still warm and still clearly related to Claude's own
+  // terracotta, not neon. labelInk (the board-edge coordinate letters)
+  // now matches each theme's own pale tileLight rather than a dark ink,
+  // since it has to contrast against the dark ink FRAME it sits on, not
+  // the tile -- see the per-theme comment on Girly Pink's labelInk for
+  // the full mechanism. The piece finish also moved from a
   // glossy "cut glass jewel" (clearcoat 0.85, sharp clearcoatRoughness
   // 0.04, metal 0.35) to a softer, more matte "polished clay/ceramic"
   // finish (clearcoat 0.35, softer clearcoatRoughness 0.25, metal 0.15)
@@ -3232,9 +3239,16 @@ const THEMES = {
   girlyPink: {
     name: 'Girly Pink', style: 'girly', // Claude clay-rose
     bg: 0xfaf9f5, fog: null,
-    frame: 0x141413, tileLight: 0xf3e2d9, tileDark: 0xc9887b,
-    pieceW: 0xfaf6ee, pieceB: 0x8b4a3d, rough: 0.35, metal: 0.15,
-    labelInk: '#3d2620', tray: 0x1c1613,
+    frame: 0x141413, tileLight: 0xf5ddd0, tileDark: 0xe0654a,
+    pieceW: 0xfaf6ee, pieceB: 0xa8321f, rough: 0.35, metal: 0.15,
+    // labelInk (the board-edge coordinate letters, see makeLabelMesh) has
+    // to contrast against the FRAME they sit on, not the tile -- now that
+    // the frame is dark ink for all three Girly themes, labelInk needs to
+    // be a LIGHT color (the same "dark frame -> light labelInk" pattern
+    // Sofisticate/Night/Glass already use), not a dark one, or the
+    // letters just disappear into the frame. Reuses this theme's own
+    // tileLight for a bit of per-theme identity in the labels.
+    labelInk: '#f5ddd0', tray: 0x1c1613,
     clearcoat: 0.35, clearcoatRoughness: 0.25, envMapIntensity: 0.5,
     frameClearcoat: 0.12, frameEnvMapIntensity: 0.1,
     ambientScale: 0.55, hemiScale: 0.5,
@@ -3243,17 +3257,17 @@ const THEMES = {
     // clay-rose leads (King + Pawn/Sapphire slot), plum second (Queen +
     // Rook/Amber slot), ochre-gold as the accent (Bishop/Emerald slot)
     gemPalette: {
-      ruby: [0xd9775f, 0x8b3d2a], sapphire: [0xd9775f, 0x8b3d2a],
-      amethyst: [0x9b7f95, 0x5c4658], amber: [0x9b7f95, 0x5c4658],
-      emerald: [0xd4a15a, 0x8a6a2a]
+      ruby: [0xe0654a, 0xa8321f], sapphire: [0xe0654a, 0xa8321f],
+      amethyst: [0xa8508f, 0x6b2f5c], amber: [0xa8508f, 0x6b2f5c],
+      emerald: [0xe0a52e, 0x9c6f10]
     }
   },
   girlyPurple: {
-    name: 'Girly Purple', style: 'girly', // Claude muted plum
+    name: 'Girly Purple', style: 'girly', // Claude vivid plum
     bg: 0xfaf9f5, fog: null,
-    frame: 0x141413, tileLight: 0xe8dde4, tileDark: 0x9b8091,
-    pieceW: 0xfaf6ee, pieceB: 0x5c4658, rough: 0.35, metal: 0.15,
-    labelInk: '#3a2c38', tray: 0x181316,
+    frame: 0x141413, tileLight: 0xe8d4e0, tileDark: 0xa8508f,
+    pieceW: 0xfaf6ee, pieceB: 0x6b2f5c, rough: 0.35, metal: 0.15,
+    labelInk: '#e8d4e0', tray: 0x181316,
     clearcoat: 0.35, clearcoatRoughness: 0.25, envMapIntensity: 0.5,
     frameClearcoat: 0.12, frameEnvMapIntensity: 0.1,
     ambientScale: 0.55, hemiScale: 0.5,
@@ -3262,17 +3276,17 @@ const THEMES = {
     // plum leads (King + Pawn/Sapphire slot), ochre-gold second (Queen +
     // Rook/Amber slot), clay-rose as the accent (Bishop/Emerald slot)
     gemPalette: {
-      ruby: [0x9b7f95, 0x5c4658], sapphire: [0x9b7f95, 0x5c4658],
-      amethyst: [0xd4a15a, 0x8a6a2a], amber: [0xd4a15a, 0x8a6a2a],
-      emerald: [0xd9775f, 0x8b3d2a]
+      ruby: [0xa8508f, 0x6b2f5c], sapphire: [0xa8508f, 0x6b2f5c],
+      amethyst: [0xe0a52e, 0x9c6f10], amber: [0xe0a52e, 0x9c6f10],
+      emerald: [0xe0654a, 0xa8321f]
     }
   },
   girlyYellow: {
-    name: 'Girly Yellow', style: 'girly', // Claude warm ochre
+    name: 'Girly Yellow', style: 'girly', // Claude vivid amber-gold
     bg: 0xfaf9f5, fog: null,
-    frame: 0x141413, tileLight: 0xf5e6c8, tileDark: 0xd4a15a,
-    pieceW: 0xfaf6ee, pieceB: 0x8a6a2a, rough: 0.35, metal: 0.15,
-    labelInk: '#3d2f10', tray: 0x1c1712,
+    frame: 0x141413, tileLight: 0xf5e0a8, tileDark: 0xe0a52e,
+    pieceW: 0xfaf6ee, pieceB: 0x9c6f10, rough: 0.35, metal: 0.15,
+    labelInk: '#f5e0a8', tray: 0x1c1712,
     clearcoat: 0.35, clearcoatRoughness: 0.25, envMapIntensity: 0.5,
     frameClearcoat: 0.12, frameEnvMapIntensity: 0.1,
     ambientScale: 0.55, hemiScale: 0.5,
@@ -3281,9 +3295,9 @@ const THEMES = {
     // ochre-gold leads (King + Pawn/Sapphire slot), clay-rose second
     // (Queen + Rook/Amber slot), plum as the accent (Bishop/Emerald slot)
     gemPalette: {
-      ruby: [0xd4a15a, 0x8a6a2a], sapphire: [0xd4a15a, 0x8a6a2a],
-      amethyst: [0xd9775f, 0x8b3d2a], amber: [0xd9775f, 0x8b3d2a],
-      emerald: [0x9b7f95, 0x5c4658]
+      ruby: [0xe0a52e, 0x9c6f10], sapphire: [0xe0a52e, 0x9c6f10],
+      amethyst: [0xe0654a, 0xa8321f], amber: [0xe0654a, 0xa8321f],
+      emerald: [0xa8508f, 0x6b2f5c]
     }
   },
   // Kids: a redesigned chunky, rounded, bright-primary-color piece set
