@@ -137,12 +137,11 @@
   #panel > * { flex-shrink: 0; }
   h1 { font-size: 20px; color: var(--accent); font-weight: 600; }
   h1 small { display: block; font-size: 12px; color: var(--text-muted); font-weight: 400; }
-  #tabs { display: flex; gap: 8px; }
-  #tabs button {
-    flex: 1; padding: 8px 0; font-size: 14px; border-radius: 8px;
+  #langBtns button {
+    flex: 1; padding: 8px 0; font-size: 13px; border-radius: 8px;
     border: 1px solid var(--accent-dim); background: var(--surface-1); color: var(--panel-fg); cursor: pointer;
   }
-  #tabs button.active { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+  #langBtns button.active { background: var(--accent); color: var(--on-accent); font-weight: 600; }
   #status {
     background: var(--surface-1); border: 1px solid var(--line); border-radius: 8px;
     padding: 10px 12px; font-size: 15px; line-height: 1.5;
@@ -181,7 +180,6 @@
   body.ui-vibrant details.acc:nth-of-type(4n+3) > summary { background: var(--accent3); color: var(--on-accent3); }
   body.ui-vibrant details.acc:nth-of-type(4n+4) > summary { background: var(--accent4); color: var(--on-accent4); }
   body.ui-vibrant details.acc > summary:hover { filter: brightness(1.08); }
-  body.ui-vibrant #tabs button:nth-child(2).active { background: var(--accent2); color: var(--on-accent2); }
   body.ui-vibrant .piecebtns button:nth-child(3n+2).active { background: var(--accent2); color: var(--on-accent2); }
   body.ui-vibrant .piecebtns button:nth-child(3n+3).active { background: var(--accent3); color: var(--on-accent3); }
   /* Ordinary buttons/selects default to a neutral border instead of an
@@ -191,7 +189,6 @@
      one color over the whole panel rather than a deliberate rainbow. */
   body.ui-vibrant select, body.ui-vibrant button { border-color: var(--line); }
   body.ui-vibrant button:hover:not(:disabled) { border-color: var(--accent-dim); }
-  body.ui-vibrant #tabs button { border-color: var(--line); }
   /* right-panel hide/show toggle */
   #panelToggle {
     position: absolute; top: 12px; right: 12px; z-index: 6; width: 34px; height: 34px;
@@ -1561,17 +1558,13 @@
 <div id="panel">
   <h1>ការកំណត់ Setting Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
 
-  <div id="tabs">
-    <button id="tabPlay" class="active">លេង Play</button>
-    <button id="tabTrain">រៀន Training</button>
+  <div class="btnrow">
+    <button id="changeModeBtn">ប្ដូររបៀបលេង Change Mode</button>
   </div>
-  <div id="langRow" style="display:flex;align-items:center;gap:8px">
-    <span style="font-size:14px" title="Display language">🌐</span>
-    <select id="langSel" style="flex:1;margin:0">
-      <option value="both">ខ្មែរ + English</option>
-      <option value="kh">ខ្មែរ</option>
-      <option value="en">English</option>
-    </select>
+  <div class="btnrow" id="langBtns">
+    <button data-lang="both" class="active">ខ្មែរ + English</button>
+    <button data-lang="kh">ខ្មែរ</button>
+    <button data-lang="en">English</button>
   </div>
 
   <div id="status">White to move</div>
@@ -1584,9 +1577,6 @@
     <div class="acc-body">
     <div id="modeReadout" style="font-size:13px;margin:2px 0 4px;">Mode: <b id="modeReadoutText">—</b></div>
     <div class="btnrow">
-      <button id="changeModeBtn">ប្ដូររបៀបលេង Change Mode</button>
-    </div>
-    <div class="btnrow" style="margin-top:6px">
       <button id="newBtn">New game ល្បែងថ្មី</button>
       <button id="undoBtn">Undo ត្រឡប់</button>
       <button id="hintBtn" title="Suggest a good move">💡 Hint ជំនួយ</button>
@@ -1618,9 +1608,6 @@
   </div>
 
   <div id="trainPanel">
-    <div class="btnrow">
-      <button id="changeModeBtnTrain">ប្ដូររបៀបលេង Change Mode</button>
-    </div>
     <fieldset>
       <legend>រៀនដើរកូនអុក — Learn the pieces</legend>
       <div class="piecebtns" id="pieceBtns"></div>
@@ -3150,7 +3137,7 @@ const THEMES = {
   girlyPink: {
     name: 'Girly Pink', style: 'girly',
     bg: 0xffe3ee, fog: null,
-    frame: 0xe8a8c4, tileLight: 0xffeef5, tileDark: 0xf2a8c8,
+    frame: 0xe8a8c4, tileLight: 0xffeef5, tileDark: 0x9c3d68,
     pieceW: 0xfff3f8, pieceB: 0xd6488a, rough: 0.12, metal: 0.35,
     labelInk: '#7a2a4c', tray: 0xf7c9dc,
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
@@ -3165,7 +3152,7 @@ const THEMES = {
   girlyPurple: {
     name: 'Girly Purple', style: 'girly',
     bg: 0xede2ff, fog: null,
-    frame: 0xa87ec8, tileLight: 0xf2e8ff, tileDark: 0xc39ce8,
+    frame: 0xa87ec8, tileLight: 0xf2e8ff, tileDark: 0x6a3d9c,
     pieceW: 0xf8f0ff, pieceB: 0x7a3ab0, rough: 0.12, metal: 0.35,
     labelInk: '#442870', tray: 0xd9c2f2,
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
@@ -3180,7 +3167,7 @@ const THEMES = {
   girlyYellow: {
     name: 'Girly Yellow', style: 'girly',
     bg: 0xfff6d8, fog: null,
-    frame: 0xf0c246, tileLight: 0xfff8e2, tileDark: 0xf5d878,
+    frame: 0xf0c246, tileLight: 0xfff8e2, tileDark: 0xa87a1a,
     pieceW: 0xfffaf0, pieceB: 0xdc9a10, rough: 0.12, metal: 0.35,
     labelInk: '#6b4a10', tray: 0xf5e3a8,
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
@@ -3897,6 +3884,22 @@ function glowTint(baseColor) {
 function raiseMinLightness(color, minL) {
   color.getHSL(fxGlowHSL);
   if (fxGlowHSL.l < minL) color.setHSL(fxGlowHSL.h, fxGlowHSL.s, minL);
+}
+// Board-tile counterpart to pieceBFloor above: several dark-mood themes
+// (Magic, Magic II, Glass, Marble, Avatar, Sofisticate, ANNO...) pick a
+// near-black tileDark meant to read as just the dark HALF of a checkered
+// board, contrasted against a lighter tileLight square. But the "Khmer
+// board" single-tone style (khmerBoardStyle, the default) paints EVERY
+// square with tileDark alone -- at those themes' original near-black
+// values that made the *entire* board read as solid black instead of a
+// dark wood tone. Only applied in that uniform mode; checkered mode's
+// dark square keeps the theme's own value untouched, since there it's
+// only half the surface and is meant to contrast against a lighter tile.
+const _tileFloorScratch = new THREE.Color();
+function floorTileLightness(hex, minL) {
+  _tileFloorScratch.setHex(hex);
+  raiseMinLightness(_tileFloorScratch, minL);
+  return _tileFloorScratch.getHex();
 }
 // Blends two sRGB hex colors by lerping their raw 0-255 channel bytes
 // directly, deliberately bypassing THREE.Color's own .lerp (which mixes in
@@ -6158,7 +6161,10 @@ function applyTheme(key) {
     const light = (E.fileOf(m.userData.sq) + E.rankOf(m.userData.sq)) % 2 === 1;
     // Khmer board style: every square shares one wood tone instead of the
     // checkered pattern; the grid overlay below draws the square boundaries.
-    const hex = khmerBoardStyle ? t.tileDark : (light ? t.tileLight : t.tileDark);
+    // See floorTileLightness above -- the uniform tone gets a visibility
+    // floor so a theme's near-black tileDark doesn't paint the whole board
+    // solid black; checkered mode's dark square is untouched.
+    const hex = khmerBoardStyle ? floorTileLightness(t.tileDark, 0.15) : (light ? t.tileLight : t.tileDark);
     m.userData.baseColor = tiled ? 0xffffff : hex;
     m.material.color.setHex(m.userData.baseColor);
     m.material.map = t.brickTiles
@@ -9316,8 +9322,6 @@ function loadPuzzle(key) {
 function setUiMode(m) {
   if (m === uiMode || aiBusy) return;
   uiMode = m;
-  document.getElementById('tabPlay').classList.toggle('active', m === 'play');
-  document.getElementById('tabTrain').classList.toggle('active', m === 'train');
   document.getElementById('playPanel').style.display = m === 'play' ? 'block' : 'none';
   document.getElementById('variantPanel').style.display = m === 'play' ? 'block' : 'none';
   document.getElementById('movelist').style.display = m === 'play' ? 'block' : 'none';
@@ -9343,9 +9347,6 @@ function setUiMode(m) {
     scheduleAI();
   }
 }
-document.getElementById('tabPlay').onclick = () => setUiMode('play');
-document.getElementById('tabTrain').onclick = () => setUiMode('train');
-
 // ---------- controls ----------
 document.getElementById('newBtn').onclick = newGame;
 undoBtn.onclick = () => {
@@ -9515,7 +9516,6 @@ function hideOverlays() {
 }
 document.getElementById('startBtn').onclick = () => { modeScreenOrigin = 'start'; openModeScreen(); };
 document.getElementById('changeModeBtn').onclick = () => { modeScreenOrigin = 'game'; openModeScreen(); };
-document.getElementById('changeModeBtnTrain').onclick = () => { modeScreenOrigin = 'game'; openModeScreen(); };
 document.getElementById('pickLearn').onclick = () => { hideOverlays(); setUiMode('train'); };
 document.getElementById('pickPlay').onclick = () => showModePlayStep();
 document.getElementById('modeChoiceCancel').onclick = () => {
@@ -9621,8 +9621,6 @@ function loadGame() {
   // (bypass setUiMode's training-excursion restore, which would clobber it)
   savedPlay = null;
   uiMode = 'play';
-  document.getElementById('tabPlay').classList.add('active');
-  document.getElementById('tabTrain').classList.remove('active');
   document.getElementById('playPanel').style.display = 'block';
   document.getElementById('variantPanel').style.display = 'block';
   document.getElementById('movelist').style.display = 'block';
@@ -10390,12 +10388,13 @@ function applyLangPref(v) {
   wrapLangRuns(document.getElementById('startScreen'));
   wrapLangRuns(document.getElementById('modeScreen'));
   wrapLangRuns(document.getElementById('reviewBar'));
-  const sel = document.getElementById('langSel');
+  const langBtns = document.querySelectorAll('#langBtns button');
   let saved = 'both';
   try { saved = localStorage.getItem(LANG_PREF_KEY) || 'both'; } catch (e) {}
-  sel.value = saved;
+  const markActive = (v) => langBtns.forEach(b => b.classList.toggle('active', b.dataset.lang === v));
+  markActive(saved);
   applyLangPref(saved);
-  sel.onchange = (e) => applyLangPref(e.target.value);
+  langBtns.forEach(b => b.onclick = () => { markActive(b.dataset.lang); applyLangPref(b.dataset.lang); });
 })();
 
 applyTheme('wood');
