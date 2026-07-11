@@ -3220,25 +3220,26 @@ const THEMES = {
   // instead of sun-bleached.
   girlyPink: {
     name: 'Girly Pink', style: 'girly',
-    bg: 0xffeef1, fog: null,
-    // sage green (pink's complement) frame + tray. tileDark/pieceB were
-    // originally a wine-maroon board under hot-fuchsia pieces -- same hue
-    // family as intended, but a low LIGHTNESS on both read as heavy/dated
-    // "wine bar" rather than delicate, and the two didn't sit in a
-    // believable jewelry relationship. Re-tuned to real "dusty rose"/
-    // "pastel rose gold" reference hex values (~#c79098, ~#ffd6d1) instead
-    // of a from-scratch guess: tileDark now sits at rose-gold lightness
-    // (a soft, warm mid-tone board instead of dark wine), pieceB is a
-    // richer rose a shade darker than the board -- the same "board hue
-    // and Black-piece hue as close tonal twins" relationship Girly
-    // Purple/Yellow already use successfully -- rather than jumping to an
-    // unrelated neon fuchsia.
-    frame: 0x8fae86, tileLight: 0xffeef5, tileDark: 0xc97b95,
-    pieceW: 0xfff3f8, pieceB: 0xb8496f, rough: 0.12, metal: 0.35,
-    labelInk: '#7a2a4c', tray: 0xd9ecd0,
+    // Re-tuned to a user-supplied pastel-Y2K reference photo: a soft
+    // bubblegum-pink cap and lavender sleeve against a vivid mint/
+    // turquoise backdrop, platinum hair, pink-and-white daisies with
+    // yellow centers. That photo pairs pink with MINT, not the muted
+    // sage this theme used before -- swapping the complement to a soft
+    // mint-teal (still pastel-saturated to match Girly Purple/Yellow's
+    // own complement furniture, not the photo's full-saturation teal)
+    // reads as a much closer match to the reference's actual vibe. The
+    // board itself moved from a dusty-rose wine tone up to a brighter,
+    // more saturated bubblegum pink (closer to the cap's own hue/
+    // lightness), with pieceB a deeper berry-pink a shade darker than
+    // the board -- keeping the same "board hue and Black-piece hue as
+    // tonal twins" relationship Girly Purple/Yellow already use.
+    bg: 0xf0fdf9, fog: null,
+    frame: 0x73cabb, tileLight: 0xffeef5, tileDark: 0xeb70ad,
+    pieceW: 0xfff3f8, pieceB: 0xc32266, rough: 0.12, metal: 0.35,
+    labelInk: '#7a2a4c', tray: 0xd0f2ea,
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
     ambientScale: 0.9, hemiScale: 0.85,
-    ambientColorOverride: 0xfff0f6, hemiSkyColorOverride: 0xffd9e8, hemiGroundColorOverride: 0x3f4f34,
+    ambientColorOverride: 0xf5fffb, hemiSkyColorOverride: 0xffd9e8, hemiGroundColorOverride: 0x123f38,
     girlyFx: true,
     // pink leads (King + Pawn/Sapphire slot), purple second (Queen + Rook/
     // Amber slot), yellow as the accent (Bishop/Emerald slot)
