@@ -3270,15 +3270,49 @@ const THEMES = {
   },
   girlyYellow: {
     name: 'Girly Yellow', style: 'girly',
-    bg: 0xfff6d8, fog: null,
-    // periwinkle blue (gold's complement) frame + tray
-    frame: 0x8fa3d6, tileLight: 0xfff8e2, tileDark: 0xa87a1a,
-    pieceW: 0xfffaf0, pieceB: 0xdc9a10, rough: 0.12, metal: 0.35,
-    labelInk: '#6b4a10', tray: 0xdbe4f7,
+    // Re-tuned to a user-supplied reference photo: a bold, saturated
+    // golden-yellow scene (top and backdrop both a vivid warm gold),
+    // warm amber curly hair, white pants/headphones, and a small amount
+    // of near-black from hair roots/skin tone -- read as "gold is the
+    // hero color, dark is a small accent, not the furniture" rather than
+    // the previous light-periwinkle-complement pairing. Frame/tray moved
+    // from a pale periwinkle down to a dark warm charcoal-bronze (the
+    // "tiny amount of black" from the reference, promoted to the board's
+    // dark tone instead of a light complement), while tileDark/pieceB
+    // lean into a richer, more saturated "natural" honey-gold/bronze
+    // instead of the previous softer amber-brown -- closer to the
+    // photo's own vivid warmth. Both the frame and the board additionally
+    // opt into frameGradient/gradientTiles (see buildGradientTileTexture
+    // above): a big single-hex surface -- the whole uniform-style
+    // board, or the frame bezel -- reads as flat plastic at this
+    // saturation, so each gets a subtle self-derived light-to-dark
+    // gradient instead of one dead-flat fill.
+    bg: 0xfff8e6, fog: null,
+    frame: 0x241a0e, tileLight: 0xfff0c2, tileDark: 0xe8a716,
+    pieceW: 0xfffaf0, pieceB: 0xa8650a, rough: 0.12, metal: 0.35,
+    labelInk: '#3d2a10', tray: 0x3a2a16,
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
-    ambientScale: 0.9, hemiScale: 0.85,
-    ambientColorOverride: 0xfff8e0, hemiSkyColorOverride: 0xffedb8, hemiGroundColorOverride: 0x2c3a52,
-    girlyFx: true,
+    // frameClearcoat/frameEnvMapIntensity: the piece-tuned 0.85/0.9 gloss
+    // above would otherwise wash the dark frame out into a glossy tan via
+    // clearcoat specular + environment reflection dominating its dark
+    // diffuse base color (see the comment on frameClearcoat in
+    // applyTheme()) -- dulled way down so the frame reads as dark matte
+    // charcoal instead.
+    frameClearcoat: 0.15, frameEnvMapIntensity: 0.12,
+    // A dark frame needs the flat ambient+hemisphere fill dimmed the same
+    // way Magic/Magic II's dark palettes do (see the big comment on
+    // ambientScale near HEMI_BASE_INTENSITY above) -- at the previous
+    // near-full 0.9/0.85 scale plus a pale, bright ambientColorOverride,
+    // the matte frame just got flooded with warm light and washed up to
+    // a light tan instead of reading dark, since a roughness-0.8 matte
+    // material mostly just diffuse-bounces whatever ambient color hits
+    // it. Cut roughly in half, and the override colors themselves pulled
+    // down from near-white to a richer, less blown-out gold, so the sun/
+    // direct light (not the flat ambient wash) is what gives the board
+    // its gold pop while the frame stays convincingly dark.
+    ambientScale: 0.55, hemiScale: 0.5,
+    ambientColorOverride: 0xffe0a0, hemiSkyColorOverride: 0xffcf6b, hemiGroundColorOverride: 0x140d05,
+    girlyFx: true, frameGradient: true, gradientTiles: true,
     // yellow leads (King + Pawn/Sapphire slot), pink second (Queen + Rook/
     // Amber slot), purple as the accent (Bishop/Emerald slot)
     gemPalette: {
@@ -5843,6 +5877,39 @@ function buildBrickTexture(hex, key) {
   return tex;
 }
 
+// Soft diagonal light-to-dark gradient tile/frame texture: a single input
+// hex (whatever the theme already uses for that surface -- tileDark or
+// frame) is spread into a lighter and a darker HSL shade of ITSELF, then
+// painted as a diagonal canvas gradient between the two, so a big flat
+// surface (the whole uniform Khmer-style board, or the frame bezel) reads
+// as a believable material with soft natural tonal variation instead of
+// one dead-flat hex value repeated everywhere. Reuses the same THREE.Color
+// getHSL/setHSL approach raiseMinLightness above already relies on for
+// on-render color math (as opposed to deriveUiPalette's plain-sRGB HSL
+// math, which is for CSS, a different color space concern entirely).
+const _gradScratch = new THREE.Color();
+const _gradHSL = { h: 0, s: 0, l: 0 };
+const gradientTexCache = {};
+function buildGradientTileTexture(hex, key, spread) {
+  if (gradientTexCache[key]) return gradientTexCache[key];
+  spread = spread != null ? spread : 0.09;
+  _gradScratch.setHex(hex);
+  _gradScratch.getHSL(_gradHSL);
+  _gradScratch.setHSL(_gradHSL.h, _gradHSL.s, Math.min(_gradHSL.l + spread, 0.95));
+  const lightHex = '#' + _gradScratch.getHexString();
+  _gradScratch.setHSL(_gradHSL.h, _gradHSL.s, Math.max(_gradHSL.l - spread, 0.02));
+  const darkHex = '#' + _gradScratch.getHexString();
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const ctx = cv.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 128, 128);
+  grad.addColorStop(0, lightHex);
+  grad.addColorStop(1, darkHex);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 128, 128);
+  const tex = new THREE.CanvasTexture(cv);
+  gradientTexCache[key] = tex;
+  return tex;
+}
 // Soft, blurred brush-stroke tile texture for the Painted Jungle theme
 // (smoothly filtered, unlike the pixel theme's hard-edged brick).
 const paintedTexCache = {};
@@ -6205,7 +6272,19 @@ function applyTheme(key) {
   applyUiPalette(t);
   updateBackground();
   scene.fog = t.fog ? new THREE.Fog(t.bg, t.fog[0], t.fog[1]) : null;
-  frameMat.color.setHex(t.frame);
+  // frameGradient (see buildGradientTileTexture above): a texture's own
+  // baked-in pixels multiply against material.color, so the material
+  // color must reset to white while a gradient map supplies the real
+  // color -- the same pattern the marble/painted/brick tile textures
+  // below already use.
+  if (t.frameGradient) {
+    frameMat.map = buildGradientTileTexture(t.frame, 'frameGrad_' + t.frame.toString(16));
+    frameMat.color.setHex(0xffffff);
+  } else {
+    frameMat.map = null;
+    frameMat.color.setHex(t.frame);
+  }
+  frameMat.needsUpdate = true;
   trayMat.color.setHex(t.tray);
   // Dim (and, for Magic/Magic II, recolor) the flat ambient+hemisphere fill
   // lights for themes that ask for it (see the "ambientScale"/"hemiScale"/
@@ -6268,6 +6347,18 @@ function applyTheme(key) {
     mat.envMapIntensity = t.envMapIntensity || 0.15;
     mat.needsUpdate = true;
   }
+  // frameClearcoat/frameEnvMapIntensity (same override pattern as
+  // frameRough/frameMetal above): a theme whose main clearcoat/
+  // envMapIntensity is tuned for glossy "polished gem" pieces (e.g. the
+  // Girly trio's 0.85/0.9) would otherwise paint the SAME strong gloss +
+  // environment reflection onto the frame -- fine for a light pastel
+  // frame, but a dark frame (Girly Yellow's charcoal-bronze) needs a much
+  // duller finish, or the clearcoat specular highlight and env-map
+  // reflection dominate over the dark diffuse base color and the whole
+  // bezel reads as a washed-out glossy tan instead of dark charcoal.
+  if (t.frameClearcoat != null) frameMat.clearcoat = t.frameClearcoat;
+  if (t.frameEnvMapIntensity != null) frameMat.envMapIntensity = t.frameEnvMapIntensity;
+  frameMat.needsUpdate = true;
   // Piece materials specifically are capped to a lower envMapIntensity than
   // the board/frame get: pieces are built from several small stacked parts
   // (see buildCrystalPiece), and a strong environment reflection on those
@@ -6324,7 +6415,7 @@ function applyTheme(key) {
   } else {
     MAT_W.map = null; MAT_B.map = null;
   }
-  const tiled = t.brickTiles || t.paintedTiles || t.marbleTiles;
+  const tiled = t.brickTiles || t.paintedTiles || t.marbleTiles || t.gradientTiles;
   for (const m of squareMeshes) {
     const light = (E.fileOf(m.userData.sq) + E.rankOf(m.userData.sq)) % 2 === 1;
     // Khmer board style: every square shares one wood tone instead of the
@@ -6341,6 +6432,8 @@ function applyTheme(key) {
       ? buildPaintedTileTexture(hex, 'p' + (khmerBoardStyle ? 'K' : (light ? 'L' : 'D')))
       : t.marbleTiles
       ? buildMarbleTexture(hex, light ? 0x777777 : 0xdddddd, 'bd' + (khmerBoardStyle ? 'K' : (light ? 'L' : 'D')))
+      : t.gradientTiles
+      ? buildGradientTileTexture(hex, 'gt' + hex.toString(16) + (khmerBoardStyle ? 'K' : (light ? 'L' : 'D')))
       : null;
     m.material.ior = t.ior || 1.5;
     m.material.clearcoat = t.clearcoat || 0;
@@ -10407,6 +10500,8 @@ window.__ouk = {
   },
   frameMetalness: () => frameMat.metalness,
   frameRoughness: () => frameMat.roughness,
+  frameColorHex: () => frameMat.color.getHex(),
+  frameHasMap: () => !!frameMat.map,
   pieceGroupCount: () => pieceGroup.children.length,
   countingState: () => state.counting,
   autoCountEnabled: () => autoCountEnabled,
