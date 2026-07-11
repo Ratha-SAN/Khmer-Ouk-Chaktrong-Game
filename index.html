@@ -386,17 +386,24 @@
   #modeScreen .bigpick button:nth-child(1) { box-shadow: 0 0 18px 1px rgba(255,207,107,.35); border-color: rgba(255,207,107,.5); }
   #modeScreen .bigpick button:nth-child(2) { box-shadow: 0 0 18px 1px rgba(79,216,255,.35); border-color: rgba(79,216,255,.5); }
   #modeScreen .bigpick button:hover { filter: brightness(1.18); }
+  /* selected 2 Player / vs Computer mode button, once chosen on the
+     play-mode screen -- a solid accent fill + ring reads as a clearly
+     "chosen" state distinct from the two buttons' own idle gold/cyan glow */
+  #modeScreen .bigpick button.active {
+    background: var(--accent); color: var(--on-accent);
+    border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim), 0 8px 20px rgba(0,0,0,.35);
+  }
   .levelgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 12px; }
   .levelgrid button { padding: 8px 2px; font-size: 12px; line-height: 1.35; }
   .levelgrid button.active, .sidebtn.active { background: var(--accent); color: var(--on-accent); font-weight: 700; }
   .sidepick { display: flex; gap: 8px; margin-top: 12px; }
   .sidepick button { flex: 1; }
   #modeScreen .btnrow { justify-content: center; }
-  #confirmAi {
+  #confirmPlay {
     font-size: 18px; padding: 14px 40px; background: var(--accent); color: var(--on-accent);
     font-weight: 700; border: none; box-shadow: 0 0 24px 3px rgba(255,207,107,.4), 0 8px 20px rgba(0,0,0,.35);
   }
-  #confirmAi:hover { background: var(--accent-hover); }
+  #confirmPlay:hover { background: var(--accent-hover); }
   #modeCancel { background: transparent; border-color: var(--accent-dim); color: var(--text-muted); }
   /* ---------- mobile (phone) layout: portrait and landscape ----------
      The settings panel becomes a full-screen slide-up sheet (toggled by
@@ -1505,7 +1512,7 @@
   </div>
   <div id="fxLayer" aria-hidden="true"></div>
   <div id="fxPortalLayer" aria-hidden="true"></div>
-  <button id="panelToggle" title="Hide/show settings panel">◧</button>
+  <button id="panelToggle" title="Hide/show control panel">◧</button>
   <div id="camControls">
     <button id="zoomInBtn" title="Zoom In">＋</button>
     <button id="zoomOutBtn" title="Zoom Out">－</button>
@@ -1564,18 +1571,24 @@
         <button id="pick2p">លេង២នាក់<br>2 Player</button>
         <button id="pickAi">ជាមួយកុំព្យូទ័រ<br>vs Computer</button>
       </div>
-      <div id="clockPick" style="margin-top:14px">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">⏱ ពេលកំណត់ Time control</div>
-        <div class="btnrow" id="clockBtns"></div>
-      </div>
-      <div id="aiOptions" style="display:none">
-        <div class="levelgrid" id="levelBtns"></div>
-        <div class="sidepick">
-          <button class="sidebtn active" data-side="0">ស White</button>
-          <button class="sidebtn" data-side="1">ខ្មៅ Black</button>
+      <div id="playConfig" style="display:none">
+        <div id="clockPick" style="margin-top:14px">
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">⏱ ពេលកំណត់ Time control</div>
+          <div class="btnrow" id="clockBtns"></div>
+        </div>
+        <div id="aiLevelPick" style="display:none">
+          <div style="font-size:13px;color:var(--text-muted);margin:14px 0 6px">🤖 កម្រិតកុំព្យូទ័រ Computer level</div>
+          <div class="levelgrid" id="levelBtns"></div>
+        </div>
+        <div id="sidePick">
+          <div style="font-size:13px;color:var(--text-muted);margin:14px 0 6px">♟ សំណុំអុក Chess set</div>
+          <div class="sidepick">
+            <button class="sidebtn active" data-side="0">ស White</button>
+            <button class="sidebtn" data-side="1">ខ្មៅ Black</button>
+          </div>
         </div>
         <div class="btnrow" style="margin-top:14px">
-          <button id="confirmAi">លេង ▸ Play</button>
+          <button id="confirmPlay">លេង ▸ Play</button>
         </div>
       </div>
       <div class="btnrow" style="margin-top:18px">
@@ -1586,8 +1599,9 @@
 </div>
 
 <div id="panel">
-  <h1>ការកំណត់ Setting Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
+  <h1>ផ្ទាំងបញ្ជា Control Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
 
+  <div id="currentModeReadout" style="font-size:13px;margin:2px 0 8px;color:var(--text-muted)">Current mode: <b id="currentModeReadoutText">—</b></div>
   <div class="btnrow">
     <button id="changeModeBtn">ប្ដូររបៀបលេង Change Mode</button>
   </div>
@@ -3174,7 +3188,18 @@ const THEMES = {
   // COMPLEMENT (opposite it on the color wheel) rather than a deeper tint
   // of the same hue -- a classic, tasteful pairing (blush + sage, lavender
   // + lime, gold + periwinkle) that gives the board furniture some real
-  // color contrast instead of reading as one hue in a row of shades.
+  // color contrast instead of reading as one hue in a row of shades. The
+  // same complement now also drives the lighting (ambientColorOverride/
+  // hemi*ColorOverride, the same mechanism Magic/Magic II use, see
+  // applyTheme()): the default scene lighting is a warm-cream ambient over
+  // a brown ground-bounce hemisphere, tuned for Classic Wood -- left as-is
+  // it washes every pastel Girly theme further toward beige and muddies
+  // its underside bounce toward brown, dulling exactly the pink/purple/
+  // yellow contrast the frame/tray complement pairing is going for. A
+  // cooler, hue-matched ambient plus a ground bounce recolored to the same
+  // complement (sage/lime/periwinkle, dimmed slightly rather than flat
+  // brown) keeps each theme's own palette reading clean and saturated
+  // instead of sun-bleached.
   girlyPink: {
     name: 'Girly Pink', style: 'girly',
     bg: 0xffe3ee, fog: null,
@@ -3183,6 +3208,8 @@ const THEMES = {
     pieceW: 0xfff3f8, pieceB: 0xd6488a, rough: 0.12, metal: 0.35,
     labelInk: '#7a2a4c', tray: 0xd9ecd0,
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
+    ambientScale: 0.9, hemiScale: 0.85,
+    ambientColorOverride: 0xfff0f6, hemiSkyColorOverride: 0xffd9e8, hemiGroundColorOverride: 0x3f4f34,
     // pink leads (King + Pawn/Sapphire slot), purple second (Queen + Rook/
     // Amber slot), yellow as the accent (Bishop/Emerald slot)
     gemPalette: {
@@ -3199,6 +3226,8 @@ const THEMES = {
     pieceW: 0xf8f0ff, pieceB: 0x7a3ab0, rough: 0.12, metal: 0.35,
     labelInk: '#442870', tray: 0xe6efc9,
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
+    ambientScale: 0.9, hemiScale: 0.85,
+    ambientColorOverride: 0xf4ecff, hemiSkyColorOverride: 0xe6d4ff, hemiGroundColorOverride: 0x424f26,
     // purple leads (King + Pawn/Sapphire slot), yellow second (Queen +
     // Rook/Amber slot), pink as the accent (Bishop/Emerald slot)
     gemPalette: {
@@ -3215,6 +3244,8 @@ const THEMES = {
     pieceW: 0xfffaf0, pieceB: 0xdc9a10, rough: 0.12, metal: 0.35,
     labelInk: '#6b4a10', tray: 0xdbe4f7,
     clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
+    ambientScale: 0.9, hemiScale: 0.85,
+    ambientColorOverride: 0xfff8e0, hemiSkyColorOverride: 0xffedb8, hemiGroundColorOverride: 0x2c3a52,
     // yellow leads (King + Pawn/Sapphire slot), pink second (Queen + Rook/
     // Amber slot), purple as the accent (Bishop/Emerald slot)
     gemPalette: {
@@ -3250,7 +3281,11 @@ const THEMES = {
     // family (orange/yellow/teal/red/blue), so a single derived accent
     // read as comparatively drab; cycling several of those colors across
     // the panel's section headers keeps the UI as playful as the board.
-    vibrantUi: true
+    // vibrantPrimaryHex leads the panel's PRIMARY accent with teal (this
+    // theme's own dark-square/secondary board color) instead of whichever
+    // hue the spread happens to sort first, matching the same teal
+    // already used for the on-board English piece labels above.
+    vibrantUi: true, vibrantPrimaryHex: 0x2ec4b6
   },
   // Plants vs Zombies: a sunny backyard-lawn board (alternating grass
   // stripes, like the game's own lawn) with a genuinely different piece
@@ -3455,6 +3490,7 @@ let flashMsg = '';
 let gameStartTs = null;      // Date.now() when the current play-mode game began
 let frozenElapsed = null;    // ms captured once the game ends, so the HUD clock stops
 let pendingAiLevel = 3, pendingSide = E.WHITE; // choices being made in the mode-select screen
+let pendingPlayMode = null; // 'hotseat' | 'ai', which bigpick button is highlighted on the play-mode screen
 let hintMove = null;         // engine-suggested move currently shown as a square tint
 let hintBusy = false;        // a hint request is in flight on the worker
 let reviewMode = false;      // stepping back through a finished game
@@ -4137,6 +4173,20 @@ function deriveUiPalette(t) {
     const allHues = [t.frame, t.pieceW, t.pieceB, t.tileLight, t.tileDark]
       .filter(c => c != null).map(c => uiHexToHsl(c));
     vibrantSpread = pickSpreadHues(allHues, 4).sort((a, b) => a.h - b.h);
+    // vibrantPrimaryHex opts a theme's PRIMARY accent (the one used as
+    // plain panel text/headings, not just a background pill) into its own
+    // chosen hue rather than whichever hue happens to sort first -- Kids
+    // Playroom wants its secondary board color (teal, the dark-square
+    // hue) to lead instead of the red that alphabetical hue-sort would've
+    // picked, matching the teal already used for its on-board English
+    // piece labels. Rotates the already-computed spread (not a fresh
+    // pick) so the same 4 hues still light the panel, just reordered.
+    if (t.vibrantPrimaryHex != null) {
+      const seedHue = uiHexToHsl(t.vibrantPrimaryHex).h;
+      let bestIdx = 0, bestDist = Infinity;
+      vibrantSpread.forEach((c, i) => { const d = uiHueDist(c.h, seedHue); if (d < bestDist) { bestDist = d; bestIdx = i; } });
+      if (bestIdx !== 0) vibrantSpread = [vibrantSpread[bestIdx], ...vibrantSpread.slice(0, bestIdx), ...vibrantSpread.slice(bestIdx + 1)];
+    }
   }
   const accentSeed = vibrantSpread ? vibrantSpread[0] : pickUiAccentSeedHsl(t, isLightUi);
   const primaryAccent = resolveUiAccent(accentSeed);
@@ -5386,6 +5436,29 @@ function fillTextInkCentered(ctx, text, cx, y) {
   ctx.fillText(text, x, y);
   ctx.textAlign = prevAlign;
 }
+// Themes with pieceLabelEnMatchKh (currently just Kids Playroom) want the
+// English line to visually read as the SAME SIZE as the Khmer line, not
+// merely the same font-size number -- Khmer glyphs carry noticeably more
+// visual bulk (taller stacked consonant/subscript clusters) than Latin
+// glyphs at an identical px size, so reusing the Khmer px size verbatim
+// still reads as smaller. Measures each script's actual inked glyph
+// height (actualBoundingBoxAscent+Descent, not the font's nominal em box)
+// at a fixed reference size and scales the English size by that ratio, so
+// the two scripts' real ink heights end up equal regardless of how each
+// font's internal metrics happen to be drawn. Falls back to the Khmer px
+// size verbatim on any browser missing the actualBoundingBox* metrics.
+function matchedEnFontSize(ctx, khText, khPx, enText, enWeight) {
+  ctx.font = '600 ' + khPx + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif';
+  const mk = ctx.measureText(khText);
+  if (mk.actualBoundingBoxAscent == null) return khPx;
+  const khInkH = mk.actualBoundingBoxAscent + mk.actualBoundingBoxDescent;
+  const ref = 100;
+  ctx.font = enWeight + ' ' + ref + 'px "Segoe UI",sans-serif';
+  const me = ctx.measureText(enText);
+  const enInkH = me.actualBoundingBoxAscent + me.actualBoundingBoxDescent;
+  if (!enInkH) return khPx;
+  return Math.max(20, Math.min(ref * (khInkH / enInkH), khPx * 1.6));
+}
 function pieceLabelMaterial(type, color, lang) {
   // theme-scoped cache key: a theme (currently just Kids Playroom, see
   // pieceLabelEnMatchKh/pieceLabelEnHex below) can override the English
@@ -5415,14 +5488,16 @@ function pieceLabelMaterial(type, color, lang) {
     fillTextInkCentered(ctx, n.kh, 90, 68);
   } else if (lang === 'en') {
     ctx.fillStyle = enColor;
-    ctx.font = (enMatchKh ? '400 56px' : '600 38px') + ' "Segoe UI",sans-serif';
+    const enSize = enMatchKh ? matchedEnFontSize(ctx, n.kh, 56, n.tr, '400') : 38;
+    ctx.font = (enMatchKh ? '400 ' : '600 ') + Math.round(enSize) + 'px "Segoe UI",sans-serif';
     ctx.fillText(n.tr, 90, 66);
   } else {
     ctx.fillStyle = pal.kh;
     ctx.font = '600 46px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif';
     fillTextInkCentered(ctx, n.kh, 90, 50);
     ctx.fillStyle = enColor;
-    ctx.font = (enMatchKh ? '400 46px' : '600 30px') + ' "Segoe UI",sans-serif';
+    const enSize2 = enMatchKh ? matchedEnFontSize(ctx, n.kh, 46, n.tr, '400') : 30;
+    ctx.font = (enMatchKh ? '400 ' : '600 ') + Math.round(enSize2) + 'px "Segoe UI",sans-serif';
     ctx.fillText(n.tr, 90, 86);
   }
   const tex = new THREE.CanvasTexture(cv);
@@ -9414,6 +9489,7 @@ function setUiMode(m) {
     trainEnterTs = Date.now(); // the play-time clock pauses for the duration of the training excursion
     buildTrainButtons();
     loadLesson();
+    refreshModeReadout();
   } else {
     if (savedPlay) {
       state = E.fromJSON(savedPlay.snap);
@@ -9427,6 +9503,7 @@ function setUiMode(m) {
     selected = -1; legalForSelected = []; flashMsg = '';
     clearMarkers();
     refreshAll();
+    refreshModeReadout();
     scheduleAI();
   }
 }
@@ -9486,9 +9563,11 @@ function resetGame() {
   timeoutResult = null;
   clockMs = clockCfg ? [clockCfg.base * 1000, clockCfg.base * 1000] : [0, 0];
   clockTurnStart = clockCfg ? Date.now() : null;
-  // face the board from the human's own seat: White's for hotseat (until
-  // auto-flip takes over), the chosen side's when playing the computer
-  setViewSide(mode === 'hotseat' ? E.WHITE : humanSide, false);
+  // face the board from whichever chess set (side) was chosen on the
+  // mode-select screen -- for 2 Player this is just the starting view
+  // (until auto-flip takes over each turn); for vs Computer it's the
+  // human's own seat.
+  setViewSide(humanSide, false);
   clearMarkers();
   refreshAll();
   refreshModeReadout();
@@ -9515,10 +9594,15 @@ function startGameWithMode(modeStr, side) {
   trackEvent('game_start', { mode: modeStr, side: side === E.WHITE ? 'white' : 'black' });
 }
 function refreshModeReadout() {
-  const el = document.getElementById('modeReadoutText');
-  el.textContent = mode === 'hotseat'
+  const playModeText = mode === 'hotseat'
     ? '2 Player ២នាក់'
     : 'vs Computer L' + mode.slice(2) + ' (' + (humanSide === E.WHITE ? 'White' : 'Black') + ')';
+  document.getElementById('modeReadoutText').textContent = playModeText;
+  // top-of-panel readout (above Change Mode) additionally reflects Training
+  // mode, which the Game-accordion readout never needs to since that
+  // accordion is itself hidden while in Training.
+  document.getElementById('currentModeReadoutText').textContent =
+    uiMode === 'train' ? 'Learn to Play រៀនលេង' : playModeText;
 }
 
 // ---------- start screen + mode-select overlay ----------
@@ -9591,13 +9675,36 @@ function showModeChoiceStep() {
   document.getElementById('modeScreenChoice').style.display = 'block';
   document.getElementById('modeScreenPlay').style.display = 'none';
 }
+// Resets the 2 Player / vs Computer picker back to its unselected state
+// -- neither bigpick button highlighted, no time-control/level/chess-set
+// config shown yet -- so reopening the wizard (Change Mode, or Back-ing
+// out and in again) never shows a stale selection from a previous visit.
+function resetPlayModeStep() {
+  pendingPlayMode = null;
+  document.getElementById('pick2p').classList.remove('active');
+  document.getElementById('pickAi').classList.remove('active');
+  document.getElementById('playConfig').style.display = 'none';
+  document.getElementById('aiLevelPick').style.display = 'none';
+}
 function showModePlayStep() {
+  resetPlayModeStep();
   document.getElementById('modeScreenChoice').style.display = 'none';
   document.getElementById('modeScreenPlay').style.display = 'block';
 }
+// Clicking 2 Player or vs Computer highlights that button (rather than
+// immediately acting on it) and progressively reveals its own config:
+// both modes get Time control, vs Computer additionally gets Computer
+// level (hidden entirely for 2 Player), and both end with the Chess set
+// (White/Black) side picker -- confirmed by the Play button once ready.
+function selectPlayMode(m) {
+  pendingPlayMode = m;
+  document.getElementById('pick2p').classList.toggle('active', m === 'hotseat');
+  document.getElementById('pickAi').classList.toggle('active', m === 'ai');
+  document.getElementById('aiLevelPick').style.display = m === 'ai' ? 'block' : 'none';
+  document.getElementById('playConfig').style.display = 'block';
+}
 function openModeScreen() {
   document.getElementById('startScreen').style.display = 'none';
-  document.getElementById('aiOptions').style.display = 'none';
   showModeChoiceStep();
   document.getElementById('modeScreen').style.display = 'flex';
   overlayOpen = true;
@@ -9617,9 +9724,13 @@ document.getElementById('modeChoiceCancel').onclick = () => {
   if (modeScreenOrigin === 'start') showStartScreen();
   else hideOverlays();
 };
-document.getElementById('pick2p').onclick = () => { startGameWithMode('hotseat', E.WHITE); hideOverlays(); };
-document.getElementById('pickAi').onclick = () => { document.getElementById('aiOptions').style.display = 'block'; };
-document.getElementById('confirmAi').onclick = () => { startGameWithMode('ai' + pendingAiLevel, pendingSide); hideOverlays(); };
+document.getElementById('pick2p').onclick = () => selectPlayMode('hotseat');
+document.getElementById('pickAi').onclick = () => selectPlayMode('ai');
+document.getElementById('confirmPlay').onclick = () => {
+  if (!pendingPlayMode) return;
+  startGameWithMode(pendingPlayMode === 'hotseat' ? 'hotseat' : 'ai' + pendingAiLevel, pendingSide);
+  hideOverlays();
+};
 document.getElementById('modeCancel').onclick = () => showModeChoiceStep();
 function showStartScreen() {
   document.getElementById('modeScreen').style.display = 'none';
