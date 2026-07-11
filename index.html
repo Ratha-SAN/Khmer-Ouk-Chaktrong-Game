@@ -1734,6 +1734,7 @@
       <option value="cambodia">Kingdom of Wonder — នគរដ៏អស្ចារ្យ</option>
       <option value="gems">Gem Blitz — ត្បូងភ្លឺចាំង</option>
       <option value="anno">ANNO Mutationem — ទីក្រុងអនាគត</option>
+      <option value="transformers">Transformers — មនុស្សយន្តប្រែរូប</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -3501,6 +3502,29 @@ const THEMES = {
     pieceW: 0xe8f4ff, pieceB: 0xe848d8, rough: 0.35, metal: 0.3,
     labelInk: '#ff7fe8', tray: 0x100a1c,
     annoFx: true
+  },
+  // Transformers vibe: a Cybertron battlefield board -- dark gunmetal
+  // squares lit by a glowing energon-blue checkered panel, a dark chrome
+  // frame. Autobots (White, Optimus-Prime-esque red/blue chrome with a
+  // cyan energon glow) face off against Decepticons (Black, Megatron-
+  // esque gunmetal-silver with a violet energon glow) -- see
+  // buildTransformersPiece, a genuinely different blocky-robot shape per
+  // side like Plants vs Zombies/Avatar/Sci-Fi/ANNO. Paired with its own
+  // mechanical transform-charge move / explosive metal-shard capture
+  // motion effects (transformersFx, see triggerTransformersEffect,
+  // reusing Gem Blitz's parameterized star/shard/flash/ring FX recolored
+  // to gunmetal/energon/explosion tones rather than gem hues) and a
+  // servo-whirr/explosion SFX bank. labelInk is a light energon-cyan (not
+  // a dark ink) since it has to read against this theme's own dark
+  // frame, the same "dark frame needs light labelInk" pattern the Girly
+  // trio's dark-ink frame already established.
+  transformers: {
+    name: 'Transformers', style: 'transformers',
+    bg: 0x05070c, fog: null,
+    frame: 0x22262d, tileLight: 0x2a86b8, tileDark: 0x171c26,
+    pieceW: 0xd8e2f0, pieceB: 0x3a3f48, rough: 0.3, metal: 0.5,
+    labelInk: '#9fd4ff', tray: 0x1a1d22,
+    transformersFx: true
   }
 };
 let themeKey = 'wood';
@@ -3910,6 +3934,21 @@ const MAT_ANNO_GLOW_CYAN = new THREE.MeshStandardMaterial({ color: 0xaef8ff, emi
 const MAT_ANNO_GLOW_PINK = new THREE.MeshStandardMaterial({ color: 0xffb0f0, emissive: 0xff28c8, emissiveIntensity: 1.1, roughness: 0.25, metalness: 0.0 });
 const MAT_ANNO_CHROME = new THREE.MeshStandardMaterial({ color: 0xd8e2f0, roughness: 0.3, metalness: 0.5 });
 const MAT_ANNO_FLESH = new THREE.MeshStandardMaterial({ color: 0xa03fa8, roughness: 0.5, metalness: 0.05 });
+// Fixed accent colors for the Transformers-vibe piece set (see
+// buildTransformersPiece): Autobots get an Optimus-Prime-esque red/blue
+// chrome body plus a self-lit cyan energon glow (visor, chest core,
+// smokestack tips); Decepticons get a Megatron-esque gunmetal-silver/
+// dark-gunmetal chrome body plus a self-lit violet energon glow (visor,
+// cannon-arm tip, spike crown). Bright, saturated chrome rather than a
+// literally dark gunmetal body for the same reason as every other dark-
+// souled custom theme here: a dim base color reads as near-invisible
+// once envMapIntensity is capped low on this scene's renderer.
+const MAT_TF_AUTO_RED = new THREE.MeshStandardMaterial({ color: 0xc41e24, roughness: 0.3, metalness: 0.65 });
+const MAT_TF_AUTO_BLUE = new THREE.MeshStandardMaterial({ color: 0x2a5fc4, roughness: 0.3, metalness: 0.65 });
+const MAT_TF_AUTO_GLOW = new THREE.MeshStandardMaterial({ color: 0xaee8ff, emissive: 0x39c6ff, emissiveIntensity: 1.15, roughness: 0.25, metalness: 0.0 });
+const MAT_TF_DECEPT_SILVER = new THREE.MeshStandardMaterial({ color: 0x9aa3ac, roughness: 0.3, metalness: 0.75 });
+const MAT_TF_DECEPT_DARK = new THREE.MeshStandardMaterial({ color: 0x3a3f47, roughness: 0.35, metalness: 0.6 });
+const MAT_TF_DECEPT_GLOW = new THREE.MeshStandardMaterial({ color: 0xe8b0ff, emissive: 0xb936ff, emissiveIntensity: 1.15, roughness: 0.25, metalness: 0.0 });
 // Fixed accent colors for the Last Airbender piece set (see
 // buildAtlaPiece): a pale icy blue for every Water Tribe accent (necklace,
 // healer's crescent, mount trim), a warm fur-brown for cold-weather trim,
@@ -4332,6 +4371,7 @@ function buildPiece(type, color, promoted) {
   if (style === 'cambodia') return buildCambodiaPiece(g, add, type, promoted, color);
   if (style === 'gems') return buildGemPiece(g, add, type, promoted, color);
   if (style === 'anno') return buildAnnoPiece(g, add, type, promoted, color);
+  if (style === 'transformers') return buildTransformersPiece(g, add, type, promoted, color);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
   if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18, baseMat); // collar
   switch (type) {
@@ -5296,6 +5336,128 @@ function buildAnnoPiece(g, add, type, promoted, color) {
         add(new THREE.SphereGeometry(0.13, 12, 10), 0.26, MAT_ANNO_FLESH);
         add(new THREE.ConeGeometry(0.02, 0.1, 6), 0.4, MAT_ANNO_FLESH);
         add(new THREE.SphereGeometry(0.025, 8, 6), 0.3, MAT_ANNO_GLOW_PINK).position.z = 0.1;
+      }
+      break;
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.22, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Transformers-vibe piece set: Autobots (White) -- an Optimus-Prime-esque
+// red/blue chrome body with a cyan energon glow and, on the King, the
+// character's own iconic twin exhaust smokestacks -- facing Decepticons
+// (Black) -- a Megatron-esque gunmetal-silver/dark-gunmetal chrome body
+// with a violet energon glow and a fused arm-cannon on the King, plus a
+// jagged spike crown. Every rank gets a genuinely different blocky-robot
+// silhouette per side (not just a recolor), like Plants vs Zombies/
+// Avatar/Sci-Fi/ANNO above: Knight leans into a vehicle-mode hint (wheel
+// hubs for the Autobot, a banked jet fuselage for the Decepticon) the
+// same way this game's other vehicle-adjacent themes cue their Knight.
+function buildTransformersPiece(g, add, type, promoted, color) {
+  add(new THREE.CylinderGeometry(0.3, 0.34, 0.14, 20), 0.07); // base
+  const autobot = color === E.WHITE;
+  switch (type) {
+    case E.KING:
+      if (autobot) {
+        add(new THREE.BoxGeometry(0.3, 0.4, 0.22), 0.34, MAT_TF_AUTO_RED);
+        add(new THREE.BoxGeometry(0.13, 0.12, 0.16), 0.5, MAT_TF_AUTO_BLUE).position.x = -0.2;
+        add(new THREE.BoxGeometry(0.13, 0.12, 0.16), 0.5, MAT_TF_AUTO_BLUE).position.x = 0.2;
+        add(new THREE.CylinderGeometry(0.035, 0.035, 0.22, 8), 0.62, MAT_TF_AUTO_BLUE).position.x = -0.13; // smokestack
+        add(new THREE.CylinderGeometry(0.035, 0.035, 0.22, 8), 0.62, MAT_TF_AUTO_BLUE).position.x = 0.13; // smokestack
+        add(new THREE.BoxGeometry(0.15, 0.15, 0.15), 0.68, MAT_TF_AUTO_RED);
+        add(new THREE.BoxGeometry(0.13, 0.03, 0.02), 0.685, MAT_TF_AUTO_GLOW).position.z = 0.08; // visor
+        add(new THREE.SphereGeometry(0.045, 10, 8), 0.42, MAT_TF_AUTO_GLOW).position.z = 0.12; // spark core
+      } else {
+        add(new THREE.CylinderGeometry(0.16, 0.22, 0.42, 8), 0.34, MAT_TF_DECEPT_SILVER);
+        const cannon = add(new THREE.CylinderGeometry(0.055, 0.075, 0.46, 8), 0.5, MAT_TF_DECEPT_DARK);
+        cannon.rotation.z = Math.PI / 2.6; cannon.position.x = 0.22;
+        add(new THREE.BoxGeometry(0.15, 0.13, 0.15), 0.66, MAT_TF_DECEPT_DARK);
+        add(new THREE.BoxGeometry(0.12, 0.025, 0.02), 0.665, MAT_TF_DECEPT_GLOW).position.z = 0.08; // visor
+        for (let i = 0; i < 5; i++) {
+          const a2 = (i / 5) * Math.PI * 2;
+          const spike = add(new THREE.ConeGeometry(0.025, 0.12, 6), 0.78, MAT_TF_DECEPT_SILVER);
+          spike.position.set(Math.cos(a2) * 0.08, 0, Math.sin(a2) * 0.08);
+        }
+      }
+      break;
+    case E.QUEEN:
+      if (autobot) {
+        add(new THREE.BoxGeometry(0.22, 0.34, 0.18), 0.3, MAT_TF_AUTO_BLUE);
+        add(new THREE.BoxGeometry(0.12, 0.12, 0.12), 0.56, MAT_TF_AUTO_RED);
+        const armL = add(new THREE.CylinderGeometry(0.03, 0.04, 0.22, 8), 0.4, MAT_TF_AUTO_RED);
+        armL.rotation.x = Math.PI / 2.2; armL.position.x = -0.14;
+        const armR = add(new THREE.CylinderGeometry(0.03, 0.04, 0.22, 8), 0.4, MAT_TF_AUTO_RED);
+        armR.rotation.x = Math.PI / 2.2; armR.position.x = 0.14;
+        add(new THREE.SphereGeometry(0.035, 8, 6), 0.34, MAT_TF_AUTO_GLOW).position.z = 0.1;
+      } else {
+        add(new THREE.CylinderGeometry(0.13, 0.19, 0.32, 8), 0.28, MAT_TF_DECEPT_DARK);
+        add(new THREE.BoxGeometry(0.12, 0.11, 0.12), 0.52, MAT_TF_DECEPT_SILVER);
+        const bladeL = add(new THREE.BoxGeometry(0.04, 0.22, 0.04), 0.38, MAT_TF_DECEPT_SILVER);
+        bladeL.rotation.z = 0.3; bladeL.position.x = -0.15;
+        const bladeR = add(new THREE.BoxGeometry(0.04, 0.22, 0.04), 0.38, MAT_TF_DECEPT_SILVER);
+        bladeR.rotation.z = -0.3; bladeR.position.x = 0.15;
+        add(new THREE.SphereGeometry(0.03, 8, 6), 0.53, MAT_TF_DECEPT_GLOW).position.z = 0.07;
+      }
+      break;
+    case E.BISHOP:
+      if (autobot) {
+        add(new THREE.ConeGeometry(0.13, 0.32, 10), 0.28, MAT_TF_AUTO_BLUE);
+        add(new THREE.SphereGeometry(0.09, 12, 10), 0.48, MAT_TF_AUTO_RED);
+        const antL = add(new THREE.CylinderGeometry(0.012, 0.012, 0.18, 6), 0.58, MAT_TF_AUTO_RED);
+        antL.rotation.z = 0.5; antL.position.x = -0.06;
+        const antR = add(new THREE.CylinderGeometry(0.012, 0.012, 0.18, 6), 0.58, MAT_TF_AUTO_RED);
+        antR.rotation.z = -0.5; antR.position.x = 0.06;
+        add(new THREE.TorusGeometry(0.07, 0.015, 6, 14), 0.48, MAT_TF_AUTO_GLOW).rotation.x = Math.PI / 2;
+      } else {
+        add(new THREE.ConeGeometry(0.15, 0.34, 8), 0.28, MAT_TF_DECEPT_DARK);
+        add(new THREE.SphereGeometry(0.08, 10, 8), 0.5, MAT_TF_DECEPT_SILVER);
+        add(new THREE.SphereGeometry(0.045, 10, 8), 0.5, MAT_TF_DECEPT_GLOW).position.z = 0.08;
+        const spikeL = add(new THREE.ConeGeometry(0.03, 0.14, 6), 0.36, MAT_TF_DECEPT_SILVER);
+        spikeL.rotation.z = 0.7; spikeL.position.x = -0.13;
+        const spikeR = add(new THREE.ConeGeometry(0.03, 0.14, 6), 0.36, MAT_TF_DECEPT_SILVER);
+        spikeR.rotation.z = -0.7; spikeR.position.x = 0.13;
+      }
+      break;
+    case E.KNIGHT:
+      if (autobot) {
+        add(new THREE.BoxGeometry(0.2, 0.32, 0.18), 0.32, MAT_TF_AUTO_BLUE);
+        add(new THREE.BoxGeometry(0.12, 0.12, 0.18), 0.5, MAT_TF_AUTO_RED).position.z = 0.08;
+        add(new THREE.BoxGeometry(0.1, 0.025, 0.02), 0.5, MAT_TF_AUTO_GLOW).position.z = 0.17;
+        const wheelL = add(new THREE.CylinderGeometry(0.04, 0.05, 0.06, 10), 0.14, MAT_TF_AUTO_BLUE);
+        wheelL.rotation.x = Math.PI / 2; wheelL.position.x = -0.13;
+        const wheelR = add(new THREE.CylinderGeometry(0.04, 0.05, 0.06, 10), 0.14, MAT_TF_AUTO_BLUE);
+        wheelR.rotation.x = Math.PI / 2; wheelR.position.x = 0.13;
+      } else {
+        const body = add(new THREE.CylinderGeometry(0.12, 0.16, 0.36, 10), 0.3, MAT_TF_DECEPT_SILVER);
+        body.rotation.z = Math.PI / 2.5;
+        add(new THREE.BoxGeometry(0.13, 0.12, 0.16), 0.52, MAT_TF_DECEPT_DARK);
+        const wing = add(new THREE.ConeGeometry(0.04, 0.22, 6), 0.32, MAT_TF_DECEPT_SILVER);
+        wing.rotation.z = Math.PI / 2; wing.position.set(-0.18, 0, -0.05);
+        add(new THREE.SphereGeometry(0.025, 8, 6), 0.32, MAT_TF_DECEPT_GLOW).position.set(-0.28, 0, -0.05);
+      }
+      break;
+    case E.ROOK:
+      if (autobot) {
+        add(new THREE.BoxGeometry(0.32, 0.38, 0.32), 0.26, MAT_TF_AUTO_RED);
+        add(new THREE.BoxGeometry(0.34, 0.1, 0.34), 0.48, MAT_TF_AUTO_BLUE);
+        add(new THREE.BoxGeometry(0.2, 0.03, 0.02), 0.38, MAT_TF_AUTO_GLOW).position.z = 0.16;
+      } else {
+        add(new THREE.CylinderGeometry(0.2, 0.24, 0.4, 8), 0.26, MAT_TF_DECEPT_DARK);
+        const barrel = add(new THREE.CylinderGeometry(0.06, 0.08, 0.32, 8), 0.55, MAT_TF_DECEPT_SILVER);
+        barrel.rotation.z = Math.PI / 2.2;
+        add(new THREE.TorusGeometry(0.16, 0.02, 8, 16), 0.44, MAT_TF_DECEPT_GLOW).rotation.x = Math.PI / 2;
+      }
+      break;
+    case E.PAWN:
+      if (autobot) {
+        add(new THREE.BoxGeometry(0.14, 0.2, 0.12), 0.16, MAT_TF_AUTO_BLUE);
+        add(new THREE.BoxGeometry(0.09, 0.09, 0.09), 0.28, MAT_TF_AUTO_RED);
+        add(new THREE.SphereGeometry(0.018, 6, 6), 0.28, MAT_TF_AUTO_GLOW).position.z = 0.05;
+      } else {
+        add(new THREE.CylinderGeometry(0.07, 0.09, 0.2, 8), 0.16, MAT_TF_DECEPT_DARK);
+        add(new THREE.BoxGeometry(0.09, 0.08, 0.09), 0.26, MAT_TF_DECEPT_SILVER);
+        add(new THREE.SphereGeometry(0.018, 6, 6), 0.26, MAT_TF_DECEPT_GLOW).position.z = 0.05;
       }
       break;
   }
@@ -6453,7 +6615,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -6798,6 +6960,22 @@ const SFX = {
       envOsc({ freq: 2100, type: 'square', dur: 0.12, gain: 0.26, freqTo: 90, delay: 0.02 });
     } else {
       for (let i = 0; i < 5; i++) envOsc({ freq: i % 2 === 0 ? 1568 : 1046, type: 'sawtooth', dur: 0.08, gain: 0.26, delay: i * 0.08 });
+    }
+  },
+  // Transformers vibe: a rising square-wave "servo whirr" (a chunky
+  // mechanical transform) layered with a quick metallic tick for a move,
+  // a low sawtooth explosion boom plus a bright high-pass metal-clang
+  // burst for a capture, and a fast alternating two-tone Decepticon-siren
+  // klaxon for check/checkmate -- distinct from Sci-Fi Frontier/Avatar's
+  // own klaxons by pitch and a harsher square-wave timbre.
+  transformers(kind) {
+    if (kind === 'move') { envOsc({ freq: 160, type: 'square', dur: 0.14, gain: 0.26, freqTo: 340 }); noiseBurst({ dur: 0.03, filterFreq: 3000, q: 5, gain: 0.18, filterType: 'highpass', delay: 0.1 }); }
+    else if (kind === 'capture') {
+      noiseBurst({ dur: 0.2, filterFreq: 260, q: 1.1, gain: 0.46, filterType: 'lowpass' });
+      envOsc({ freq: 130, type: 'sawtooth', dur: 0.26, gain: 0.34, freqTo: 35 });
+      noiseBurst({ dur: 0.07, filterFreq: 3800, q: 5, gain: 0.28, filterType: 'highpass', delay: 0.04 });
+    } else {
+      for (let i = 0; i < 6; i++) envOsc({ freq: i % 2 === 0 ? 740 : 555, type: 'square', dur: 0.08, gain: 0.27, delay: i * 0.08 });
     }
   }
 };
@@ -7958,6 +8136,62 @@ function triggerGirlyEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) 
     console.warn('girly-effect render failed (ignored):', err);
   }
 }
+// ============ Transformers-vibe theme: transform-charge/explosive-shatter motion effects ============
+// Reuses the exact star/shard/flash/ring visuals Gem Blitz pioneered
+// above (fx-gem-star/fx-gem-shard/fx-gem-flash/fx-gem-ring -- no new CSS
+// needed) recolored to a gunmetal/energon-blue/explosion-orange palette
+// instead of gem hues: a move charges up a "transforming" spark trail
+// along the path (gunmetal + energon-blue glints), a capture detonates
+// the square into flying metal shrapnel with a white-hot flash and
+// shockwave ring -- an exploding robot, not a shattering jewel.
+const TF_TRAIL_COLORS = ['#9fd4ff', '#c7d0da', '#39c6ff'];
+const TF_SHATTER_COLORS = ['#c7d0da', '#ff8a3d', '#ffe9b0', '#7a828c'];
+function fxTransformersTrail(fromSq, toSq) {
+  const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
+  for (let i = 0; i < 5; i++) {
+    const tt = i / 4;
+    const pt = { x: a.x + (b.x - a.x) * tt, y: a.y + (b.y - a.y) * tt };
+    const el = fxAt(pt, 'fx-gem-star', { '--gemcol': TF_TRAIL_COLORS[i % TF_TRAIL_COLORS.length] });
+    el.style.animationDelay = (i * 40) + 'ms';
+    fxSpawn(el, 360 + i * 40 + 40);
+  }
+  window.__oukFxLog.push({ tier: 1, key: 'transformers_trail' });
+}
+function fxTransformersShatter(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-gem-flash', {}), 300);
+  fxSpawn(fxAt(pt, 'fx-gem-ring', {}), 420);
+  for (let i = 0; i < 12; i++) {
+    const ang = (i / 12) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 26 + Math.random() * 34;
+    fxSpawn(fxAt(pt, 'fx-gem-shard', {
+      '--gemcol': TF_SHATTER_COLORS[i % TF_SHATTER_COLORS.length],
+      '--mx': (Math.cos(ang) * dist) + 'px',
+      '--my': (Math.sin(ang) * dist - 14) + 'px',
+      '--rot': (Math.random() * 520 - 260) + 'deg',
+    }), 520);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'transformers_shatter' });
+}
+function triggerTransformersEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.transformersFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#ff8a3d');
+      else fxTransformersShatter(m.to);
+    } else {
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), '#9fd4ff');
+      else fxTransformersTrail(m.from, m.to);
+    }
+    // reuses the same screen-level check vignette/shake every other
+    // theme's check effect does (see fxCheck above).
+    if (isCheck || isCheckmate) fxCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('transformers-effect render failed (ignored):', err);
+  }
+}
 // ============ ANNO Mutationem-vibe theme: neon-trail/glitch-burst motion effects ============
 // A dual-tone neon streak that snaps from the mover's square to its
 // destination for a normal move (fxAnnoTrail -- a stretched gradient
@@ -8150,7 +8384,16 @@ const MUSIC_TRACKS = {
   // of any existing game's score.
   synth2: { label: 'ចង្វាក់ទីក្រុងអនាគត Neon Pulse (chiptune + pad mix)', instrument: 'chip', instrument2: 'pad', noteLen: 145, gain: 0.08,
     filterHz: 2800,
-    notes: [293.66, 349.23, 440.00, 349.23, 392.00, null, 349.23, 293.66, null, 392.00, 440.00, 523.25, null, null, 349.23, null] }
+    notes: [293.66, 349.23, 440.00, 349.23, 392.00, null, 349.23, 293.66, null, 392.00, 440.00, 523.25, null, null, 349.23, null] },
+  // An original driving, triumphant major-key pad+piano theme for the
+  // Transformers vibe theme -- a punchier, faster-marching cousin of
+  // Star Wars' Galactic Overture (paired with it and Avatar-vibe's
+  // Bioluminescent Canopy in the Cinematic group), a rising-then-falling
+  // "hero" phrase evoking a blockbuster action-movie score without
+  // transcribing any existing film's actual theme.
+  cine3: { label: 'កងទ័ពដែក Iron Legion (pad + piano mix)', instrument: 'pad', instrument2: 'piano', noteLen: 480, gain: 0.08,
+    filterHz: 1600, detune: 2, sustain: 0.6,
+    notes: [261.63, null, 329.63, 392.00, 440.00, 392.00, null, 329.63] }
 };
 function populateMusicSelect() {
   const sel = document.getElementById('musicSel');
@@ -8632,6 +8875,7 @@ function applyMove(m) {
   triggerCambodiaEffect(m, mover, captured, isCheck, isCheckmate);
   triggerAnnoEffect(m, mover, captured, isCheck, isCheckmate);
   triggerGirlyEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerTransformersEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
