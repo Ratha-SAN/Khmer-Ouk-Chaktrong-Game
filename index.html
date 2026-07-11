@@ -3199,126 +3199,91 @@ const THEMES = {
   // board, so that hue reads as dominant at a glance), the other two
   // hues fill the remaining Queen/Bishop/Knight/Rook cuts in rotation, so
   // all three themes stay a visibly matched set while each keeps its own
-  // identity. rough/metal/clearcoat are all tuned toward a glossier, more
-  // reflective "polished gem" finish than a typical theme's, for a
-  // sparkling rather than matte-candy read.
-  // Each Girly theme's frame and tray now lean on its dominant hue's
-  // COMPLEMENT (opposite it on the color wheel) rather than a deeper tint
-  // of the same hue -- a classic, tasteful pairing (blush + sage, lavender
-  // + lime, gold + periwinkle) that gives the board furniture some real
-  // color contrast instead of reading as one hue in a row of shades. The
-  // same complement now also drives the lighting (ambientColorOverride/
-  // hemi*ColorOverride, the same mechanism Magic/Magic II use, see
-  // applyTheme()): the default scene lighting is a warm-cream ambient over
-  // a brown ground-bounce hemisphere, tuned for Classic Wood -- left as-is
-  // it washes every pastel Girly theme further toward beige and muddies
-  // its underside bounce toward brown, dulling exactly the pink/purple/
-  // yellow contrast the frame/tray complement pairing is going for. A
-  // cooler, hue-matched ambient plus a ground bounce recolored to the same
-  // complement (sage/lime/periwinkle, dimmed slightly rather than flat
-  // brown) keeps each theme's own palette reading clean and saturated
-  // instead of sun-bleached.
+  // identity.
+  // Re-tuned as one deliberate trio around Anthropic's own Claude brand
+  // system (warm cream #faf9f5 paper, near-black ink #141413, a clay/
+  // terracotta accent family around #d97757) instead of three unrelated
+  // photo moodboards -- Claude's own design language is explicitly warm
+  // and muted rather than cold or neon (its terracotta rejects the cold
+  // blues most AI products default to), so all three themes now share
+  // the SAME warm cream scene background, the SAME near-black ink frame/
+  // tray/label-ink, and the SAME warm-cream (not stark white) White
+  // pieces -- one consistent "brand," not three separately-colored board
+  // sets -- while each theme's own accent (a clay-rose, a dusty mauve, a
+  // warm ochre-gold, all pulled from the same muted, low-saturation
+  // family as Claude's own terracotta) leads its board tone and its
+  // gemPalette's King/Pawn cuts, the same "one hue leads, the other two
+  // support" structure as before. The piece finish also moved from a
+  // glossy "cut glass jewel" (clearcoat 0.85, sharp clearcoatRoughness
+  // 0.04, metal 0.35) to a softer, more matte "polished clay/ceramic"
+  // finish (clearcoat 0.35, softer clearcoatRoughness 0.25, metal 0.15)
+  // -- terracotta is fired clay, not crystal, and Claude's whole visual
+  // language favors understated warmth over flashy sparkle. Both the
+  // frame and the board opt into frameGradient/gradientTiles (see
+  // buildGradientTileTexture above) so neither big surface reads as flat
+  // plastic, and frameClearcoat/frameEnvMapIntensity are dulled way down
+  // (a shared dark ink frame needs its own duller finish, or the same
+  // clearcoat/env-reflection tuned for the pieces' sparkle washes it out
+  // toward a glossy gray -- see the comment on frameClearcoat in
+  // applyTheme() for the full mechanism) alongside a dimmed ambient/hemi
+  // fill (the same "dark themes need the flat light dimmed or a matte
+  // material just diffuse-bounces itself back toward midtone" approach
+  // Magic/Magic II and Girly Yellow's first pass already established).
   girlyPink: {
-    name: 'Girly Pink', style: 'girly',
-    // Re-tuned to a user-supplied pastel-Y2K reference photo: a soft
-    // bubblegum-pink cap and lavender sleeve against a vivid mint/
-    // turquoise backdrop, platinum hair, pink-and-white daisies with
-    // yellow centers. That photo pairs pink with MINT, not the muted
-    // sage this theme used before -- swapping the complement to a soft
-    // mint-teal (still pastel-saturated to match Girly Purple/Yellow's
-    // own complement furniture, not the photo's full-saturation teal)
-    // reads as a much closer match to the reference's actual vibe. The
-    // board itself moved from a dusty-rose wine tone up to a brighter,
-    // more saturated bubblegum pink (closer to the cap's own hue/
-    // lightness), with pieceB a deeper berry-pink a shade darker than
-    // the board -- keeping the same "board hue and Black-piece hue as
-    // tonal twins" relationship Girly Purple/Yellow already use.
-    bg: 0xf0fdf9, fog: null,
-    frame: 0x73cabb, tileLight: 0xffeef5, tileDark: 0xeb70ad,
-    pieceW: 0xfff3f8, pieceB: 0xc32266, rough: 0.12, metal: 0.35,
-    labelInk: '#7a2a4c', tray: 0xd0f2ea,
-    clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
-    ambientScale: 0.9, hemiScale: 0.85,
-    ambientColorOverride: 0xf5fffb, hemiSkyColorOverride: 0xffd9e8, hemiGroundColorOverride: 0x123f38,
-    girlyFx: true,
-    // pink leads (King + Pawn/Sapphire slot), purple second (Queen + Rook/
-    // Amber slot), yellow as the accent (Bishop/Emerald slot)
+    name: 'Girly Pink', style: 'girly', // Claude clay-rose
+    bg: 0xfaf9f5, fog: null,
+    frame: 0x141413, tileLight: 0xf3e2d9, tileDark: 0xc9887b,
+    pieceW: 0xfaf6ee, pieceB: 0x8b4a3d, rough: 0.35, metal: 0.15,
+    labelInk: '#3d2620', tray: 0x1c1613,
+    clearcoat: 0.35, clearcoatRoughness: 0.25, envMapIntensity: 0.5,
+    frameClearcoat: 0.12, frameEnvMapIntensity: 0.1,
+    ambientScale: 0.55, hemiScale: 0.5,
+    ambientColorOverride: 0xf5e0d8, hemiSkyColorOverride: 0xe8b8a0, hemiGroundColorOverride: 0x1c110c,
+    girlyFx: true, frameGradient: true, gradientTiles: true,
+    // clay-rose leads (King + Pawn/Sapphire slot), plum second (Queen +
+    // Rook/Amber slot), ochre-gold as the accent (Bishop/Emerald slot)
     gemPalette: {
-      ruby: [0xff4fa8, 0x99145f], sapphire: [0xff4fa8, 0x99145f],
-      amethyst: [0xb14fff, 0x5f159a], amber: [0xb14fff, 0x5f159a],
-      emerald: [0xffe14d, 0x99860c]
+      ruby: [0xd9775f, 0x8b3d2a], sapphire: [0xd9775f, 0x8b3d2a],
+      amethyst: [0x9b7f95, 0x5c4658], amber: [0x9b7f95, 0x5c4658],
+      emerald: [0xd4a15a, 0x8a6a2a]
     }
   },
   girlyPurple: {
-    name: 'Girly Purple', style: 'girly',
-    bg: 0xede2ff, fog: null,
-    // muted lime (violet's complement) frame + tray
-    frame: 0xb3c46e, tileLight: 0xf2e8ff, tileDark: 0x6a3d9c,
-    pieceW: 0xf8f0ff, pieceB: 0x7a3ab0, rough: 0.12, metal: 0.35,
-    labelInk: '#442870', tray: 0xe6efc9,
-    clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
-    ambientScale: 0.9, hemiScale: 0.85,
-    ambientColorOverride: 0xf4ecff, hemiSkyColorOverride: 0xe6d4ff, hemiGroundColorOverride: 0x424f26,
-    girlyFx: true,
-    // purple leads (King + Pawn/Sapphire slot), yellow second (Queen +
-    // Rook/Amber slot), pink as the accent (Bishop/Emerald slot)
+    name: 'Girly Purple', style: 'girly', // Claude muted plum
+    bg: 0xfaf9f5, fog: null,
+    frame: 0x141413, tileLight: 0xe8dde4, tileDark: 0x9b8091,
+    pieceW: 0xfaf6ee, pieceB: 0x5c4658, rough: 0.35, metal: 0.15,
+    labelInk: '#3a2c38', tray: 0x181316,
+    clearcoat: 0.35, clearcoatRoughness: 0.25, envMapIntensity: 0.5,
+    frameClearcoat: 0.12, frameEnvMapIntensity: 0.1,
+    ambientScale: 0.55, hemiScale: 0.5,
+    ambientColorOverride: 0xe8dce6, hemiSkyColorOverride: 0xc9b0c2, hemiGroundColorOverride: 0x140f14,
+    girlyFx: true, frameGradient: true, gradientTiles: true,
+    // plum leads (King + Pawn/Sapphire slot), ochre-gold second (Queen +
+    // Rook/Amber slot), clay-rose as the accent (Bishop/Emerald slot)
     gemPalette: {
-      ruby: [0xb14fff, 0x5f159a], sapphire: [0xb14fff, 0x5f159a],
-      amethyst: [0xffe14d, 0x99860c], amber: [0xffe14d, 0x99860c],
-      emerald: [0xff4fa8, 0x99145f]
+      ruby: [0x9b7f95, 0x5c4658], sapphire: [0x9b7f95, 0x5c4658],
+      amethyst: [0xd4a15a, 0x8a6a2a], amber: [0xd4a15a, 0x8a6a2a],
+      emerald: [0xd9775f, 0x8b3d2a]
     }
   },
   girlyYellow: {
-    name: 'Girly Yellow', style: 'girly',
-    // Re-tuned to a user-supplied reference photo: a bold, saturated
-    // golden-yellow scene (top and backdrop both a vivid warm gold),
-    // warm amber curly hair, white pants/headphones, and a small amount
-    // of near-black from hair roots/skin tone -- read as "gold is the
-    // hero color, dark is a small accent, not the furniture" rather than
-    // the previous light-periwinkle-complement pairing. Frame/tray moved
-    // from a pale periwinkle down to a dark warm charcoal-bronze (the
-    // "tiny amount of black" from the reference, promoted to the board's
-    // dark tone instead of a light complement), while tileDark/pieceB
-    // lean into a richer, more saturated "natural" honey-gold/bronze
-    // instead of the previous softer amber-brown -- closer to the
-    // photo's own vivid warmth. Both the frame and the board additionally
-    // opt into frameGradient/gradientTiles (see buildGradientTileTexture
-    // above): a big single-hex surface -- the whole uniform-style
-    // board, or the frame bezel -- reads as flat plastic at this
-    // saturation, so each gets a subtle self-derived light-to-dark
-    // gradient instead of one dead-flat fill.
-    bg: 0xfff8e6, fog: null,
-    frame: 0x241a0e, tileLight: 0xfff0c2, tileDark: 0xe8a716,
-    pieceW: 0xfffaf0, pieceB: 0xa8650a, rough: 0.12, metal: 0.35,
-    labelInk: '#3d2a10', tray: 0x3a2a16,
-    clearcoat: 0.85, clearcoatRoughness: 0.04, envMapIntensity: 0.9,
-    // frameClearcoat/frameEnvMapIntensity: the piece-tuned 0.85/0.9 gloss
-    // above would otherwise wash the dark frame out into a glossy tan via
-    // clearcoat specular + environment reflection dominating its dark
-    // diffuse base color (see the comment on frameClearcoat in
-    // applyTheme()) -- dulled way down so the frame reads as dark matte
-    // charcoal instead.
-    frameClearcoat: 0.15, frameEnvMapIntensity: 0.12,
-    // A dark frame needs the flat ambient+hemisphere fill dimmed the same
-    // way Magic/Magic II's dark palettes do (see the big comment on
-    // ambientScale near HEMI_BASE_INTENSITY above) -- at the previous
-    // near-full 0.9/0.85 scale plus a pale, bright ambientColorOverride,
-    // the matte frame just got flooded with warm light and washed up to
-    // a light tan instead of reading dark, since a roughness-0.8 matte
-    // material mostly just diffuse-bounces whatever ambient color hits
-    // it. Cut roughly in half, and the override colors themselves pulled
-    // down from near-white to a richer, less blown-out gold, so the sun/
-    // direct light (not the flat ambient wash) is what gives the board
-    // its gold pop while the frame stays convincingly dark.
+    name: 'Girly Yellow', style: 'girly', // Claude warm ochre
+    bg: 0xfaf9f5, fog: null,
+    frame: 0x141413, tileLight: 0xf5e6c8, tileDark: 0xd4a15a,
+    pieceW: 0xfaf6ee, pieceB: 0x8a6a2a, rough: 0.35, metal: 0.15,
+    labelInk: '#3d2f10', tray: 0x1c1712,
+    clearcoat: 0.35, clearcoatRoughness: 0.25, envMapIntensity: 0.5,
+    frameClearcoat: 0.12, frameEnvMapIntensity: 0.1,
     ambientScale: 0.55, hemiScale: 0.5,
     ambientColorOverride: 0xffe0a0, hemiSkyColorOverride: 0xffcf6b, hemiGroundColorOverride: 0x140d05,
     girlyFx: true, frameGradient: true, gradientTiles: true,
-    // yellow leads (King + Pawn/Sapphire slot), pink second (Queen + Rook/
-    // Amber slot), purple as the accent (Bishop/Emerald slot)
+    // ochre-gold leads (King + Pawn/Sapphire slot), clay-rose second
+    // (Queen + Rook/Amber slot), plum as the accent (Bishop/Emerald slot)
     gemPalette: {
-      ruby: [0xffe14d, 0x99860c], sapphire: [0xffe14d, 0x99860c],
-      amethyst: [0xff4fa8, 0x99145f], amber: [0xff4fa8, 0x99145f],
-      emerald: [0xb14fff, 0x5f159a]
+      ruby: [0xd4a15a, 0x8a6a2a], sapphire: [0xd4a15a, 0x8a6a2a],
+      amethyst: [0xd9775f, 0x8b3d2a], amber: [0xd9775f, 0x8b3d2a],
+      emerald: [0x9b7f95, 0x5c4658]
     }
   },
   // Kids: a redesigned chunky, rounded, bright-primary-color piece set
