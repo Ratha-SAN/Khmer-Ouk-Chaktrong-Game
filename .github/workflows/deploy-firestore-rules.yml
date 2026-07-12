@@ -1,0 +1,20 @@
+name: Deploy Firestore rules (one-off)
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: Deploy firestore.rules
+        run: |
+          npx --yes firebase-tools@13 deploy --only firestore:rules \
+            --project khmer-ouk-datacollection \
+            --non-interactive
