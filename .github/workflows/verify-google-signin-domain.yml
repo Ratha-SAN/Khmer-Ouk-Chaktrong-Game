@@ -1,0 +1,55 @@
+name: Verify Google sign-in domain fix (one-off)
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.47.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium
+
+      - name: Click "sign up with Google" for real and see whether the popup reaches Google
+        run: |
+          cat > test.js <<'EOF'
+          const { chromium } = require('playwright');
+
+          async function main() {
+            const browser = await chromium.launch();
+            const context = await browser.newContext();
+            const page = await context.newPage();
+
+            await page.goto('https://oukkhmer.web.app/', { waitUntil: 'load' });
+            await page.waitForTimeout(3000);
+            await page.click('#startBtn');
+            await page.waitForTimeout(500);
+
+            // A real click (not a direct API call) so this exercises the exact
+            // popup flow a user hits -- if the domain is still unauthorized,
+            // Firebase throws before ever opening a popup to Google.
+            const popupPromise = context.waitForEvent('page', { timeout: 8000 }).catch(() => null);
+            await page.click('#signupGoogleBtn');
+            const popup = await popupPromise;
+
+            if (popup) {
+              await popup.waitForLoadState('domcontentloaded').catch(() => {});
+              console.log('POPUP OPENED, URL:', popup.url());
+              console.log('REACHED GOOGLE:', popup.url().includes('accounts.google.com'));
+              await popup.close().catch(() => {});
+            } else {
+              console.log('NO POPUP OPENED');
+            }
+
+            await page.waitForTimeout(1000);
+            const errorVisible = await page.evaluate(() => document.getElementById('loginError').style.display === 'block');
+            const errorText = await page.evaluate(() => document.getElementById('loginError').textContent);
+            console.log('LOGIN ERROR SHOWN:', errorVisible, errorVisible ? errorText : '');
+
+            await browser.close();
+          }
+          main().catch((e) => { console.error(e); process.exit(1); });
+          EOF
+          node test.js
