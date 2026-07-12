@@ -1,0 +1,44 @@
+name: Diagnose Google sign-in error (one-off)
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.47.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium
+
+      - name: Trigger Google sign-in on the live site and capture the raw Firebase error
+        run: |
+          cat > test.js <<'EOF'
+          const { chromium } = require('playwright');
+
+          async function main() {
+            const browser = await chromium.launch();
+            const page = await browser.newPage();
+            const errors = [];
+            page.on('pageerror', (e) => errors.push(String(e)));
+            page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.type() + ': ' + m.text()); });
+
+            await page.goto('https://oukkhmer.web.app/', { waitUntil: 'load' });
+            await page.waitForTimeout(3000);
+            await page.click('#startBtn');
+            await page.waitForTimeout(500);
+
+            const result = await page.evaluate(() => {
+              return window.__oukAuth.signInGoogle()
+                .then(() => ({ ok: true }))
+                .catch((err) => ({ ok: false, code: err && err.code, message: err && err.message, name: err && err.name }));
+            });
+            console.log('signInGoogle RESULT:', JSON.stringify(result));
+            console.log('CONSOLE/PAGE MESSAGES:', JSON.stringify(errors));
+
+            await browser.close();
+          }
+          main().catch((e) => { console.error(e); process.exit(1); });
+          EOF
+          node test.js
