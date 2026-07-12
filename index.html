@@ -378,6 +378,11 @@
     box-shadow: 0 0 0 1px rgba(120,70,220,.2), 0 0 40px 6px rgba(140,80,255,.22),
       0 0 70px 14px rgba(79,216,255,.08), 0 24px 60px rgba(0,0,0,.55);
   }
+  .loginHint { font-size: 11px; color: var(--text-muted); opacity: .75; margin: 4px 0 0; line-height: 1.45; }
+  #loginSwitchUserBtn {
+    background: none; border: none; color: var(--text-faint); font-size: 12px;
+    text-decoration: underline; padding: 4px; cursor: pointer;
+  }
   #startScreen .box h1 {
     font-size: 30px; margin-bottom: 6px;
     background: linear-gradient(180deg, #fff3d6, #ffcf6b 55%, #e6a53a);
@@ -1557,23 +1562,22 @@
 <div id="loginScreen" class="fullOverlay" style="display:none">
   <div class="box">
     <h1>អុកចត្រង្គ<br>Ouk Chatrang</h1>
-    <p>ចូលគណនី — Sign in to sync your settings, or continue as a guest</p>
+    <p>ចូលជាភ្ញៀវ — Continue as a guest</p>
     <div style="text-align:left;margin-top:6px">
       <label style="display:block">ឈ្មោះអ្នកប្រើ Username
-        <input type="text" id="loginUsername" placeholder="leave blank for an auto guest name" style="width:100%;margin-top:4px" autocomplete="username">
+        <input type="text" id="loginUsername" style="width:100%;margin-top:4px" autocomplete="username">
       </label>
-      <label style="display:block;margin-top:8px">លេខសម្ងាត់ Password <span style="color:#8a785c">(optional for guest)</span>
-        <input type="password" id="loginPassword" placeholder="leave blank for none" style="width:100%;margin-top:4px" autocomplete="current-password">
+      <p class="loginHint">ឈ្មោះនេះបង្កើតដោយស្វ័យប្រវត្តិ ប៉ុន្តែអ្នកអាចប្ដូរជាឈ្មោះផ្ទាល់ខ្លួនបានគ្រប់ពេល។<br>Auto-generated for you — feel free to type your own name instead.</p>
+      <label style="display:block;margin-top:10px">លេខសម្ងាត់ Password
+        <input type="password" id="loginPassword" style="width:100%;margin-top:4px" autocomplete="current-password">
       </label>
+      <p class="loginHint">ស្រេចចិត្ត — អាចទុកទទេបានដោយមិនចាំបាច់បញ្ចូល។<br>Optional — you can leave this blank.</p>
     </div>
     <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
-      <button id="loginSubmitBtn">ចូល Log In</button>
-      <button id="loginGuestBtn">បន្តជាភ្ញៀវ — Continue as Guest</button>
-      <button id="loginGoogleBtn">ចូលដោយ Google — Sign in with Google</button>
-      <button id="loginAppleBtn"> Sign in with Apple</button>
+      <button id="loginSubmitBtn">ចូល ▸ Log In</button>
+      <button id="loginSwitchUserBtn" type="button">មិនមែនអ្នកទេ? ចូលជាអ្នកប្រើផ្សេង — Not you? Log in as a different user</button>
     </div>
     <p id="loginError" style="display:none;color:var(--danger);font-size:12px;margin-top:12px"></p>
-    <p style="font-size:11px;color:#8a785c;margin-top:14px">Guest access unlocks the top 2 options in Theme, Background, Music, and Lighting. Sign in to unlock everything. Test account: root / admin.</p>
   </div>
 </div>
 
@@ -10292,7 +10296,7 @@ function hideOverlays() {
   overlayOpen = false;
   tickHud();
 }
-document.getElementById('startBtn').onclick = () => { modeScreenOrigin = 'start'; openModeScreen(); };
+document.getElementById('startBtn').onclick = () => { modeScreenOrigin = 'start'; showLoginScreen(); };
 document.getElementById('changeModeBtn').onclick = () => { modeScreenOrigin = 'game'; openModeScreen(); };
 // mode_access analytics: which top-level mode a visit actually reaches --
 // Learn to Play, Play -> 2 Player, or Play -> vs Computer (with the chosen
@@ -10535,43 +10539,70 @@ function saveUserDirectory(dir) {
     saveUserDirectory(dir);
   }
 })();
-// Auto guest username: KhmerOuk + YYYYMMDD + a per-day sequence number
-// starting at 1 (e.g. KhmerOuk2026070501 for the first guest on 2026-07-05).
+// Auto guest username: oukkhmer + YYYYMMDD + a per-day sequence number
+// starting at 1 (e.g. oukkhmer2026072301 for the first guest on 2026-07-23).
+// The counter is per-device (localStorage), same as the "remembered
+// username" below -- there is no server-side account system here, just a
+// lightweight per-device identity.
 function nextGuestUsername() {
   const now = new Date();
   const datePart = String(now.getFullYear()) + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
   const counterKey = 'oukGuestCounter_' + datePart;
   let n = 1;
   try { n = (+localStorage.getItem(counterKey) || 0) + 1; localStorage.setItem(counterKey, String(n)); } catch (e) {}
-  return 'KhmerOuk' + datePart + String(n).padStart(2, '0');
+  return 'oukkhmer' + datePart + String(n).padStart(2, '0');
 }
 
-// ---------- sign-in (login screen) ----------
+// ---------- sign-in (guest login screen) ----------
+const REMEMBERED_USERNAME_KEY = 'oukLastUsername';
+function rememberUsername(username) {
+  try { localStorage.setItem(REMEMBERED_USERNAME_KEY, username); } catch (e) {}
+}
+function rememberedUsername() {
+  try { return localStorage.getItem(REMEMBERED_USERNAME_KEY) || ''; } catch (e) { return ''; }
+}
 function showLoginError(msg) {
   const el = document.getElementById('loginError');
   el.textContent = msg;
   el.style.display = 'block';
 }
 function clearLoginError() { document.getElementById('loginError').style.display = 'none'; }
-function finishLogin() {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('startScreen').style.display = 'flex';
+// Called every time the login screen is about to be shown: pre-fills the
+// username with whatever this device last logged in as, or a fresh
+// auto-generated name if this device has never logged in before. The
+// password is never remembered -- only the username -- so a returning
+// guest with no password just clicks Log In, and one who set a password
+// re-enters it.
+function resetLoginFields() {
+  clearLoginError();
+  document.getElementById('loginUsername').value = rememberedUsername() || nextGuestUsername();
   document.getElementById('loginPassword').value = '';
 }
-// Shared by both the "Log In" and "Continue as Guest" buttons: looks the
-// username up in the local directory. An existing username must have its
-// password match (this is what makes root/admin, or any previously-used
-// guest name, a real match-or-reject check instead of always succeeding).
-// A username that doesn't exist yet is only auto-created by the guest
-// path (allowGuestCreate); the Log In button never creates new accounts.
-function attemptLocalLogin(username, password, allowGuestCreate) {
+function showLoginScreen() {
+  document.getElementById('startScreen').style.display = 'none';
+  resetLoginFields();
+  document.getElementById('loginScreen').style.display = 'flex';
+  overlayOpen = true;
+  tickHud();
+}
+function finishLogin() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('loginPassword').value = '';
+  openModeScreen();
+}
+// Looks the username up in the local (per-device) directory. An existing
+// username must have its password match -- this is what makes a
+// previously-used name a real match-or-reject check instead of always
+// succeeding, so a shared device can still tell two guests apart. A
+// username that doesn't exist yet is created on the spot with whatever
+// password (or none) was given.
+function attemptLocalLogin(username, password) {
   const dir = loadUserDirectory();
   const existing = dir[username];
   if (existing) {
     if (existing.password !== (password || '')) return null;
     return { username, tier: existing.tier };
   }
-  if (!allowGuestCreate) return null;
   dir[username] = { password: password || '', tier: 'guest', createdAt: Date.now() };
   saveUserDirectory(dir);
   return { username, tier: 'guest' };
@@ -10580,60 +10611,24 @@ document.getElementById('loginSubmitBtn').onclick = () => {
   clearLoginError();
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;
-  if (!username) { showLoginError('Please enter a username, or use Continue as Guest.'); return; }
-  const match = attemptLocalLogin(username, password, false);
-  if (!match) { showLoginError('Wrong username or password.'); return; }
-  window.__oukAuth._setState({ signedIn: true, method: 'local', uid: 'local:' + match.username, tier: match.tier });
-  finishLogin();
-};
-document.getElementById('loginGuestBtn').onclick = () => {
-  clearLoginError();
-  const typed = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const username = typed || nextGuestUsername();
-  const match = attemptLocalLogin(username, password, true);
-  if (!match) { showLoginError('Wrong username or password.'); return; }
+  if (!username) { showLoginError('សូមបញ្ចូលឈ្មោះ។ Please enter a username.'); return; }
+  const match = attemptLocalLogin(username, password);
+  if (!match) { showLoginError('ខុសពាក្យសម្ងាត់សម្រាប់ឈ្មោះនេះ។ Wrong password for that username.'); return; }
   window.__oukAuth._setState({ signedIn: true, method: 'guest', uid: 'local:' + match.username, tier: match.tier });
+  rememberUsername(match.username);
   finishLogin();
 };
-// Google/Apple launch the provider's real sign-in page via Firebase's
-// signInWithPopup (this genuinely opens accounts.google.com / Apple's
-// sign-in flow whenever the app is hosted on an authorized https origin --
-// it only falls back below because a local file:// page or an
-// unauthorized domain can't complete that redirect/popup handshake).
-// On success the returned profile is captured (recordProfile) so the same
-// account is recognized on a later visit.
-document.getElementById('loginGoogleBtn').onclick = () => {
+// "Not you? Log in as a different user" -- clears the current fields and
+// drops in a fresh auto-generated name, ready to accept as-is or type
+// over. This does not touch the remembered username in storage; that
+// only updates once a login actually succeeds.
+document.getElementById('loginSwitchUserBtn').onclick = () => {
   clearLoginError();
-  window.__oukAuth.signInGoogle().then((cred) => {
-    captureOAuthProfile(cred, 'google.com');
-    finishLogin();
-  }).catch(() => {
-    showLoginError('Google sign-in needs this page to be hosted on an authorized https site (not a local file). Try Log In or Continue as Guest instead.');
-  });
+  document.getElementById('loginUsername').value = nextGuestUsername();
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginUsername').focus();
+  document.getElementById('loginUsername').select();
 };
-document.getElementById('loginAppleBtn').onclick = () => {
-  clearLoginError();
-  window.__oukAuth.signInApple().then((cred) => {
-    captureOAuthProfile(cred, 'apple.com');
-    finishLogin();
-  }).catch(() => {
-    showLoginError('Apple sign-in needs this page to be hosted on an authorized https site (not a local file). Try Log In or Continue as Guest instead.');
-  });
-};
-function captureOAuthProfile(cred, providerId) {
-  try {
-    const user = cred && cred.user;
-    if (!user) return;
-    window.__oukAuth.recordProfile({
-      uid: user.uid,
-      email: user.email || null,
-      displayName: user.displayName || null,
-      provider: providerId,
-      lastSignInAt: Date.now()
-    });
-  } catch (e) {}
-}
 document.getElementById('loginPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click();
 });
@@ -10687,6 +10682,7 @@ document.getElementById('lockPopupSignIn').onclick = () => {
   document.getElementById('lockPopup').style.display = 'none';
   document.getElementById('startScreen').style.display = 'none';
   document.getElementById('modeScreen').style.display = 'none';
+  resetLoginFields();
   document.getElementById('loginScreen').style.display = 'flex';
 };
 // Wrap each control's already-assigned handler rather than editing it in
@@ -10778,6 +10774,8 @@ window.__ouk = {
   },
   guideGameMoveAt: (i) => currentGuideExample().moves[i],
   loginEnabled: () => LOGIN_ENABLED,
+  rememberedUsername: () => rememberedUsername(),
+  loginUsernameField: () => document.getElementById('loginUsername').value,
   showPieceNames: () => showPieceNames,
   rulesLang: () => rulesLang,
   toggleRulesLang: () => document.getElementById('rulesLangBtn').click(),
