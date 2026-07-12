@@ -19,7 +19,8 @@ jobs:
 
           async function main() {
             const browser = await chromium.launch();
-            const page = await browser.newPage();
+            const context = await browser.newContext();
+            const page = await context.newPage();
             const errors = [];
             page.on('pageerror', (e) => errors.push(String(e)));
             page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.type() + ': ' + m.text()); });
@@ -29,12 +30,26 @@ jobs:
             await page.click('#startBtn');
             await page.waitForTimeout(500);
 
+            const popupPromise = context.waitForEvent('page', { timeout: 8000 }).catch(() => null);
             const timeout = new Promise((resolve) => setTimeout(() => resolve({ ok: false, code: 'TIMEOUT' }), 8000));
             const call = page.evaluate(() => window.__oukAuth.signInApple()
               .then(() => ({ ok: true }))
               .catch((err) => ({ ok: false, code: err && err.code, message: err && err.message })));
             const result = await Promise.race([call, timeout]);
             console.log('signInApple RESULT:', JSON.stringify(result));
+
+            const popup = await popupPromise;
+            if (popup) {
+              await popup.waitForLoadState('domcontentloaded').catch(() => {});
+              await popup.waitForTimeout(2000);
+              console.log('POPUP URL:', popup.url());
+              const bodyText = await popup.evaluate(() => document.body ? document.body.innerText.slice(0, 500) : '').catch(() => '(could not read body)');
+              console.log('POPUP BODY TEXT:', JSON.stringify(bodyText));
+              await popup.close().catch(() => {});
+            } else {
+              console.log('NO POPUP EVENT SEEN');
+            }
+
             console.log('CONSOLE/PAGE MESSAGES:', JSON.stringify(errors));
 
             await browser.close();
