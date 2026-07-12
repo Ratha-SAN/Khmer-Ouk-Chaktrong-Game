@@ -1,0 +1,85 @@
+name: Create online-match test accounts (one-off)
+on:
+  workflow_dispatch:
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.47.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium
+
+      - name: Sign up two real email/password accounts on the live site
+        run: |
+          cat > test.js <<'EOF'
+          const { chromium } = require('playwright');
+
+          const ACCOUNTS = [
+            { email: 'oukhtest.alice@example.com', password: 'OukTest123!', name: 'TestAlice' },
+            { email: 'oukhtest.bob@example.com', password: 'OukTest123!', name: 'TestBob' },
+          ];
+
+          async function createOrSignIn(browser, acct) {
+            const context = await browser.newContext();
+            const page = await context.newPage();
+            page.on('pageerror', err => console.log(`[${acct.name} pageerror]`, String(err)));
+            await page.goto('https://oukkhmer.web.app/', { waitUntil: 'load', timeout: 45000 });
+            await page.waitForTimeout(2000);
+            await page.click('#startBtn');
+            await page.waitForTimeout(300);
+            await page.click('#signupEmailBtn');
+            await page.waitForTimeout(300);
+            await page.fill('#loginEmail', acct.email);
+            await page.fill('#loginEmailPassword', acct.password);
+            await page.click('#loginEmailSubmitBtn');
+            await page.waitForTimeout(1500);
+
+            let errText = await page.evaluate(() => {
+              const el = document.getElementById('loginError');
+              return el.style.display === 'block' ? el.textContent : null;
+            });
+
+            if (errText && errText.includes('already has an account')) {
+              console.log(acct.name, '-> account already exists, signing in instead');
+              await page.click('#loginEmailToggleModeBtn');
+              await page.waitForTimeout(200);
+              await page.click('#loginEmailSubmitBtn');
+              await page.waitForTimeout(1500);
+              errText = await page.evaluate(() => {
+                const el = document.getElementById('loginError');
+                return el.style.display === 'block' ? el.textContent : null;
+              });
+            }
+
+            const modeScreenVisible = await page.evaluate(() => document.getElementById('modeScreen').style.display === 'flex');
+            console.log(acct.name, 'result: modeScreenVisible=', modeScreenVisible, 'errText=', errText);
+
+            if (modeScreenVisible) {
+              // Set a friendly display name via the profile screen so it's
+              // recognizable as the opponent name during online matches.
+              await page.click('#modeProfileChip').catch(() => {});
+              await page.waitForTimeout(400);
+              await page.fill('#profileDisplayName', acct.name).catch(() => {});
+              await page.click('#profileSaveBtn').catch(() => {});
+              await page.waitForTimeout(500);
+              await page.click('#profileCloseBtn').catch(() => {});
+            }
+
+            await context.close();
+            return { ok: modeScreenVisible, errText };
+          }
+
+          async function main() {
+            const browser = await chromium.launch();
+            for (const acct of ACCOUNTS) {
+              const r = await createOrSignIn(browser, acct);
+              console.log('SUMMARY', acct.email, JSON.stringify(r));
+            }
+            await browser.close();
+          }
+          main().catch((e) => { console.error(e); process.exit(1); });
+          EOF
+          node test.js
