@@ -1,0 +1,13 @@
+name: One-off - Check live cache headers and content on oukkhmer.web.app
+on: workflow_dispatch
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch headers
+        run: curl -sS -D - -o /tmp/page.html "https://oukkhmer.web.app/?cachebust=$(date +%s)" | grep -i "cache-control\|HTTP/"
+      - name: Confirm new login screen content is present
+        run: |
+          grep -q "loginSwitchUserBtn" /tmp/page.html && echo "FOUND loginSwitchUserBtn (new guest login screen)" || echo "MISSING loginSwitchUserBtn -- still stale!"
+          grep -q "oukkhmer" /tmp/page.html && echo "FOUND oukkhmer prefix reference" || echo "MISSING oukkhmer prefix reference"
+          grep -q "ដាក់ក៏បានមិនដាក់ក៏បាន" /tmp/page.html && echo "FOUND updated password hint text" || echo "MISSING updated password hint text"
