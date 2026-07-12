@@ -378,6 +378,21 @@
     box-shadow: 0 0 0 1px rgba(120,70,220,.2), 0 0 40px 6px rgba(140,80,255,.22),
       0 0 70px 14px rgba(79,216,255,.08), 0 24px 60px rgba(0,0,0,.55);
   }
+  #modeScreen .box { position: relative; }
+  #modeScreen h2 { padding-right: 76px; }
+  #modeProfileChip {
+    position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 6px;
+    max-width: 150px; background: var(--surface-2); border: 1px solid var(--accent-dim);
+    border-radius: 999px; padding: 3px 10px 3px 3px; cursor: pointer;
+  }
+  #modeProfileChip:hover { border-color: var(--accent); }
+  #modeProfileAvatar {
+    width: 24px; height: 24px; border-radius: 50%; overflow: hidden; flex: none;
+    display: flex; align-items: center; justify-content: center; background: var(--accent-dim);
+  }
+  #modeProfileAvatar img { width: 100%; height: 100%; object-fit: cover; }
+  #modeProfileInitial { font-size: 12px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  #modeProfileName { font-size: 11px; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .loginHint { font-size: 11px; color: var(--text-muted); opacity: .75; margin: 4px 0 0; line-height: 1.45; }
   #loginUsername, #loginPassword, #loginEmail, #loginEmailPassword {
     font-family: inherit; font-size: 15px; border-radius: 6px; border: 1px solid var(--accent-dim);
@@ -1642,7 +1657,7 @@
         <button id="signupEmailBtn" class="signupIconBtn" type="button" title="ចុះឈ្មោះជាមួយអ៊ីមែល — Sign up with Email">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
         </button>
-        <button id="signupGoogleBtn" class="signupIconBtn" type="button" title="ចុះឈ្មោះជាមួយ Google — Sign up with Google">
+        <button id="signupGoogleBtn" class="signupIconBtn" type="button" title="ចូលដោយ Google — Log in with Google">
           <svg viewBox="0 0 48 48" width="20" height="20"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.7 2.5 30.2 0 24 0 14.6 0 6.5 5.4 2.5 13.2l7.8 6.1C12.3 13.1 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 2.9-2.2 5.4-4.7 7l7.4 5.7c4.3-4 6.8-9.9 6.8-17.2z"/><path fill="#FBBC05" d="M10.3 19.3a14.5 14.5 0 0 0 0 9.4l-7.8 6.1a24 24 0 0 1 0-21.6z"/><path fill="#34A853" d="M24 48c6.2 0 11.7-2 15.6-5.6l-7.4-5.7c-2.1 1.4-4.8 2.2-8.2 2.2-6.4 0-11.7-3.6-13.7-8.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
         </button>
         <button id="signupAppleBtn" class="signupIconBtn" type="button" title="ចុះឈ្មោះជាមួយ Apple — Sign up with Apple">
@@ -1684,6 +1699,10 @@
 
 <div id="modeScreen" class="fullOverlay" style="display:none">
   <div class="box">
+    <button id="modeProfileChip" type="button" title="គណនីរបស់អ្នក — Your profile">
+      <span id="modeProfileAvatar"><img id="modeProfileImg" alt="" style="display:none"><span id="modeProfileInitial"></span></span>
+      <span id="modeProfileName"></span>
+    </button>
     <div id="modeScreenChoice">
       <h2>ជ្រើសរើសរបៀប — Choose a mode</h2>
       <div class="bigpick">
@@ -8929,11 +8948,12 @@ function playerDisplayName(side) {
   return (currentProfile && currentProfile.displayName) || 'You';
 }
 // The signed-up player's own scorecard shows their actual profile picture
-// (uploaded photo, or their chosen color gradient) instead of the
-// generic per-team initial+color avatar used for everyone else.
+// (uploaded photo, their Google/Apple sign-in photo, or their chosen
+// color gradient) instead of the generic per-team initial+color avatar
+// used for everyone else.
 const profileAvatarCache = {};
 function profileAvatarDataURL(profile) {
-  if (profile.avatarPhoto) return profile.avatarPhoto;
+  if (profile.avatarPhoto || profile.photoURL) return profile.avatarPhoto || profile.photoURL;
   const grad = profile.avatarGradient || AVATAR_GRADIENTS[0];
   const initial = profileInitial(profile);
   const key = grad + '|' + initial;
@@ -10432,6 +10452,7 @@ function openModeScreen() {
   showModeChoiceStep();
   document.getElementById('modeScreen').style.display = 'flex';
   overlayOpen = true;
+  updateModeProfileChip();
   tickHud();
 }
 function hideOverlays() {
@@ -10745,8 +10766,11 @@ const AVATAR_GRADIENTS = [
 // throw and silently drop the whole write.
 function profileWriteFields(p) {
   const out = { uid: p.uid, lastSignInAt: Date.now() };
+  // null is written through on purpose (it clears a stale field in
+  // Firestore, e.g. photoURL after explicitly picking a gradient) --
+  // only undefined is skipped, since the Firestore SDK throws on it.
   ['displayName', 'email', 'photoURL', 'avatarPhoto', 'avatarGradient', 'provider'].forEach((k) => {
-    if (p[k] !== undefined && p[k] !== null) out[k] = p[k];
+    if (p[k] !== undefined) out[k] = p[k];
   });
   return out;
 }
@@ -10925,6 +10949,15 @@ function paintAvatar(imgEl, initialEl, containerEl, profile) {
     containerEl.style.background = (profile && profile.avatarGradient) || AVATAR_GRADIENTS[0];
   }
 }
+// Profile access outside of active gameplay (the scorecard click only
+// exists once a game is underway) -- a small chip in the corner of the
+// mode-selection screen, available to every signed-in tier including guests.
+function updateModeProfileChip() {
+  if (!currentProfile) return;
+  paintAvatar(document.getElementById('modeProfileImg'), document.getElementById('modeProfileInitial'), document.getElementById('modeProfileAvatar'), currentProfile);
+  document.getElementById('modeProfileName').textContent = currentProfile.displayName || '';
+}
+document.getElementById('modeProfileChip').onclick = openProfileScreen;
 // Pending avatar edits (photo/gradient) live here until Save is clicked,
 // so opening the profile screen and closing it without saving is a no-op.
 let pendingAvatar = null; // { avatarPhoto } | { avatarGradient } | null (null = keep current)
@@ -10939,7 +10972,7 @@ let pendingAvatar = null; // { avatarPhoto } | { avatarGradient } | null (null =
       pendingAvatar = { avatarGradient: g };
       Array.from(grid.children).forEach((c) => c.classList.toggle('selected', c === sw));
       paintAvatar(document.getElementById('profileAvatarImg'), document.getElementById('profileAvatarInitial'),
-        document.getElementById('profileAvatarPreview'), Object.assign({}, currentProfile, pendingAvatar, { avatarPhoto: null }));
+        document.getElementById('profileAvatarPreview'), Object.assign({}, currentProfile, pendingAvatar, { avatarPhoto: null, photoURL: null }));
     };
     grid.appendChild(sw);
   });
@@ -10997,11 +11030,15 @@ document.getElementById('profileSaveBtn').onclick = () => {
   currentProfile.displayName = name;
   if (pendingAvatar) {
     if (pendingAvatar.avatarPhoto) { currentProfile.avatarPhoto = pendingAvatar.avatarPhoto; currentProfile.avatarGradient = null; }
-    if (pendingAvatar.avatarGradient) { currentProfile.avatarGradient = pendingAvatar.avatarGradient; currentProfile.avatarPhoto = null; }
+    // Explicitly picking a gradient overrides even a Google/Apple sign-in
+    // photo -- otherwise photoURL would keep winning the avatarPhoto ||
+    // photoURL fallback and the gradient choice would never visibly stick.
+    if (pendingAvatar.avatarGradient) { currentProfile.avatarGradient = pendingAvatar.avatarGradient; currentProfile.avatarPhoto = null; currentProfile.photoURL = null; }
     pendingAvatar = null;
   }
   rememberUsername(name);
   window.__oukAuth.recordProfile(profileWriteFields(currentProfile));
+  updateModeProfileChip();
   const status = document.getElementById('profileStatus');
   status.textContent = 'រក្សាទុករួច Saved!';
   status.style.display = 'block';
