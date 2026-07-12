@@ -1,0 +1,63 @@
+name: Verify live guest identity (one-off)
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.47.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium
+
+      - name: Live login test against oukkhmer.web.app
+        run: |
+          cat > test.js <<'EOF'
+          const { chromium } = require('playwright');
+
+          async function main() {
+            const browser = await chromium.launch();
+            const page = await browser.newPage();
+            const errors = [];
+            page.on('pageerror', (e) => errors.push(String(e)));
+            page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+
+            await page.goto('https://oukkhmer.web.app/', { waitUntil: 'networkidle' });
+            await page.waitForTimeout(1500);
+            await page.click('#startBtn');
+            await page.waitForTimeout(500);
+            await page.click('#loginSubmitBtn');
+            await page.waitForTimeout(1500);
+
+            const authState = await page.evaluate(() => window.__oukAuth.getState());
+            console.log('AUTH STATE:', JSON.stringify(authState));
+            console.log('ERRORS:', JSON.stringify(errors.filter(e => !e.includes('favicon'))));
+
+            await browser.close();
+            require('fs').writeFileSync('auth_state.json', JSON.stringify(authState));
+          }
+          main().catch((e) => { console.error(e); process.exit(1); });
+          EOF
+          node test.js
+
+      - name: Check Firestore users collection for the new UID
+        run: |
+          UID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('auth_state.json')).uid)")
+          echo "Looking up uid: $UID"
+          TOKEN=$(gcloud auth application-default print-access-token)
+          curl -sS -X GET \
+            "https://firestore.googleapis.com/v1/projects/khmer-ouk-datacollection/databases/(default)/documents/users/$UID" \
+            -H "Authorization: Bearer $TOKEN"
