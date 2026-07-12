@@ -35,8 +35,8 @@ jobs:
             page.on('pageerror', (e) => errors.push(String(e)));
             page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
-            await page.goto('https://oukkhmer.web.app/', { waitUntil: 'networkidle' });
-            await page.waitForTimeout(1500);
+            await page.goto('https://oukkhmer.web.app/', { waitUntil: 'load' });
+            await page.waitForTimeout(3000);
             await page.click('#startBtn');
             await page.waitForTimeout(500);
             await page.click('#loginSubmitBtn');
