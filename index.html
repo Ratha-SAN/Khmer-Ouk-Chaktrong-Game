@@ -2,6 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+  // Bridge redirect: this same index.html is served from GitHub Pages
+  // AND Firebase Hosting (oukkhmer.web.app, the actively-deployed site --
+  // see firebase.json). GitHub Pages is kept as a working mirror, not
+  // retired, but new visitors landing there should end up on the
+  // actively-maintained Firebase URL instead. Placed as the very first
+  // thing in <head>, before any other tag, so a GitHub Pages visit
+  // redirects immediately instead of loading the whole game first.
+  // Every other host (oukkhmer.web.app, a Firebase PR-preview channel,
+  // a local file:// open, the old frozen khmer-ouk-datacollection.web.app
+  // mirror) is left alone.
+  if (location.hostname === 'ratha-san.github.io') {
+    location.replace('https://oukkhmer.web.app' + location.pathname.replace(/^\/Khmer-Ouk\/?/, '/') + location.search + location.hash);
+  }
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>អុកចត្រង្គ — Ouk Chatrang (Khmer Chess)</title>
 <!-- PWA: installable + offline-capable (see manifest.webmanifest / sw.js) -->
