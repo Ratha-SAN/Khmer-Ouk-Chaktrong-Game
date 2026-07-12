@@ -31,10 +31,11 @@ jobs:
             exit 1
           fi
 
-          RELEASE_PAYLOAD=$(jq -n --arg ruleset "$RULESET_NAME" '{rulesetName:$ruleset}')
+          RELEASE_PAYLOAD=$(jq -n --arg ruleset "$RULESET_NAME" \
+            '{release:{rulesetName:$ruleset}, updateMask:"rulesetName"}')
           RELEASE_RESP=$(curl -sS -X PATCH \
             -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
             -d "$RELEASE_PAYLOAD" \
-            "https://firebaserules.googleapis.com/v1/projects/$PROJECT/releases/cloud.firestore?updateMask=rulesetName")
+            "https://firebaserules.googleapis.com/v1/projects/$PROJECT/releases/cloud.firestore")
           echo "$RELEASE_RESP"
           echo "$RELEASE_RESP" | jq -e --arg ruleset "$RULESET_NAME" '.rulesetName == $ruleset'
