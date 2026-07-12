@@ -31,8 +31,11 @@ jobs:
             exit 1
           fi
 
-          RELEASE_PAYLOAD=$(jq -n --arg ruleset "$RULESET_NAME" \
-            '{release:{rulesetName:$ruleset}, updateMask:"rulesetName"}')
+          RELEASE_PAYLOAD=$(jq -n \
+            --arg name "projects/$PROJECT/releases/cloud.firestore" \
+            --arg ruleset "$RULESET_NAME" \
+            '{release:{name:$name, rulesetName:$ruleset}, updateMask:"rulesetName"}')
+          echo "Release payload: $RELEASE_PAYLOAD"
           RELEASE_RESP=$(curl -sS -X PATCH \
             -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
             -d "$RELEASE_PAYLOAD" \
