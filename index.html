@@ -10524,38 +10524,30 @@ window.__oukActions = {
   }
 };
 
-// ---------- local user directory ----------
-// This is a fully offline single-file demo with no server, so username/
-// password accounts are matched against a small directory kept in
-// localStorage (persists across visits on this browser/device only) --
-// not a real security boundary, just enough to support real match/reject
-// behavior and a couple of named accounts.
-const USER_DIR_KEY = 'oukUserDirectory';
-function loadUserDirectory() {
-  try { return JSON.parse(localStorage.getItem(USER_DIR_KEY)) || {}; } catch (e) { return {}; }
-}
-function saveUserDirectory(dir) {
-  try { localStorage.setItem(USER_DIR_KEY, JSON.stringify(dir)); } catch (e) {}
-}
-(function seedTestUser() {
-  const dir = loadUserDirectory();
-  if (!dir.root) {
-    dir.root = { password: 'admin', tier: 'full', createdAt: Date.now() };
-    saveUserDirectory(dir);
-  }
-})();
-// Auto guest username: oukkhmer + YYYYMMDD + a per-day sequence number
-// starting at 1 (e.g. oukkhmer2026072301 for the first guest on 2026-07-23).
-// The counter is per-device (localStorage), same as the "remembered
-// username" below -- there is no server-side account system here, just a
-// lightweight per-device identity.
+// ---------- identity ----------
+// The real, globally-unique identity is a Firebase Anonymous Auth uid
+// (see window.__oukAuth.signInGuest, wired up near the top of the file):
+// Firebase's own backend guarantees that uid is unique and, once created,
+// persists on this browser/device across visits (signInAnonymously()
+// returns the SAME uid on a later call rather than minting a new one,
+// until the user explicitly logs out via "log in as a different user").
+// The username typed here is just a display name attached to that uid
+// (like a social-media handle) -- it is never checked for uniqueness,
+// so two different players can freely share the same name.
+const KHMER_NAMES = [
+  'សុភា', 'ដារា', 'សុគន្ធ', 'ចន្ទា', 'វិសាល', 'សុខា', 'មករា', 'ស្រីពៅ', 'បូព៉ា', 'រតនា',
+  'សុវណ្ណ', 'ចាន់ថា', 'សំណាង', 'សុជាតិ', 'នារី', 'កញ្ញា', 'វិចិត្រ', 'សុភាព', 'ចន្ទ្រា', 'ធារិទ្ធ',
+  'បញ្ញា', 'រស្មី', 'ចន្ទនី', 'វណ្ណៈ', 'សុផល', 'ចរិយា', 'សុវត្ថិ', 'ពិសិដ្ឋ', 'ម៉ាលី', 'សុវណ្ណារី'
+];
+// Auto guest name: oukkhmer + YYYYMMDD + a random Khmer name, e.g.
+// oukkhmer20260723សុភា. Since the uid (not this name) is what's actually
+// unique, there's no need for a per-day sequence number here anymore --
+// two guests landing on the same random name on the same day is fine.
 function nextGuestUsername() {
   const now = new Date();
   const datePart = String(now.getFullYear()) + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
-  const counterKey = 'oukGuestCounter_' + datePart;
-  let n = 1;
-  try { n = (+localStorage.getItem(counterKey) || 0) + 1; localStorage.setItem(counterKey, String(n)); } catch (e) {}
-  return 'oukkhmer' + datePart + String(n).padStart(2, '0');
+  const name = KHMER_NAMES[Math.floor(Math.random() * KHMER_NAMES.length)];
+  return 'oukkhmer' + datePart + name;
 }
 
 // ---------- sign-in (guest login screen) ----------
@@ -10573,11 +10565,9 @@ function showLoginError(msg) {
 }
 function clearLoginError() { document.getElementById('loginError').style.display = 'none'; }
 // Called every time the login screen is about to be shown: pre-fills the
-// username with whatever this device last logged in as, or a fresh
-// auto-generated name if this device has never logged in before. The
-// password is never remembered -- only the username -- so a returning
-// guest with no password just clicks Log In, and one who set a password
-// re-enters it.
+// username with whatever this device last logged in as (its display
+// name, not tied to any password check), or a fresh auto-generated name
+// if this device has never logged in before.
 function resetLoginFields() {
   clearLoginError();
   document.getElementById('loginUsername').value = rememberedUsername() || nextGuestUsername();
@@ -10595,44 +10585,49 @@ function finishLogin() {
   document.getElementById('loginPassword').value = '';
   openModeScreen();
 }
-// Looks the username up in the local (per-device) directory. An existing
-// username must have its password match -- this is what makes a
-// previously-used name a real match-or-reject check instead of always
-// succeeding, so a shared device can still tell two guests apart. A
-// username that doesn't exist yet is created on the spot with whatever
-// password (or none) was given.
-function attemptLocalLogin(username, password) {
-  const dir = loadUserDirectory();
-  const existing = dir[username];
-  if (existing) {
-    if (existing.password !== (password || '')) return null;
-    return { username, tier: existing.tier };
-  }
-  dir[username] = { password: password || '', tier: 'guest', createdAt: Date.now() };
-  saveUserDirectory(dir);
-  return { username, tier: 'guest' };
+// A random offline-only id, used only as a last resort if Firebase itself
+// is unreachable (blocked network, ad-blocker, fully offline play) -- the
+// game must stay playable either way, just without a real synced identity.
+function offlineUid() {
+  return 'offline:' + ((window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 }
 document.getElementById('loginSubmitBtn').onclick = () => {
   clearLoginError();
   const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value;
   if (!username) { showLoginError('សូមបញ្ចូលឈ្មោះ។ Please enter a username.'); return; }
-  const match = attemptLocalLogin(username, password);
-  if (!match) { showLoginError('ខុសពាក្យសម្ងាត់សម្រាប់ឈ្មោះនេះ។ Wrong password for that username.'); return; }
-  window.__oukAuth._setState({ signedIn: true, method: 'guest', uid: 'local:' + match.username, tier: match.tier });
-  rememberUsername(match.username);
-  finishLogin();
+  const btn = document.getElementById('loginSubmitBtn');
+  btn.disabled = true;
+  window.__oukAuth.signInGuest()
+    .then((cred) => {
+      const uid = cred && cred.user ? cred.user.uid : offlineUid();
+      window.__oukAuth.recordProfile({ uid, displayName: username, provider: 'anonymous', lastSignInAt: Date.now() });
+      rememberUsername(username);
+      finishLogin();
+    })
+    .catch(() => {
+      // Firebase unreachable: keep the game playable offline, just without
+      // a real synced uid -- this is a local-only identity for this visit.
+      window.__oukAuth._setState({ signedIn: true, method: 'guest', uid: offlineUid(), tier: 'guest' });
+      rememberUsername(username);
+      finishLogin();
+    })
+    .finally(() => { btn.disabled = false; });
 };
-// "Not you? Log in as a different user" -- clears the current fields and
-// drops in a fresh auto-generated name, ready to accept as-is or type
-// over. This does not touch the remembered username in storage; that
-// only updates once a login actually succeeds.
+// "Not you? Log in as a different user" -- signs out of this device's
+// Firebase anonymous session (so the next signInGuest() mints a genuinely
+// new uid instead of returning the one already persisted here) and drops
+// a fresh auto-generated name into the field.
 document.getElementById('loginSwitchUserBtn').onclick = () => {
   clearLoginError();
-  document.getElementById('loginUsername').value = nextGuestUsername();
-  document.getElementById('loginPassword').value = '';
-  document.getElementById('loginUsername').focus();
-  document.getElementById('loginUsername').select();
+  const btn = document.getElementById('loginSwitchUserBtn');
+  btn.disabled = true;
+  Promise.resolve(window.__oukAuth.signOut()).catch(() => {}).finally(() => {
+    document.getElementById('loginUsername').value = nextGuestUsername();
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginUsername').focus();
+    document.getElementById('loginUsername').select();
+    btn.disabled = false;
+  });
 };
 document.getElementById('loginPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click();
