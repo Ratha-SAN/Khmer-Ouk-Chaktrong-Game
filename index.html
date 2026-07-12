@@ -1810,6 +1810,10 @@
           <input type="password" id="loginPassword" style="width:100%;margin-top:4px" autocomplete="current-password">
         </label>
         <p class="loginHint">ដាក់ក៏បានមិនដាក់ក៏បាន<br>Optional — you can leave this blank.</p>
+        <label style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="loginRememberMe" checked style="width:auto;margin:0">
+          ចងចាំខ្ញុំក្នុងឧបករណ៍នេះ — Remember me on this device
+        </label>
       </div>
       <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
         <button id="loginSubmitBtn">ចូល ▸ Log In</button>
@@ -11157,6 +11161,16 @@ function rememberUsername(username) {
 function rememberedUsername() {
   try { return localStorage.getItem(REMEMBERED_USERNAME_KEY) || ''; } catch (e) { return ''; }
 }
+// "Remember me" defaults to on (unset reads as enabled) so returning
+// visitors skip Start+Login and land straight in the mode screen; the
+// checkbox lets someone on a shared device opt out of that auto-resume.
+const REMEMBER_ME_KEY = 'oukRememberMe';
+function rememberMeEnabled() {
+  try { const v = localStorage.getItem(REMEMBER_ME_KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
+}
+function setRememberMe(enabled) {
+  try { localStorage.setItem(REMEMBER_ME_KEY, enabled ? '1' : '0'); } catch (e) {}
+}
 function showLoginError(msg) {
   const el = document.getElementById('loginError');
   el.textContent = msg;
@@ -11172,6 +11186,7 @@ function resetLoginFields() {
   showGuestPanel();
   document.getElementById('loginUsername').value = rememberedUsername() || nextGuestUsername();
   document.getElementById('loginPassword').value = '';
+  document.getElementById('loginRememberMe').checked = rememberMeEnabled();
 }
 function showLoginScreen() {
   document.getElementById('startScreen').style.display = 'none';
@@ -11235,6 +11250,7 @@ document.getElementById('loginSubmitBtn').onclick = () => {
   clearLoginError();
   const username = document.getElementById('loginUsername').value.trim();
   if (!username) { showLoginError('សូមបញ្ចូលឈ្មោះ។ Please enter a username.'); return; }
+  setRememberMe(document.getElementById('loginRememberMe').checked);
   const btn = document.getElementById('loginSubmitBtn');
   btn.disabled = true;
   window.__oukAuth.signInGuest()
@@ -11333,6 +11349,7 @@ document.getElementById('loginEmailSubmitBtn').onclick = () => {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginEmailPassword').value;
   if (!email || !password) { showLoginError('សូមបញ្ចូលអ៊ីមែល និងលេខសម្ងាត់។ Please enter both email and password.'); return; }
+  setRememberMe(document.getElementById('loginRememberMe').checked);
   const btn = document.getElementById('loginEmailSubmitBtn');
   btn.disabled = true;
   const action = emailAuthMode === 'signup'
@@ -11355,6 +11372,7 @@ function handleOAuthSignup(btnId, signInPromiseFn, providerName) {
   const btn = document.getElementById(btnId);
   btn.onclick = () => {
     clearLoginError();
+    setRememberMe(document.getElementById('loginRememberMe').checked);
     btn.disabled = true;
     signInPromiseFn()
       .then((cred) => completeSignIn(cred.user.uid, {
@@ -11624,6 +11642,25 @@ window.__oukAuth.onChange((s) => {
   accessTier = (s.signedIn && s.tier === 'full') ? 'full' : 'guest';
   applyAccessTier();
 });
+// "Remember me": Firebase's own auth persistence already restores this
+// device's session (anonymous or real account) on its own, but the app
+// still always showed Start -> Log In on top of that. This skips straight
+// to the mode screen once that restore resolves, as long as the box was
+// left checked last time -- fires once, and only if the player hasn't
+// already clicked through manually in the meantime (startScreen still up).
+let autoResumeAttempted = false;
+function tryAutoResume() {
+  window.__oukAuth.onChange((s) => {
+    if (autoResumeAttempted || !rememberMeEnabled() || !s.signedIn) return;
+    if (document.getElementById('startScreen').style.display === 'none') return;
+    autoResumeAttempted = true;
+    completeSignIn(s.uid, {
+      displayName: rememberedUsername() || nextGuestUsername(),
+      provider: s.method === 'guest' ? 'anonymous' : s.method
+    }).then(() => openModeScreen()).catch(() => {});
+  });
+}
+if (LOGIN_ENABLED) tryAutoResume();
 
 // console/debug hook (also used by the scripted browser test)
 window.__ouk = {
