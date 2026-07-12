@@ -7,45 +7,23 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm install playwright@1.48.0
-      - run: npx playwright install --with-deps chromium
-      - name: Log in on the live site and report the resulting auth state
-        run: |
-          cat > check.js <<'SCRIPT'
-          const { chromium } = require('playwright');
-          (async () => {
-            const browser = await chromium.launch();
-            const page = await browser.newPage();
-            const errors = [];
-            page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-            page.on('pageerror', e => errors.push(String(e)));
-            await page.goto('https://oukkhmer.web.app/', { waitUntil: 'load', timeout: 30000 });
-            await page.waitForTimeout(3000);
-            await page.click('#startBtn');
-            await page.waitForTimeout(500);
-            const username = await page.evaluate(() => document.getElementById('loginUsername').value);
-            console.log('Auto-generated username:', username);
-            await page.click('#loginSubmitBtn');
-            await page.waitForTimeout(3000);
-            const authState = await page.evaluate(() => window.__oukAuth.getState());
-            console.log('AUTH STATE AFTER LOGIN:', JSON.stringify(authState));
-            console.log('CONSOLE/PAGE ERRORS:', JSON.stringify(errors, null, 2));
-            await browser.close();
-          })();
-          SCRIPT
-          node check.js
       - uses: google-github-actions/auth@v2
         with:
           credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
-      - name: Confirm a users/{uid} doc was written for this login
+      - name: Check current Identity Toolkit sign-in config
         run: |
           set -euo pipefail
           PROJECT=khmer-ouk-datacollection
           TOKEN=$(gcloud auth application-default print-access-token)
-          echo "Most recent users/ docs:"
+          echo "Current config:"
           curl -sS -H "Authorization: Bearer $TOKEN" \
-            "https://firestore.googleapis.com/v1/projects/$PROJECT/databases/(default)/documents/users?pageSize=5&orderBy=lastSignInAt%20desc" | jq '.'
+            "https://identitytoolkit.googleapis.com/v2/projects/$PROJECT/config" | jq '.signIn // .'
+      - name: Try to enable Anonymous sign-in
+        run: |
+          set -euo pipefail
+          PROJECT=khmer-ouk-datacollection
+          TOKEN=$(gcloud auth application-default print-access-token)
+          curl -sS -X PATCH \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -d '{"signIn":{"anonymous":{"enabled":true}}}' \
+            "https://identitytoolkit.googleapis.com/v2/projects/$PROJECT/config?updateMask=signIn.anonymous.enabled"
