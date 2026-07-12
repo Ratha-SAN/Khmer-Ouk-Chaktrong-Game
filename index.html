@@ -379,6 +379,11 @@
       0 0 70px 14px rgba(79,216,255,.08), 0 24px 60px rgba(0,0,0,.55);
   }
   .loginHint { font-size: 11px; color: var(--text-muted); opacity: .75; margin: 4px 0 0; line-height: 1.45; }
+  #loginUsername, #loginPassword {
+    font-family: inherit; font-size: 15px; border-radius: 6px; border: 1px solid var(--accent-dim);
+    background: var(--surface-2); color: var(--panel-fg); padding: 6px 10px; box-sizing: border-box;
+  }
+  #loginUsername:focus, #loginPassword:focus { border-color: var(--accent); outline: none; }
   #loginSwitchUserBtn {
     background: none; border: none; color: var(--text-faint); font-size: 12px;
     text-decoration: underline; padding: 4px; cursor: pointer;
@@ -1571,7 +1576,7 @@
       <label style="display:block;margin-top:10px">លេខសម្ងាត់ Password
         <input type="password" id="loginPassword" style="width:100%;margin-top:4px" autocomplete="current-password">
       </label>
-      <p class="loginHint">ស្រេចចិត្ត — អាចទុកទទេបានដោយមិនចាំបាច់បញ្ចូល។<br>Optional — you can leave this blank.</p>
+      <p class="loginHint">ដាក់ក៏បានមិនដាក់ក៏បាន<br>Optional — you can leave this blank.</p>
     </div>
     <div class="btnrow" style="flex-direction:column;gap:10px;margin-top:14px">
       <button id="loginSubmitBtn">ចូល ▸ Log In</button>
