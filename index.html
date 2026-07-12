@@ -541,14 +541,18 @@
        the same buttons reachable in far less height while staying
        narrow enough to hug the top-right corner without clipping into
        the centered board title (a wider 3-column layout needed pushing
-       down below the title to avoid that same overlap). The 6th cell
-       (row 3, col 2) is simply left empty by the 5th button's natural
-       row-major grid placement. */
+       down below the title to avoid that same overlap). The 5th button
+       is pinned to the right column (see #flipViewBtn below) so the
+       empty 6th cell falls on the left instead of splitting the row. */
     #camControls {
       top: 12px; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr);
       gap: 6px; width: calc(44px * 2 + 6px * 1);
     }
     #camControls button { width: auto; }
+    /* 5th button's natural row-major placement lands it in the empty
+       row's left cell -- push it to the right cell instead so it sits
+       under topViewBtn/zoomOutBtn rather than leaving a lopsided gap. */
+    #flipViewBtn { grid-column: 2; }
     #boardTitle { font-size: 20px; top: 14px; }
     #hud { font-size: 11px; }
     /* cap to ~4 visible lines (line-height 1.7em/line) instead of the
