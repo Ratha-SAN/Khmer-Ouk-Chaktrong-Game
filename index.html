@@ -273,6 +273,17 @@
     border-width: 0 8px 8px; border-style: solid; border-color: transparent transparent var(--accent);
   }
   #onlineBalloon.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+  /* Small "thinking" tag that tracks the side-to-move's general on the
+     board itself (via the same fxScreenPoint projection the FX system
+     uses) -- only appears once a full second has passed with no move, so
+     it reads as "still deciding" rather than flickering on every turn. */
+  #onlineThinkingTip {
+    position: absolute; left: 0; top: 0; z-index: 6; transform: translate(-50%, -100%);
+    background: color-mix(in srgb, var(--panel-bg, #1c1038) 85%, transparent);
+    border: 1px solid var(--line, #4a3570); color: var(--panel-fg, #ece4ff);
+    font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 10px;
+    white-space: nowrap; pointer-events: none; display: none;
+  }
   /* background-change fade overlay */
   #bgFade {
     position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none;
@@ -554,6 +565,9 @@
        board visible above it and correctly centered in what's left. */
     #scene { width: 100%; height: calc(100% - 64px - env(safe-area-inset-bottom, 0px)); }
     #panelToggle { display: none; }
+    /* 2 or 3 big mode-pick buttons side-by-side get too cramped on a
+       phone-width screen -- stack them instead. */
+    #modeScreen .bigpick { flex-direction: column; }
     /* no room to flank the title on a phone (the HUD and move list own
        the top corners): compact the scorecards into the empty bottom
        corners of the scene, just above the toolbar */
@@ -1859,6 +1873,7 @@
   </div>
   <div id="fxLayer" aria-hidden="true"></div>
   <div id="fxPortalLayer" aria-hidden="true"></div>
+  <div id="onlineThinkingTip" aria-hidden="true"></div>
   <button id="panelToggle" title="Hide/show control panel">◧</button>
   <div id="camControls">
     <button id="zoomInBtn" title="Zoom In">＋</button>
@@ -4030,8 +4045,10 @@ let onlinePresenceTimer = null;   // interval: broadcast my own presence heartbe
 let onlinePresenceCheckTimer = null; // interval: locally re-evaluate the opponent's offline status
 let onlineOpponentPresence = null;   // last-known presence timestamp (ms) reported by the opponent
 let onlineSessionEnded = false;      // true once either side has explicitly ended the match
+let onlineTurnStartedAt = null;      // Date.now() the instant it became state.turn's move
 const ONLINE_HEARTBEAT_MS = 12000;
 const ONLINE_OFFLINE_MS = 30000; // opponent presence older than this reads as "offline"
+const ONLINE_THINKING_MS = 1000; // how long into a turn before the board-anchored "thinking" tag appears
 let selected = -1;
 let legalForSelected = [];
 let lastMove = null;
@@ -6237,6 +6254,29 @@ function retrackPieceLabels() {
     g.worldToLocal(tmp);
     sprite.position.copy(tmp);
   }
+}
+// A little "thinking" tag anchored on the opponent's general once their
+// turn has run past ONLINE_THINKING_MS with no move -- reassurance that a
+// quiet board is just them deliberating (or a slow connection), not a
+// stall, mirroring the offline-detection reasoning the scorecard already
+// uses. Only ever shown for the opponent's turn, never the local player's.
+const onlineThinkingTipEl = document.getElementById('onlineThinkingTip');
+function retrackOnlineThinkingTip() {
+  const el = onlineThinkingTipEl;
+  if (mode !== 'online' || !state || gameOver || uiMode !== 'play' || overlayOpen) { el.style.display = 'none'; return; }
+  const side = state.turn;
+  if (side === humanSide || !onlineTurnStartedAt || Date.now() - onlineTurnStartedAt < ONLINE_THINKING_MS) {
+    el.style.display = 'none';
+    return;
+  }
+  const sq = E.kingSq(state, side);
+  if (sq < 0) { el.style.display = 'none'; return; }
+  const pt = fxScreenPoint(sq);
+  el.style.left = pt.x + 'px';
+  el.style.top = (pt.y - 44) + 'px';
+  const name = onlineOpponentName || playerDisplayName(side);
+  el.textContent = name + ' កំពុងគិត… — ' + name + ' is thinking…';
+  el.style.display = 'block';
 }
 function rebuildPieces() {
   pieceGroup.clear();
@@ -9324,7 +9364,11 @@ function multisetMaterial(ms) {
 }
 function updateScoreboard() {
   const show = uiMode === 'play' && state && baselineCounts && !overlayOpen;
-  for (const [side, id] of [[E.WHITE, 'scoreW'], [E.BLACK, 'scoreB']]) {
+  // Online: the local player's card always sits in the left-hand (#scoreW)
+  // slot regardless of which color they're playing, so "you" never jumps
+  // sides mid-match -- everywhere else White/Black keep their fixed slots.
+  const pairing = mode === 'online' ? [[humanSide, 'scoreW'], [1 - humanSide, 'scoreB']] : [[E.WHITE, 'scoreW'], [E.BLACK, 'scoreB']];
+  for (const [side, id] of pairing) {
     const card = document.getElementById(id);
     if (!show) { card.style.display = 'none'; continue; }
     card.style.display = 'flex';
@@ -10984,6 +11028,7 @@ function beginOnlineMatch(matchId, color, opponentName, stateJson, existingUnsub
   history = []; moveEntries = []; lastMove = null;
   selected = -1; legalForSelected = []; gameOver = false; aiBusy = false;
   gameStartTs = Date.now(); frozenElapsed = null;
+  onlineTurnStartedAt = Date.now();
   hintMove = null; hintBusy = false;
   document.getElementById('hintBtn').disabled = false;
   if (reviewMode) exitReview(true);
@@ -11067,6 +11112,7 @@ function onRemoteMatchUpdate(doc) {
   const incomingStateJson = JSON.stringify(doc.state);
   if (incomingStateJson === JSON.stringify(E.toJSON(state))) return;
   const moveChanged = JSON.stringify(doc.lastMove || null) !== JSON.stringify(lastMove);
+  onlineTurnStartedAt = Date.now();
   state = E.fromJSON(doc.state);
   lastMove = doc.lastMove || null;
   moveEntries = doc.moveEntries || moveEntries;
@@ -11081,6 +11127,7 @@ function onRemoteMatchUpdate(doc) {
 // onRemoteMatchUpdate picks it up.
 function broadcastOnlineMove() {
   if (mode !== 'online' || !onlineMatchId || !currentProfile) return;
+  onlineTurnStartedAt = Date.now();
   window.__oukOnline.pushMove(onlineMatchId, currentProfile.uid, {
     state: E.toJSON(state), turn: state.turn === E.WHITE ? 'white' : 'black',
     lastMove, moveEntries, timeoutResult
@@ -11098,6 +11145,7 @@ function leaveOnlineMatch() {
   onlineOpponentName = null;
   onlineOpponentPresence = null;
   onlineSessionEnded = false;
+  onlineTurnStartedAt = null;
   hideOnlineBalloon();
   // mode itself is left as 'online' until a new game actually starts (the
   // usual pattern here -- see undoBtn etc.), so this button's visibility
@@ -12280,6 +12328,7 @@ function loop() {
   if (checkRing) checkRing.material.opacity = 0.35 + 0.3 * Math.abs(Math.sin(clock.getElapsedTime() * 3));
   fxPortalsRetrack(); // keep Magic II portal glyphs pinned to their squares while the camera orbits
   retrackPieceLabels(); // keep piece-name labels perspective-corrected and centered on every viewport
+  retrackOnlineThinkingTip();
   renderer.render(scene, camera);
 }
 
