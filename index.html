@@ -11867,11 +11867,33 @@ function decorateButtonLabel(btn, locked) {
   btn.textContent = locked ? btn.dataset.baseLabel + ' 🔒' : btn.dataset.baseLabel;
   btn.classList.toggle('locked', locked);
 }
+// The curated design order the theme list ships in -- captured once so a
+// guest-mode reorder (below) can always be undone cleanly on sign-in,
+// regardless of whatever order was last applied.
+const themeSelCanonicalOrder = Array.from(document.getElementById('themeSel').options).map(o => o.value);
+// Guests only get a handful of unlocked themes (see GUEST_SELECT_LIMITS),
+// scattered through the full curated list -- move those to the top so
+// guests see what they can actually pick without scrolling past locked
+// ones first. Moving DOM nodes (not re-creating them) keeps the current
+// selection intact, and only ever reordering the free-list entries among
+// themselves preserves the "first N non-free values" the lock logic
+// above depends on.
+function reorderThemeSelForTier() {
+  const sel = document.getElementById('themeSel');
+  const optionsByValue = {};
+  Array.from(sel.options).forEach(o => { optionsByValue[o.value] = o; });
+  themeSelCanonicalOrder.forEach(v => sel.appendChild(optionsByValue[v]));
+  if (accessTier !== 'guest') return;
+  const unlocked = [], locked = [];
+  themeSelCanonicalOrder.forEach(v => (isSelectValueLocked('themeSel', v) ? locked : unlocked).push(v));
+  unlocked.concat(locked).forEach(v => sel.appendChild(optionsByValue[v]));
+}
 function applyAccessTier() {
   Object.keys(GUEST_SELECT_LIMITS).forEach(selId => {
     const sel = document.getElementById(selId);
     Array.from(sel.options).forEach(opt => decorateOptionLabel(opt, isSelectValueLocked(selId, opt.value)));
   });
+  reorderThemeSelForTier();
   GUEST_LOCKED_BUTTONS.forEach(id => decorateButtonLabel(document.getElementById(id), accessTier === 'guest'));
   refreshTierBadge();
   updateScoreboard();
