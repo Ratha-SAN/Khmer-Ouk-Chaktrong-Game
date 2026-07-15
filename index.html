@@ -3804,6 +3804,10 @@ const THEMES = {
     // than the generic White/Black label palette, so the tag feels part of
     // the theme's own bold-primary-color identity.
     pieceLabelEnMatchKh: true, pieceLabelEnHex: 0x2ec4b6,
+    // board-edge a-h/1-8 coordinate letters (see makeLabelMesh): bumped up
+    // from every other theme's size so they're easy for a young/new
+    // player to read at a glance.
+    coordLatinScale: 1.4,
     // opts into the rainbow multi-accent UI palette (see deriveUiPalette's
     // vibrantUi branch) instead of the single-accent panel every other
     // theme gets -- this theme's whole board is already a bold 4-color
@@ -4335,10 +4339,16 @@ function makeLabelMesh(kh, latin) {
   if (sharp) { ctx.strokeStyle = '#000'; ctx.lineWidth = 7; ctx.lineJoin = 'round'; ctx.strokeText(kh, 64, 66); }
   ctx.fillStyle = t.labelInk;
   ctx.fillText(kh, 64, 66);
-  ctx.font = '30px "Segoe UI",sans-serif';
-  if (sharp) { ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeText(latin, 64, 108); }
+  // Kids Playroom's board-edge a-h/1-8 letters read as an afterthought at
+  // the size every other theme uses -- this is the one theme built for
+  // players who lean on the Latin coordinates more than the Khmer ones,
+  // so it gets a noticeably larger size (see coordLatinScale).
+  const latinPx = Math.round(30 * (t.coordLatinScale || 1));
+  const latinY = 108 - (latinPx - 30) * 0.35; // nudge up so bigger text stays clear of the canvas edge
+  ctx.font = latinPx + 'px "Segoe UI",sans-serif';
+  if (sharp) { ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeText(latin, 64, latinY); }
   ctx.globalAlpha = sharp ? 1 : 0.75;
-  ctx.fillText(latin, 64, 108);
+  ctx.fillText(latin, 64, latinY);
   const tex = new THREE.CanvasTexture(cv);
   if (sharp) {
     // avoid mip/linear blur at the pixel theme's low internal render resolution
