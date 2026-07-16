@@ -2135,6 +2135,7 @@
       <option value="naga">Naga Jade — នាគមរកត</option>
       <option value="lacquer">Khmer Lacquer — គ្រឿងខ្មុកខ្មែរ</option>
       <option value="sbek">Sbek Thom — ស្បែកធំ</option>
+      <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
       <option value="auto" selected>Piece style: matches theme</option>
@@ -2145,6 +2146,7 @@
       <option value="pixel">Piece style: Pixel Voxel</option>
       <option value="angkor">Piece style: Angkor Towers — ប្រាសាទអង្គរ</option>
       <option value="naga">Piece style: Naga — នាគ</option>
+      <option value="modern">Piece style: Modern Military — យោធាទំនើប</option>
       <option value="2dkhmer">Piece style: 2D Khmer Art — សិល្បៈខ្មែរ 2D</option>
       <option value="2dclassic">Piece style: 2D Classic — បុរាណ 2D</option>
       <option value="2dminimal">Piece style: 2D Minimal — សាមញ្ញ 2D</option>
@@ -4123,6 +4125,18 @@ const THEMES = {
     pieceW: 0xf0d5a4, pieceB: 0x452a12, rough: 0.9, metal: 0.0,
     labelInk: '#f2d8a8', tray: 0x241505,
     reflectOpacity: 0.08
+  },
+  // Modern Ops: a tactical map board (concrete/tarmac grid on gunmetal)
+  // for the buildModernPiece military-hardware set -- NATO sand tan vs
+  // OPFOR olive drab, an amber HUD-style labelInk, and a matte (not
+  // glossy) board finish befitting asphalt rather than lacquer.
+  modern: {
+    name: 'Modern Ops', style: 'modern',
+    bg: 0x0a0d10, fog: null,
+    frame: 0x2a2d31, tileLight: 0x8a8f94, tileDark: 0x4a4e52,
+    pieceW: 0xc9b088, pieceB: 0x3f4a34, rough: 0.55, metal: 0.25, pieceBFloor: 0.14,
+    labelInk: '#f2c14e', tray: 0x1c1e21,
+    reflectOpacity: 0.14
   }
 };
 let themeKey = 'wood';
@@ -4604,6 +4618,16 @@ const MAT_SW_BLADE_BLUE = new THREE.MeshStandardMaterial({ color: 0xcdeeff, emis
 const MAT_SW_BLADE_GREEN = new THREE.MeshStandardMaterial({ color: 0xd6ffd6, emissive: 0x35d43a, emissiveIntensity: 1.1, roughness: 0.3, metalness: 0.0 });
 const MAT_SW_BLADE_RED = new THREE.MeshStandardMaterial({ color: 0xffcccc, emissive: 0xff2020, emissiveIntensity: 1.1, roughness: 0.3, metalness: 0.0 });
 const MAT_SW_DROID = new THREE.MeshStandardMaterial({ color: 0xd8d4c6, roughness: 0.45, metalness: 0.1 });
+// Modern Ops piece set (see buildModernPiece): shared hardware detail
+// materials independent of side color -- gunmetal for barrels/turrets/
+// treads/dishes, dark glass for canopies/cockpits, and a small blinking-
+// light red for sensor/beacon accents -- laid over each side's own
+// theme-tinted hull color (mat/baseMat) the same way every other custom
+// set layers its own fixed accents on top.
+const MAT_MIL_GUNMETAL = new THREE.MeshStandardMaterial({ color: 0x3a3d42, roughness: 0.4, metalness: 0.7 });
+const MAT_MIL_GLASS = new THREE.MeshStandardMaterial({ color: 0x1a2226, roughness: 0.15, metalness: 0.3 });
+const MAT_MIL_TREAD = new THREE.MeshStandardMaterial({ color: 0x18181a, roughness: 0.8, metalness: 0.1 });
+const MAT_MIL_BEACON = new THREE.MeshStandardMaterial({ color: 0xff3a2a, emissive: 0xff2010, emissiveIntensity: 0.9, roughness: 0.4, metalness: 0.0 });
 // Fixed accent colors for the Mountain Valley piece set (see
 // buildNaturePiece): a shared bark-brown for tree trunks/stumps, two
 // leaf greens for canopy/foliage, a river blue for water accents, a
@@ -5011,6 +5035,7 @@ function buildPiece(type, color, promoted) {
   if (style === 'transformers') return buildTransformersPiece(g, add, type, promoted, color);
   if (style === 'angkor') return buildAngkorPiece(g, add, type, promoted, color);
   if (style === 'naga') return buildNagaPiece(g, add, type, promoted, color);
+  if (style === 'modern') return buildModernPiece(g, add, type, promoted, color);
   if (style.slice(0, 2) === '2d') return buildFlat2DPiece(g, add, type, promoted, color, style);
   add(new THREE.CylinderGeometry(0.3 * wide, 0.34 * wide, 0.14, seg), 0.07, baseMat); // base
   if (style === 'carved') add(new THREE.CylinderGeometry(0.24 * wide, 0.3 * wide, 0.08, seg), 0.18, baseMat); // collar
@@ -5278,6 +5303,124 @@ function buildNagaPiece(g, add, type, promoted, color) {
       break;
   }
   if (promoted) add(new THREE.TorusGeometry(0.24, 0.035, 10, 22), 0.16, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Modern Ops piece set: real military hardware instead of any turned or
+// fantastical form -- each piece type maps to the vehicle whose role best
+// matches its chess function. King: a Mobile Command Center (the most
+// heavily protected, least combat-oriented unit -- exactly the king's
+// role -- topped with a radar dome and a small gold command pennant, the
+// one royal touch left in an otherwise all-hardware set). Queen: a
+// quadcopter reconnaissance Drone (most mobile/far-reaching piece).
+// Bishop/Koul: a Rocket Launcher Truck (MLRS), its tube pod aimed
+// diagonally like the bishop's own diagonal reach. Knight/Ses: a Fighter
+// Jet (the piece that leaps over everything else, like a jet clearing the
+// battlefield). Rook/Touk: an Aircraft Carrier (a mobile fortress,
+// matching the rook's own "castle" identity), with an offset island
+// superstructure like a real flattop. Pawn/Trey: a Main Battle Tank.
+// Every piece is built horizontally (like a tabletop wargame miniature on
+// a display base) rather than as a vertical totem, oriented nose/bow
+// toward the opponent -- the same "faces forward, Black is spun 180" rule
+// every other custom set already follows.
+function buildModernPiece(g, add, type, promoted, color) {
+  add(new THREE.CylinderGeometry(0.3, 0.34, 0.08, 20), 0.04); // display base
+  const wheelRow = (geom, y, xs, zs) => {
+    for (const wz of zs) for (const wx of xs) {
+      const wheel = add(geom, y, MAT_MIL_TREAD);
+      wheel.rotation.z = Math.PI / 2;
+      wheel.position.x = wx; wheel.position.z = wz;
+    }
+  };
+  switch (type) {
+    case E.KING: {
+      // wheeled armored undercarriage + cabin
+      add(new THREE.BoxGeometry(0.4, 0.12, 0.34), 0.14, MAT_MIL_TREAD);
+      add(new THREE.BoxGeometry(0.34, 0.16, 0.28), 0.26);
+      wheelRow(new THREE.CylinderGeometry(0.05, 0.05, 0.06, 10), 0.09, [-0.19, 0.19], [-0.12, 0, 0.12]);
+      // radar/satellite dome
+      add(new THREE.SphereGeometry(0.12, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), 0.42, MAT_MIL_GUNMETAL);
+      const mast = add(new THREE.CylinderGeometry(0.008, 0.008, 0.2, 6), 0.52, MAT_MIL_GUNMETAL);
+      mast.position.x = -0.12;
+      // small gold command pennant -- the one royal touch on the vehicle
+      const flag = add(new THREE.BoxGeometry(0.09, 0.05, 0.006), 0.6, MAT_GOLD);
+      flag.position.x = -0.12; flag.position.z = 0.045;
+      break;
+    }
+    case E.QUEEN: {
+      // quadcopter drone: flattened body, a diagonal cross of arms, four
+      // rotor discs, an under-slung camera ball and a beacon light
+      const body = add(new THREE.SphereGeometry(0.1, 14, 10), 0.36);
+      body.scale.set(1.3, 0.42, 1.3);
+      add(new THREE.SphereGeometry(0.035, 10, 8), 0.29, MAT_MIL_GLASS);
+      for (const ang of [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4]) {
+        const arm = add(new THREE.BoxGeometry(0.3, 0.016, 0.016), 0.36, MAT_MIL_GUNMETAL);
+        arm.rotation.y = ang;
+        arm.position.x = Math.cos(ang) * 0.15; arm.position.z = Math.sin(ang) * 0.15;
+        const rotor = add(new THREE.CylinderGeometry(0.06, 0.06, 0.012, 14), 0.385, MAT_MIL_GUNMETAL);
+        rotor.position.x = Math.cos(ang) * 0.3; rotor.position.z = Math.sin(ang) * 0.3;
+      }
+      const beacon = add(new THREE.SphereGeometry(0.022, 8, 8), 0.42, MAT_MIL_BEACON);
+      beacon.position.z = 0.1;
+      break;
+    }
+    case E.BISHOP: {
+      // MLRS rocket truck: chassis, cab, wheels, and a tilted tube pod
+      // aimed up-and-forward like the bishop's own diagonal line of attack
+      add(new THREE.BoxGeometry(0.32, 0.1, 0.5), 0.13);
+      const cab = add(new THREE.BoxGeometry(0.24, 0.14, 0.14), 0.24, MAT_MIL_GLASS);
+      cab.position.z = 0.18;
+      wheelRow(new THREE.CylinderGeometry(0.05, 0.05, 0.055, 10), 0.06, [-0.15, 0.15], [-0.16, 0.04, 0.16]);
+      const podBase = add(new THREE.BoxGeometry(0.22, 0.1, 0.2), 0.26);
+      podBase.rotation.x = -0.5; podBase.position.z = -0.06;
+      const tubeGeom = new THREE.CylinderGeometry(0.022, 0.022, 0.3, 8);
+      for (let row = 0; row < 2; row++) for (let col = -1; col <= 1; col++) {
+        const tube = add(tubeGeom, 0.32 + row * 0.05, MAT_MIL_GUNMETAL);
+        tube.rotation.x = -0.85;
+        tube.position.x = col * 0.06; tube.position.z = -0.04 - row * 0.02;
+      }
+      break;
+    }
+    case E.KNIGHT: {
+      // fighter jet: fuselage + nose cone, swept wings, tail fin, canopy
+      const fuselage = add(new THREE.CylinderGeometry(0.05, 0.08, 0.5, 10), 0.22);
+      fuselage.rotation.x = Math.PI / 2;
+      const nose = add(new THREE.ConeGeometry(0.05, 0.14, 10), 0.22);
+      nose.rotation.x = Math.PI / 2; nose.position.z = 0.32;
+      const canopy = add(new THREE.SphereGeometry(0.05, 10, 8), 0.28, MAT_MIL_GLASS);
+      canopy.scale.set(0.8, 0.7, 1.6); canopy.position.z = 0.06;
+      const wingR = add(new THREE.BoxGeometry(0.3, 0.018, 0.13), 0.2);
+      wingR.position.x = 0.17; wingR.rotation.z = -0.08;
+      const wingL = add(new THREE.BoxGeometry(0.3, 0.018, 0.13), 0.2);
+      wingL.position.x = -0.17; wingL.rotation.z = 0.08;
+      const tailFin = add(new THREE.BoxGeometry(0.018, 0.16, 0.1), 0.34);
+      tailFin.position.z = -0.22;
+      break;
+    }
+    case E.ROOK: {
+      // aircraft carrier: hull, wide flight deck, offset island
+      // superstructure with an antenna, exactly like a real flattop
+      add(new THREE.BoxGeometry(0.2, 0.1, 0.6), 0.09);
+      add(new THREE.BoxGeometry(0.34, 0.03, 0.62), 0.15);
+      const island = add(new THREE.BoxGeometry(0.08, 0.18, 0.16), 0.26);
+      island.position.x = 0.12; island.position.z = -0.14;
+      const antenna = add(new THREE.CylinderGeometry(0.006, 0.006, 0.14, 6), 0.4, MAT_MIL_GUNMETAL);
+      antenna.position.x = 0.12; antenna.position.z = -0.14;
+      break;
+    }
+    case E.PAWN:
+    default: {
+      // main battle tank: tracked hull, upper deck, turret and barrel
+      add(new THREE.BoxGeometry(0.4, 0.1, 0.26), 0.13, MAT_MIL_TREAD);
+      add(new THREE.BoxGeometry(0.32, 0.1, 0.24), 0.22);
+      add(new THREE.CylinderGeometry(0.13, 0.15, 0.1, 14), 0.32);
+      const barrel = add(new THREE.CylinderGeometry(0.018, 0.02, 0.3, 8), 0.32, MAT_MIL_GUNMETAL);
+      barrel.rotation.x = Math.PI / 2; barrel.position.z = 0.22;
+      break;
+    }
+  }
+  if (promoted) add(new THREE.TorusGeometry(0.24, 0.035, 10, 22), 0.05, MAT_GOLD).rotation.x = Math.PI / 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
