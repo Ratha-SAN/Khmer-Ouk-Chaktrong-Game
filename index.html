@@ -5388,7 +5388,29 @@ function flat2DArtTexture(setStyle, type, color) {
     // an idle "breathing" motion, like a hovering spirit guardian.
     const cx = 128;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    const torso = () => {
+    // Male torso: broad, square-ish shoulders tapering to a straight
+    // (not cinched-in) waist, then splitting into two wrapped
+    // chong-kraben trouser legs with a visible gap between them -- a
+    // standing man in wrapped fabric, not a robe/skirt bell.
+    const maleTorso = () => {
+      ctx.beginPath();
+      ctx.moveTo(cx - 37, 90);
+      ctx.quadraticCurveTo(cx - 41, 114, cx - 26, 140);
+      ctx.lineTo(cx - 30, 170);
+      ctx.quadraticCurveTo(cx - 33, 196, cx - 21, 224);
+      ctx.lineTo(cx - 6, 224);
+      ctx.lineTo(cx - 9, 174);
+      ctx.quadraticCurveTo(cx, 180, cx + 9, 174);
+      ctx.lineTo(cx + 6, 224);
+      ctx.lineTo(cx + 21, 224);
+      ctx.quadraticCurveTo(cx + 33, 196, cx + 30, 170);
+      ctx.lineTo(cx + 26, 140);
+      ctx.quadraticCurveTo(cx + 41, 114, cx + 37, 90);
+      ctx.closePath();
+    };
+    // Female (Queen only) keeps the flowing sampot skirt silhouette, the
+    // deliberate contrast that reads "apsara" against the men's trousers.
+    const femaleTorso = () => {
       ctx.beginPath();
       ctx.moveTo(cx - 34, 90);
       ctx.quadraticCurveTo(cx - 40, 116, cx - 21, 142);
@@ -5399,11 +5421,24 @@ function flat2DArtTexture(setStyle, type, color) {
       ctx.closePath();
     };
     const head = () => { ctx.beginPath(); ctx.arc(cx, 58, 20, 0, Math.PI * 2); };
-    // feet hinted below the sampot hem
-    ctx.fillStyle = body;
-    ctx.beginPath(); ctx.ellipse(cx - 16, 220, 10, 6, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(cx + 16, 220, 10, 6, 0, 0, Math.PI * 2); ctx.fill();
-    torso(); ctx.fillStyle = body; ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = 3; ctx.stroke();
+    const isFemale = type === E.QUEEN;
+    if (isFemale) {
+      // feet hinted below the sampot skirt hem
+      ctx.fillStyle = body;
+      ctx.beginPath(); ctx.ellipse(cx - 16, 220, 10, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx + 16, 220, 10, 6, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    (isFemale ? femaleTorso : maleTorso)();
+    ctx.fillStyle = body; ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = 3; ctx.stroke();
+    if (!isFemale) {
+      // small sandaled feet at the trouser cuffs
+      ctx.fillStyle = body;
+      ctx.beginPath(); ctx.ellipse(cx - 14, 227, 9, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx + 14, 227, 9, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = ink; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(cx - 14, 227, 9, 5, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(cx + 14, 227, 9, 5, 0, 0, Math.PI * 2); ctx.stroke();
+    }
     head(); ctx.fillStyle = body; ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = 3; ctx.stroke();
     // waist sash accent, gold, common to every rank
     ctx.strokeStyle = gold; ctx.lineWidth = 5;
@@ -5716,7 +5751,10 @@ function buildFlat2DPiece(g, add, type, promoted, color, setStyle) {
   const plane = new THREE.Mesh(
     new THREE.PlaneGeometry(size, size),
     new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.08, side: THREE.DoubleSide }));
-  const restY = floating ? 0.08 + size * 0.86 : 0.08 + size / 2;
+  // floating gap above the puck's top surface is ~20% of the character's
+  // own size (restY is the plane's CENTER, so + size/2 to clear the plane's
+  // own half-height, then + size*0.2 for the visible hover gap)
+  const restY = floating ? 0.08 + size * 0.7 : 0.08 + size / 2;
   plane.position.y = restY;
   plane.castShadow = false; // a square shadow would betray the card
   g.add(plane);
@@ -5758,7 +5796,7 @@ function retrackFlat2DArt() {
       if (az == null) az = Math.atan2(camera.position.x - controls.target.x, camera.position.z - controls.target.z);
       plane.rotation.y = az - g.rotation.y;
       if (g.userData.floatBaseY != null) {
-        const bob = reduced ? 0 : Math.sin(t * 1.15 + g.userData.floatPhase) * 0.032;
+        const bob = reduced ? 0 : Math.sin(t * 1.7 + g.userData.floatPhase) * 0.06;
         plane.position.y = g.userData.floatBaseY + bob;
         if (g.userData.floatGlow) g.userData.floatGlow.scale.setScalar(1 - bob * 1.8);
       }
