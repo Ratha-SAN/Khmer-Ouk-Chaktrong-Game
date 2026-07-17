@@ -8623,21 +8623,24 @@ const SFX = {
   // detuned twin-cylinder diesel rev (the slight detune between the two
   // oscillators is what makes it "beat" like a real multi-cylinder
   // engine instead of reading as one clean tone), a low rumbling
-  // tread/tire bed underneath, a mechanical gear clunk, and a short
-  // servo whine (a turret or joint rotating) -- reads as an actual
-  // vehicle pulling away rather than a generic blip. A machine-gun
-  // rattle into a missile-launch whoosh and a low explosion boom for a
-  // capture (paired with the shoot/explode 3D cinematic -- see
-  // triggerModernEffect), and a slow air-raid-siren wail for
-  // check/checkmate -- deeper and more mechanical than Contra's punchier
-  // arcade gunfire, reading as a real warzone rather than a run-and-gun.
+  // tread/tire bed underneath, a mechanical gear clunk, and a soft
+  // resonant metal-panel tail (two rounded sine/triangle partials, not a
+  // sawtooth chirp) standing in for a servo settling -- reads as an
+  // actual vehicle pulling away, without the harsh sawtooth "blip" a
+  // straight pitch sweep would add. A machine-gun rattle into a
+  // missile-launch whoosh and a low explosion boom for a capture (paired
+  // with the shoot/explode 3D cinematic -- see triggerModernEffect), and
+  // a slow air-raid-siren wail for check/checkmate -- deeper and more
+  // mechanical than Contra's punchier arcade gunfire, reading as a real
+  // warzone rather than a run-and-gun.
   modern(kind) {
     if (kind === 'move') {
       envOsc({ freq: 55, type: 'sawtooth', dur: 0.3, gain: 0.24, freqTo: 95, filterHz: 700 });
       envOsc({ freq: 55, type: 'sawtooth', dur: 0.3, gain: 0.16, freqTo: 95, filterHz: 700, detune: 14 });
       noiseBurst({ dur: 0.26, filterFreq: 260, q: 1.1, gain: 0.2, filterType: 'lowpass', delay: 0.02 });
       noiseBurst({ dur: 0.04, filterFreq: 1200, q: 4, gain: 0.18, delay: 0.1 });
-      envOsc({ freq: 1500, type: 'sawtooth', dur: 0.08, gain: 0.09, freqTo: 650, delay: 0.17, filterHz: 3200 });
+      envOsc({ freq: 210, type: 'triangle', dur: 0.24, gain: 0.11, delay: 0.15, filterHz: 1800 });
+      envOsc({ freq: 210 * 2.4, type: 'sine', dur: 0.18, gain: 0.05, delay: 0.15 });
     } else if (kind === 'capture') {
       for (let i = 0; i < 4; i++) noiseBurst({ dur: 0.04, filterFreq: 2600, q: 4, gain: 0.24, delay: i * 0.045 });
       envOsc({ freq: 500, type: 'sawtooth', dur: 0.22, gain: 0.2, freqTo: 1400, delay: 0.19 });
