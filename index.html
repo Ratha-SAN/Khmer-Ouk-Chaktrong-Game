@@ -390,29 +390,41 @@
     display: block; font-size: 12.5px; color: var(--ok); line-height: 1.6; margin-top: 8px;
     border-top: 1px solid var(--line); padding-top: 8px;
   }
-  /* modal */
-  #modal {
+  /* modal (shared shell: Rules modal + What's New modal) */
+  .infoModal {
     position: fixed; inset: 0; background: rgba(0,0,0,.65); display: none;
     align-items: center; justify-content: center; z-index: 10;
   }
-  #modal .box {
+  .infoModal .box {
     background: var(--panel-bg); border: 1px solid var(--accent-dim); border-radius: 12px;
     max-width: 640px; max-height: 86vh; overflow-y: auto; padding: 24px; font-size: 14px; line-height: 1.65;
   }
-  #modal h2 { color: var(--accent); font-size: 18px; margin-bottom: 10px; }
-  #modal h3 { color: var(--accent); font-size: 14px; margin: 14px 0 6px; }
-  #modal table { border-collapse: collapse; width: 100%; margin: 8px 0; }
-  #modal th, #modal td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; font-size: 13px; }
-  #modal .note { color: var(--text-muted); font-size: 12px; font-style: italic; }
-  #modal .close { float: right; }
-  #modal .langBtn { float: right; margin-right: 8px; }
-  /* Rules modal language toggle: .kh/.en mark each translated chunk, and
-     data-lang on .box (set by rulesLangBtn's click handler) shows only the
-     selected language's chunks -- a full-page switch, not stacked bilingual
-     text, so headings/paragraphs/notes/table cells all read as one clean
-     single-language document at a time. */
-  #modal .box[data-lang="kh"] .en { display: none; }
-  #modal .box[data-lang="en"] .kh { display: none; }
+  .infoModal h2 { color: var(--accent); font-size: 18px; margin-bottom: 10px; }
+  .infoModal h3 { color: var(--accent); font-size: 14px; margin: 14px 0 6px; }
+  .infoModal table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+  .infoModal th, .infoModal td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; font-size: 13px; }
+  .infoModal .note { color: var(--text-muted); font-size: 12px; font-style: italic; }
+  .infoModal .close { float: right; }
+  .infoModal .langBtn { float: right; margin-right: 8px; }
+  /* Rules / What's New modal language toggle: .kh/.en mark each translated
+     chunk, and data-lang on .box (set by the modal's own lang button) shows
+     only the selected language's chunks -- a full-page switch, not stacked
+     bilingual text, so headings/paragraphs/notes/table cells all read as
+     one clean single-language document at a time. */
+  .infoModal .box[data-lang="kh"] .en { display: none; }
+  .infoModal .box[data-lang="en"] .kh { display: none; }
+  #whatsNewBody h3 small { color: var(--text-muted); font-weight: normal; font-size: 12px; }
+  #whatsNewBody ul { margin: 4px 0 12px 20px; padding: 0; }
+  #whatsNewBody li { margin-bottom: 5px; }
+  #whatsNewBody .relSep { border: none; border-top: 1px solid var(--line); margin: 16px 0; }
+  .verDot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: #ff5252; box-shadow: 0 0 4px #ff5252; margin-left: 6px; vertical-align: middle;
+  }
+  .appVersionTag {
+    font-size: 11px; color: var(--text-muted); cursor: pointer; margin: -4px 0 8px; display: inline-block;
+  }
+  .appVersionTag:hover { color: var(--accent); text-decoration: underline; }
   /* full-screen overlays: start screen + mode selection -- a fixed brand
      look (independent of whichever board theme is active) inspired by the
      game's own promo art: a deep indigo-violet backdrop with soft cyan and
@@ -2116,6 +2128,7 @@
 
 <div id="panel">
   <h1>ផ្ទាំងបញ្ជា Control Panel<small>អុកចត្រង្គ Ouk Chatrang — Khmer rules</small></h1>
+  <span id="appVersionTag" class="appVersionTag" title="អ្វីថ្មី — What's New"></span>
 
   <div id="currentModeReadout" style="font-size:13px;margin:2px 0 8px;color:var(--text-muted)">Current mode: <b id="currentModeReadoutText">—</b></div>
   <div class="btnrow">
@@ -2152,6 +2165,9 @@
     </div>
     <div class="btnrow" style="margin-top:6px">
       <button id="rulesBtn">Rules ច្បាប់</button>
+      <button id="whatsNewBtn">អ្វីថ្មី What's New<span id="whatsNewDot" class="verDot" style="display:none"></span></button>
+    </div>
+    <div class="btnrow" style="margin-top:6px">
       <button id="cancelGameBtn">បោះបង់ Cancel Game</button>
     </div>
     <div class="btnrow" style="margin-top:6px">
@@ -2482,7 +2498,7 @@
   </div>
 </div>
 
-<div id="modal"><div class="box" data-lang="kh">
+<div id="modal" class="infoModal"><div class="box" data-lang="kh">
   <button class="close" onclick="document.getElementById('modal').style.display='none'">✕ Close</button>
   <button id="rulesLangBtn" class="close langBtn">🌐 English</button>
   <h2>ច្បាប់អុកចត្រង្គ — Rules of Ouk Chatrang</h2>
@@ -2564,6 +2580,13 @@
      The "Auto-start counting when eligible" checkbox (Settings → Game) starts the count the instant a side
      qualifies instead of waiting for a manual "Start count" button click; the computer opponent always
      decides for itself either way, since it has no button to click.</span></p>
+</div></div>
+
+<div id="whatsNewModal" class="infoModal"><div class="box" data-lang="kh">
+  <button class="close" onclick="document.getElementById('whatsNewModal').style.display='none'">✕ Close</button>
+  <button id="whatsNewLangBtn" class="close langBtn">🌐 English</button>
+  <h2>អ្វីថ្មី — What's New</h2>
+  <div id="whatsNewBody"></div>
 </div></div>
 
 <!-- ============ RULES ENGINE (also shipped to the AI web worker) ============ -->
@@ -12322,6 +12345,63 @@ document.getElementById('rulesLangBtn').onclick = (e) => {
 };
 applyRulesLang();
 
+// ---------- App version / What's New ----------
+// Bump APP_VERSION and prepend a new entry (newest first) to WHATS_NEW
+// whenever a user-visible change is deployed. Each item needs both a kh
+// and en string; the modal below renders them bilingually and the small
+// dot on the "What's New" button auto-clears once a player has opened it
+// for the current APP_VERSION (tracked in localStorage).
+const APP_VERSION = '1.0.0';
+const WHATS_NEW = [
+  {
+    version: '1.0.0',
+    date: '2026-07-18',
+    title: { kh: 'ការចាប់ផ្ដើមតាមដានកំណែ', en: 'Version tracking begins' },
+    items: [
+      { kh: 'បន្ថែមផ្ទាំង "អ្វីថ្មី" នេះ ដើម្បីបង្ហាញកំណែកម្មវិធី និងបញ្ជីមុខងារ/ការធ្វើបច្ចុប្បន្នភាពថ្មីៗជាភាសាខ្មែរ និងអង់គ្លេស រាល់ពេលមានកំណែថ្មីចេញផ្សាយ។',
+        en: "Added this \"What's New\" panel to show the app version and a bilingual (Khmer + English) list of features and updates each time a new version ships." },
+      { kh: 'ចាត់ថ្នាក់ស្បែកក្ដារទាំង ៣៣ ជា ៧ ក្រុម (បេតិកភណ្ឌខ្មែរ, រវើរវាយ, វិទ្យាសាស្ត្រ អនាគត, ហ្គេមចាស់, ស្រស់ស្អាតសាមញ្ញ, សម្រាប់កុមារ, ធម្មជាតិ) ជាមួយប៊ូតុងទម្លាក់ចុះ ជំនួសបញ្ជីវែងតែមួយ ដើម្បីស្វែងរកស្បែកកាន់តែងាយ។',
+        en: 'Grouped all 33 board themes into 7 category dropdown buttons (Khmer Heritage, Fantasy, Sci-Fi & Future, Arcade & Retro, Elegant & Minimal, Playful & Kids, Nature & Scenic), replacing one long flat list for much easier browsing.' },
+      { kh: 'ការចូលគណនីតាម Facebook ឥឡូវបង្ហាញរូបថតប្រូហ្វាល់ និងឈ្មោះក្រុមហ៊ុនផ្ដល់សេវាត្រឹមត្រូវនៅលើកាតពិន្ទុ។',
+        en: "Facebook sign-in now correctly shows your profile photo and provider name on the scorecard." }
+    ]
+  }
+];
+function renderWhatsNew() {
+  document.getElementById('whatsNewBody').innerHTML = WHATS_NEW.map((rel, i) => `
+    ${i > 0 ? '<hr class="relSep">' : ''}
+    <h3><span class="kh">${rel.title.kh}</span><span class="en">${rel.title.en}</span> <small>v${rel.version} — ${rel.date}</small></h3>
+    <ul>${rel.items.map(it => `<li><span class="kh">${it.kh}</span><span class="en">${it.en}</span></li>`).join('')}</ul>
+  `).join('');
+}
+renderWhatsNew();
+const WHATS_NEW_SEEN_KEY = 'oukLastSeenVersion';
+function updateWhatsNewDot() {
+  let seen = null;
+  try { seen = localStorage.getItem(WHATS_NEW_SEEN_KEY); } catch (e) {}
+  document.getElementById('whatsNewDot').style.display = seen === APP_VERSION ? 'none' : 'inline-block';
+}
+document.getElementById('appVersionTag').textContent = 'v' + APP_VERSION;
+updateWhatsNewDot();
+document.getElementById('whatsNewBtn').onclick = (e) => {
+  e.preventDefault();
+  document.getElementById('whatsNewModal').style.display = 'flex';
+  try { localStorage.setItem(WHATS_NEW_SEEN_KEY, APP_VERSION); } catch (err) {}
+  document.getElementById('whatsNewDot').style.display = 'none';
+};
+document.getElementById('appVersionTag').onclick = (e) => { e.preventDefault(); document.getElementById('whatsNewBtn').click(); };
+let whatsNewLang = 'kh';
+function applyWhatsNewLang() {
+  document.querySelector('#whatsNewModal .box').dataset.lang = whatsNewLang;
+  document.getElementById('whatsNewLangBtn').textContent = whatsNewLang === 'kh' ? '🌐 English' : '🌐 ខ្មែរ';
+}
+document.getElementById('whatsNewLangBtn').onclick = (e) => {
+  e.preventDefault();
+  whatsNewLang = whatsNewLang === 'kh' ? 'en' : 'kh';
+  applyWhatsNewLang();
+};
+applyWhatsNewLang();
+
 // resets the board using whatever mode/humanSide are currently set; both
 // "New game" and a confirmed mode-select pick funnel through this
 function resetGame() {
@@ -13753,6 +13833,12 @@ window.__ouk = {
   loginUsernameField: () => document.getElementById('loginUsername').value,
   showPieceNames: () => showPieceNames,
   rulesLang: () => rulesLang,
+  appVersion: () => APP_VERSION,
+  whatsNewLang: () => whatsNewLang,
+  whatsNewDotVisible: () => document.getElementById('whatsNewDot').style.display !== 'none',
+  whatsNewModalVisible: () => document.getElementById('whatsNewModal').style.display === 'flex',
+  whatsNewSeenVersion: () => { try { return localStorage.getItem(WHATS_NEW_SEEN_KEY); } catch (e) { return null; } },
+  whatsNewEntryCount: () => WHATS_NEW.length,
   toggleRulesLang: () => document.getElementById('rulesLangBtn').click(),
   pieceNamePosition: () => pieceNamePosition,
   pieceNameLang: () => pieceNameLang,
