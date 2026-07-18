@@ -6647,8 +6647,12 @@ function flat2DArtTexture(setStyle, type, color) {
         // strokeGap so it touches all 4 edges without overlapping them
         ctx.beginPath(); ctx.arc(cxp, cyp, (EDGE - S) / 2 - strokeGap, 0, Math.PI * 2);
         ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
+        // the inner diamond's own 4 corners sit exactly at the square's
+        // own inradius ((EDGE-S)/2), landing right on the midpoint of
+        // each of its 4 edges -- genuinely touching the frame there.
+        const diamondR = (EDGE - S) / 2;
         ctx.beginPath();
-        ctx.moveTo(cxp, cyp - 68); ctx.lineTo(cxp + 68, cyp); ctx.lineTo(cxp, cyp + 68); ctx.lineTo(cxp - 68, cyp);
+        ctx.moveTo(cxp, cyp - diamondR); ctx.lineTo(cxp + diamondR, cyp); ctx.lineTo(cxp, cyp + diamondR); ctx.lineTo(cxp - diamondR, cyp);
         ctx.closePath();
         ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         // a fuller 5-petal lotus bud crowning the top edge -- rounder
@@ -6761,8 +6765,12 @@ function flat2DArtTexture(setStyle, type, color) {
         // length, touching all 4 edge midpoints without overlapping them
         ctx.beginPath(); ctx.arc(cxp, cyp, (EDGE - S) / 2 - strokeGap, 0, Math.PI * 2);
         ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
+        // the inner diamond's own 4 corners sit exactly at the square's
+        // own inradius ((EDGE-S)/2), landing right on the midpoint of
+        // each of its 4 edges -- genuinely touching the frame there.
+        const diamondR = (EDGE - S) / 2;
         ctx.beginPath();
-        ctx.moveTo(cxp, cyp - 68); ctx.lineTo(cxp + 68, cyp); ctx.lineTo(cxp, cyp + 68); ctx.lineTo(cxp - 68, cyp);
+        ctx.moveTo(cxp, cyp - diamondR); ctx.lineTo(cxp + diamondR, cyp); ctx.lineTo(cxp, cyp + diamondR); ctx.lineTo(cxp - diamondR, cyp);
         ctx.closePath();
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5;
@@ -6910,6 +6918,19 @@ const FLAT2D_SIZE_YANTRA = {
   [E.KING]: 0.78, [E.QUEEN]: 0.74, [E.BISHOP]: 0.81,
   [E.KNIGHT]: 0.68, [E.ROOK]: 0.78, [E.PAWN]: 0.75
 };
+// Per-type [width, height] multipliers on top of the base size above --
+// [1,1] for everything except Sak Yantra's own Rook, whose card reads a
+// touch narrower and shorter than its square FLAT2D_SIZE_YANTRA entry
+// alone would give (its own outer seal is still a plain square on the
+// canvas texture; only the on-board card's rendered footprint is
+// trimmed here).
+const FLAT2D_WH_RATIO = {
+  '2dyantra': { [E.ROOK]: [0.9, 0.95] }
+};
+function flat2DWHRatio(setStyle, type) {
+  const styleRatios = FLAT2D_WH_RATIO[setStyle];
+  return (styleRatios && styleRatios[type]) || [1, 1];
+}
 // Khmer Warrior floats its character plane well clear of the base (a
 // hovering-spirit read, not a card resting on a pedestal) and bobs with
 // an idle "breathing" cycle in retrackFlat2DArt below; every other flat
@@ -6923,14 +6944,16 @@ function buildFlat2DPiece(g, add, type, promoted, color, setStyle) {
   const base = add(new THREE.CylinderGeometry(floating ? 0.16 : 0.24, floating ? 0.19 : 0.28, 0.08, 20), 0.04);
   base.castShadow = true;
   const size = (setStyle === '2dyantra' ? FLAT2D_SIZE_YANTRA : FLAT2D_SIZE)[type];
+  const [whRatioW, whRatioH] = flat2DWHRatio(setStyle, type);
+  const planeW = size * whRatioW, planeH = size * whRatioH;
   const tex = flat2DArtTexture(setStyle, type, color);
   const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(size, size),
+    new THREE.PlaneGeometry(planeW, planeH),
     new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.08, side: THREE.DoubleSide }));
   // floating gap above the puck's top surface is ~20% of the character's
-  // own size (restY is the plane's CENTER, so + size/2 to clear the plane's
-  // own half-height, then + size*0.2 for the visible hover gap)
-  const restY = floating ? 0.08 + size * 0.7 : 0.08 + size / 2;
+  // own size (restY is the plane's CENTER, so + planeH/2 to clear the
+  // plane's own half-height, then + size*0.2 for the visible hover gap)
+  const restY = floating ? 0.08 + size * 0.7 : 0.08 + planeH / 2;
   plane.position.y = restY;
   plane.castShadow = false; // a square shadow would betray the card
   g.add(plane);
@@ -14011,8 +14034,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.5.8';
+const APP_VERSION = '1.5.9';
 const WHATS_NEW = [
+  {
+    version: '1.5.9',
+    date: '2026-07-18',
+    title: { kh: 'សាក់យន្ត៖ បង្រួមកាតទូក ព្រមទាំងចតុកោណខៀនខាងក្នុងប៉ះស៊ុមស្តេច/ទូក', en: 'Sak Yantra: narrower/shorter Rook card, and the inner diamond now reaches the King/Rook frame' },
+    items: [
+      { kh: 'កាតកូនអុកទូក (Tuuk) ក្នុងសាក់យន្តឥឡូវតូចជាងមុន ១០% ខាងទទឹង និង ៥% ខាងកម្ពស់ (ខុសពីកូនអុកផ្សេងទៀតដែលនៅតែធំដូចមុន)។ ចតុកោណខៀន (diamond) ខាងក្នុងស៊ុមការ៉េរបស់ស្តេចនិងទូកឥឡូវពង្រីកឲ្យជ្រុងទាំងបួនប៉ះនឹងគែមស៊ុមខាងក្រៅផ្ទាល់ (ចំណុចកណ្ដាលនៃជ្រុងនីមួយៗ) ជំនួសឲ្យតូចជាងមុនដែលនៅចន្លោះកណ្ដាល។',
+        en: "The Rook's own card in Sak Yantra is now 10% narrower and 5% shorter than its base size (every other piece's own card is unchanged). The inner diamond inside the King's and Rook's square frame is now sized so its 4 corners land exactly on the frame's own edge midpoints -- genuinely reaching the frame, instead of the smaller diamond that used to sit well inside it." }
+    ]
+  },
   {
     version: '1.5.8',
     date: '2026-07-18',
