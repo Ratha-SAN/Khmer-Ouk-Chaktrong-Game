@@ -6288,39 +6288,55 @@ function flat2DArtTexture(setStyle, type, color) {
     scriptRow(S + inset, EDGE - inset, EDGE - inset, EDGE - inset, 5); // bottom
     scriptRow(S + inset, S + inset, S + inset, EDGE - inset, 5); // left
     scriptRow(EDGE - inset, S + inset, EDGE - inset, EDGE - inset, 5); // right
-    const dr = 68;
-    ctx.beginPath();
-    ctx.moveTo(cxp, cyp - dr); ctx.lineTo(cxp + dr, cyp); ctx.lineTo(cxp, cyp + dr); ctx.lineTo(cxp - dr, cyp);
-    ctx.closePath();
-    ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
     ctx.beginPath(); ctx.arc(cxp, cyp, 52, 0, Math.PI * 2);
     ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
     redDot(cxp, S - 8);
+    // the default inner shape (King and Rook both keep it): the classic
+    // axis-aligned diamond, dr from center to each point.
+    const diamond = (dr) => {
+      ctx.beginPath();
+      ctx.moveTo(cxp, cyp - dr); ctx.lineTo(cxp + dr, cyp); ctx.lineTo(cxp, cyp + dr); ctx.lineTo(cxp - dr, cyp);
+      ctx.closePath();
+      ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+    };
+    // glyphOy shifts the glyph to each shape's own safe/wide zone (a
+    // triangle or kite's usable width isn't centered on the canvas's
+    // numeric middle the way the old diamond's was); glyphMaxW is a
+    // shrink-to-fit cap sized to that shape's width at glyphOy, since a
+    // few of the new pointed shapes (the pawn's dart especially) are
+    // narrower there than the arch-family cards' cards ever were.
+    let glyphOy = 0, glyphMaxW = 120;
 
-    // per-rank accent, small and placed around/inside the shared frame
-    // rather than replacing it:
-    //   King   - a triple-flame crown poking above the top edge, plus a
-    //            script ring inside the circle -- closest of the six to
-    //            a classic wheel-yantra plate.
-    //   Queen  - eight lotus-petal arcs ringing the circle (Paed Tidt --
-    //            "eight directions").
-    //   Bishop - four wisdom triangles at the circle's cardinal points.
-    //   Knight - a pair of horseshoe/leap arcs at the base, for the
-    //            horse's leap.
-    //   Rook   - a water-wave band at the base (the Tuuk's boat).
-    //   Pawn   - a pair of plain scale-arcs flanking the glyph --
-    //            deliberately the simplest of the six.
+    // per-rank inner shape + accent, on top of the shared frame:
+    //   King   - keeps the diamond, plus a lotus-bud crown poking above
+    //            the top edge and a script ring inside the circle --
+    //            closest of the six to a classic wheel-yantra plate.
+    //   Queen  - an isosceles triangle, apex up like a rising tiara.
+    //   Bishop - an upside-down kite (long point up, short point down),
+    //            echoing the classic bishop mitre silhouette.
+    //   Knight - an elongated rhombus (taller than the King/Rook's plain
+    //            diamond), for the horse's lean and speed.
+    //   Rook   - keeps the plain diamond, plus a water-wave band at the
+    //            base (the Tuuk's boat) -- unchanged from before.
+    //   Pawn   - a small concave (notched) quadrilateral, an arrowhead
+    //            dent at its base -- deliberately the simplest of the six.
     switch (type) {
       case E.KING: {
-        ctx.fillStyle = ink;
-        for (const off of [-14, 0, 14]) {
-          const tipY = S - 22 - (off === 0 ? 8 : 0);
+        diamond(68);
+        // a fuller 5-petal lotus bud crowning the top edge -- rounder
+        // and more overtly floral than the earlier sharp flame-triangle
+        // crown, reading unmistakably as a lotus rather than a flame.
+        const lotusPetal = (rot, len) => {
+          ctx.save(); ctx.translate(cxp, S - 2); ctx.rotate(rot);
           ctx.beginPath();
-          ctx.moveTo(cxp + off, S - 6);
-          ctx.lineTo(cxp + off + 5, tipY);
-          ctx.lineTo(cxp + off - 5, tipY);
+          ctx.moveTo(0, 0); ctx.quadraticCurveTo(-9, -len * 0.55, 0, -len); ctx.quadraticCurveTo(9, -len * 0.55, 0, 0);
           ctx.closePath(); ctx.fill();
-        }
+          ctx.restore();
+        };
+        ctx.fillStyle = ink;
+        lotusPetal(-0.7, 24); lotusPetal(-0.35, 30); lotusPetal(0, 34);
+        lotusPetal(0.35, 30); lotusPetal(0.7, 24);
+        redDot(cxp, S - 2); // a stamen dot at the petals' own base, on top of the fan
         for (let i = 0; i < 8; i++) {
           const a = (i / 8) * Math.PI * 2;
           scriptMark(cxp + Math.cos(a) * 36, cyp + Math.sin(a) * 36, 0.55, a + Math.PI / 2, i % 3);
@@ -6328,6 +6344,11 @@ function flat2DArtTexture(setStyle, type, color) {
         break;
       }
       case E.QUEEN: {
+        const apexY = cyp - 72, baseY = cyp + 56, halfW = 66;
+        ctx.beginPath();
+        ctx.moveTo(cxp, apexY); ctx.lineTo(cxp + halfW, baseY); ctx.lineTo(cxp - halfW, baseY);
+        ctx.closePath();
+        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2;
         for (let i = 0; i < 8; i++) {
           const a = -Math.PI / 2 + i * (Math.PI / 4);
@@ -6336,9 +6357,16 @@ function flat2DArtTexture(setStyle, type, color) {
           ctx.beginPath(); ctx.arc(0, 0, 6, Math.PI, Math.PI * 2); ctx.stroke();
           ctx.restore();
         }
+        glyphOy = (apexY + baseY + baseY) / 3 - cyp; // triangle's own centroid
+        glyphMaxW = 74;
         break;
       }
       case E.BISHOP: {
+        const topY = cyp - 80, midW = 50, midY = cyp + 6, botY = cyp + 54;
+        ctx.beginPath();
+        ctx.moveTo(cxp, topY); ctx.lineTo(cxp + midW, midY); ctx.lineTo(cxp, botY); ctx.lineTo(cxp - midW, midY);
+        ctx.closePath();
+        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.fillStyle = ink;
         const tri = (px, py, rot) => {
           ctx.save(); ctx.translate(px, py); ctx.rotate(rot);
@@ -6347,16 +6375,25 @@ function flat2DArtTexture(setStyle, type, color) {
         };
         tri(cxp, cyp - 52, 0); tri(cxp + 52, cyp, Math.PI / 2);
         tri(cxp, cyp + 52, Math.PI); tri(cxp - 52, cyp, -Math.PI / 2);
+        glyphOy = midY - cyp; // the kite's widest cross-section
+        glyphMaxW = 86;
         break;
       }
       case E.KNIGHT: {
+        const rv = 80, rh = 52;
+        ctx.beginPath();
+        ctx.moveTo(cxp, cyp - rv); ctx.lineTo(cxp + rh, cyp); ctx.lineTo(cxp, cyp + rv); ctx.lineTo(cxp - rh, cyp);
+        ctx.closePath();
+        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 3;
         for (const sx of [S + 22, EDGE - 22]) {
           ctx.beginPath(); ctx.arc(sx, EDGE - 20, 9, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
         }
+        glyphMaxW = 92;
         break;
       }
       case E.ROOK: {
+        diamond(68);
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(S + 10, EDGE - 12);
@@ -6369,16 +6406,27 @@ function flat2DArtTexture(setStyle, type, color) {
       }
       case E.PAWN:
       default: {
+        // a shallow notch (barely past the shoulder line) rather than a
+        // deep one -- keeps the concave dent technically/visually
+        // present without pinching away most of the shape's usable width
+        // the way a deep notch reaching toward the tip would.
+        const tipY = cyp - 46, shY = cyp + 20, shW = 55, notchY = cyp + 16;
+        ctx.beginPath();
+        ctx.moveTo(cxp, tipY); ctx.lineTo(cxp + shW, shY); ctx.lineTo(cxp, notchY); ctx.lineTo(cxp - shW, shY);
+        ctx.closePath();
+        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2;
         for (const sx of [cxp - 30, cxp + 30]) {
           ctx.beginPath(); ctx.arc(sx, cyp + 44, 9, Math.PI * 0.3, Math.PI * 0.7); ctx.stroke();
         }
+        glyphOy = 6; // the widest safe band, clear of both the tip and the notch
+        glyphMaxW = 78;
         break;
       }
     }
     const khY = NAMES[type].kh;
-    glyphCentered(khY, cxp, cyp,
-      '700 ' + (khY.length > 3 ? 42 : 50) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink);
+    glyphCentered(khY, cxp, cyp + glyphOy,
+      '700 ' + (khY.length > 3 ? 42 : 50) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink, glyphMaxW);
     ctx.font = '600 18px "Segoe UI",sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = ink;
@@ -9354,7 +9402,11 @@ function fxCheck2(kingSq) {
 }
 
 // a jagged SVG lightning-bolt flash, for checkmate stage 1
-function fxLightningBolt(x, y) {
+// A jagged bolt falling from the top of the screen down to (x,y), colored
+// by the caller -- the shared "magic shooting down from the sky" shape
+// every yantra element's capture strike (see fxYantraWater etc. below) and
+// Magic II's checkmate lightning both use, just recolored per element.
+function fxElementBolt(x, y, color, glow) {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   // no viewBox: 1 user unit = 1px, matching every other .fx-fx element's
@@ -9369,13 +9421,14 @@ function fxLightningBolt(x, y) {
   const poly = document.createElementNS(ns, 'polyline');
   poly.setAttribute('points', pts.join(' '));
   poly.setAttribute('fill', 'none');
-  poly.setAttribute('stroke', '#fff6d0');
+  poly.setAttribute('stroke', color);
   poly.setAttribute('stroke-width', '4');
-  poly.style.filter = 'drop-shadow(0 0 10px #ffe066) drop-shadow(0 0 20px #ffe066)';
+  poly.style.filter = `drop-shadow(0 0 10px ${glow}) drop-shadow(0 0 20px ${glow})`;
   svg.appendChild(poly);
   svg.style.overflow = 'visible';
   return svg;
 }
+function fxLightningBolt(x, y) { return fxElementBolt(x, y, '#fff6d0', '#ffe066'); }
 
 // Tier 4 (Magic II only): checkmate "Triple Super" -- a lightning strike
 // onto the mated king's square, then a giant shockwave sweeping the board,
@@ -10785,12 +10838,17 @@ function triggerModernEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate,
 // Trey (Pawn) calls water against another Trey, ice against anything
 // else; Ses (Knight) calls lightning; Neang (Queen) calls fire; Koul
 // (Bishop) calls earth; Tuuk (Rook) calls wind with scattering magic
-// particles; Sdach (King) calls a burst of pure light. Check layers a
-// falling lightning bolt (fxLightningBolt, already built for Magic II's
-// checkmate) onto the shared shockwave every theme's check effect uses
-// (fxCheck); checkmate instead layers a much bigger light burst + rays +
-// a bright vignette flash on top of that same shockwave, staged to start
-// only once the shockwave's own vignette has finished (~520ms) rather
+// particles; Sdach (King) calls a burst of pure light. Every one of the
+// six now opens with the same "magic shooting down from the sky" beat --
+// a jagged bolt (fxElementBolt, recolored per element via
+// YANTRA_BOLT_COLOR) falling onto the captured square, same as an actual
+// lightning strike -- before that element's own themed burst lands and
+// the board shakes, so all six read as one consistent strike, not six
+// unrelated animations. Check layers a falling lightning bolt onto the
+// shared shockwave every theme's check effect uses (fxCheck); checkmate
+// instead layers a much bigger light burst + rays + a bright vignette
+// flash on top of that same shockwave, staged to start only once the
+// shockwave's own vignette has finished (~520ms) rather
 // than cutting it off mid-flight. Fires only while yantraFx is on --
 // same fire-and-forget, try/catch-wrapped pattern every other theme's
 // own effect system uses.
@@ -10808,18 +10866,35 @@ function fxYantraShake() {
   sceneEl.classList.add('fx-shake');
   setTimeout(() => sceneEl.classList.remove('fx-shake'), 380);
 }
+// Per-element bolt colors for the shared "strike from the sky" opener
+// every one of the six capture effects below now starts with (see
+// fxElementBolt) -- each recolored to match that element's own burst
+// (fx-yantra-water/ice/fire/earth/wind/light's own gradient colors),
+// so every rank's capture reads as the same lightning-strike language,
+// just with a different elemental color and a different impact burst.
+const YANTRA_BOLT_COLOR = {
+  water: ['#eaf9ff', '#2e9bc9'], ice: ['#ffffff', '#8fd0e8'],
+  lightning: ['#fff6d0', '#ffe066'], fire: ['#fff3d0', '#ff5a2e'],
+  earth: ['#e8dcb8', '#6b5a3a'], wind: ['#f4f8fa', '#cfd8dc'],
+  light: ['#ffffff', '#fff3c0']
+};
 function fxYantraWater(sq) {
   const pt = fxScreenPoint(sq);
+  const [c, g] = YANTRA_BOLT_COLOR.water;
+  fxSpawn(fxElementBolt(pt.x, pt.y, c, g), 260);
   fxSpawn(fxAt(pt, 'fx-yantra-water', {}), 460);
   for (let i = 0; i < 10; i++) {
     const a2 = (i / 10) * Math.PI * 2 + Math.random() * 0.3;
     const dist = 26 + Math.random() * 28;
     fxSpawn(fxAt(pt, 'fx-yantra-droplet', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist + 18) + 'px' }), 500);
   }
+  fxYantraShake();
   window.__oukFxLog.push({ tier: 2, key: 'yantra_water' });
 }
 function fxYantraIce(sq) {
   const pt = fxScreenPoint(sq);
+  const [c, g] = YANTRA_BOLT_COLOR.ice;
+  fxSpawn(fxElementBolt(pt.x, pt.y, c, g), 260);
   fxSpawn(fxAt(pt, 'fx-yantra-ice', {}), 460);
   for (let i = 0; i < 9; i++) {
     const a2 = (i / 9) * Math.PI * 2;
@@ -10831,14 +10906,17 @@ function fxYantraIce(sq) {
 }
 function fxYantraLightning(sq) {
   const pt = fxScreenPoint(sq);
-  fxSpawn(fxLightningBolt(pt.x, pt.y), 260);
-  fxSpawn(fxLightningBolt(pt.x + 14, pt.y - 6), 240);
+  const [c, g] = YANTRA_BOLT_COLOR.lightning;
+  fxSpawn(fxElementBolt(pt.x, pt.y, c, g), 260);
+  fxSpawn(fxElementBolt(pt.x + 14, pt.y - 6, c, g), 240);
   fxSpawn(fxAt(pt, 'fx-yantra-shock', {}), 380);
   fxYantraShake();
   window.__oukFxLog.push({ tier: 2, key: 'yantra_lightning' });
 }
 function fxYantraFire(sq) {
   const pt = fxScreenPoint(sq);
+  const [c, g] = YANTRA_BOLT_COLOR.fire;
+  fxSpawn(fxElementBolt(pt.x, pt.y, c, g), 260);
   fxSpawn(fxAt(pt, 'fx-yantra-fire', {}), 420);
   for (let i = 0; i < 11; i++) {
     const a2 = (i / 11) * Math.PI * 2 + Math.random() * 0.4;
@@ -10850,6 +10928,8 @@ function fxYantraFire(sq) {
 }
 function fxYantraEarth(sq) {
   const pt = fxScreenPoint(sq);
+  const [c, g] = YANTRA_BOLT_COLOR.earth;
+  fxSpawn(fxElementBolt(pt.x, pt.y, c, g), 260);
   fxSpawn(fxAt(pt, 'fx-yantra-earth', {}), 420);
   for (let i = 0; i < 9; i++) {
     const a2 = (i / 9) * Math.PI * 2 + Math.random() * 0.3;
@@ -10861,6 +10941,8 @@ function fxYantraEarth(sq) {
 }
 function fxYantraWind(sq) {
   const pt = fxScreenPoint(sq);
+  const [c, g] = YANTRA_BOLT_COLOR.wind;
+  fxSpawn(fxElementBolt(pt.x, pt.y, c, g), 260);
   fxSpawn(fxAt(pt, 'fx-yantra-wind', {}), 460);
   for (let i = 0; i < 6; i++) {
     fxSpawn(fxAt(pt, 'fx-yantra-gust', { '--ang': (i * 60) + 'deg' }), 480);
@@ -10872,10 +10954,13 @@ function fxYantraWind(sq) {
     const dist = 30 + Math.random() * 36;
     fxSpawn(fxAt(pt, 'fx-yantra-particle', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 520);
   }
+  fxYantraShake();
   window.__oukFxLog.push({ tier: 2, key: 'yantra_wind' });
 }
 function fxYantraLight(sq) {
   const pt = fxScreenPoint(sq);
+  const [c, g] = YANTRA_BOLT_COLOR.light;
+  fxSpawn(fxElementBolt(pt.x, pt.y, c, g), 260);
   fxSpawn(fxAt(pt, 'fx-yantra-light', {}), 500);
   for (let i = 0; i < 12; i++) {
     fxSpawn(fxAt(pt, 'fx-yantra-ray', { '--ang': (i * 30) + 'deg' }), 440);
@@ -12954,8 +13039,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.3.3';
+const APP_VERSION = '1.3.4';
 const WHATS_NEW = [
+  {
+    version: '1.3.4',
+    date: '2026-07-18',
+    title: { kh: 'រាងកូនអុកសាក់យន្តខុសៗគ្នា និងវេទមន្តហោះពីមេឃដូចផ្លេកបន្ទោរ', en: 'Distinct Sak Yantra piece shapes, sky-strike magic for every element' },
+    items: [
+      { kh: 'កូនអុកនីមួយៗក្នុងស្បែកសាក់យន្តឥឡូវមានរាងផ្ទាល់ខ្លួននៅចំកណ្ដាលស៊ុមរួម៖ សេះជារាងអង្កាំមូលបណ្ដោយ, នាងជារាងត្រីកោណសមបាទដងឡើងលើ, គោលជារាងខ្សែអេតទ្រឡប់ក្បាលចុះ (ដូចមួកអភិសេក), ត្រីជារាងចតុកោណរាងកោង, ស្ដេចបន្ថែមផ្កាឈូកនៅលើកំពូល, ហើយទូកនៅដដែល។',
+        en: "Each Sak Yantra piece now has its own distinct inner shape inside the shared frame: Knight is an elongated rhombus, Queen an upward isosceles triangle, Bishop an upside-down kite (echoing the classic mitre silhouette), Pawn a small concave notched quadrilateral, and King keeps its diamond but gains a lotus-bud crown on top; Rook is unchanged." },
+      { kh: 'អានុភាពវេទមន្តតាមធាតុទាំងប្រាំមួយប្រភេទក្នុងស្បែកសាក់យន្តឥឡូវចាប់ផ្ដើមដូចគ្នា៖ ផ្លេកបន្ទោរពណ៌តាមធាតុហោះចុះពីលើមេឃមកចំចំណុចស៊ីកូនអុក មុននឹងផ្ទុះជាធាតុនោះ (ទឹក ទឹកកក ភ្លើង ដី ខ្យល់ ឬពន្លឺ) — ដូច្នេះការស៊ីកូនអុកទាំងប្រាំមួយប្រភេទឥឡូវមានអារម្មណ៍ដូចគ្នាថាជាការវាយប្រហារ ជំនួសឲ្យចលនាខុសៗគ្នាទាំងស្រុង។',
+        en: "All six of the Sak Yantra theme's elemental capture effects now open the same way: a jagged bolt, recolored per element, strikes down from the top of the screen onto the captured square -- exactly like an actual lightning strike -- before that element's own themed burst (water, ice, fire, earth, wind, or light) lands, so every capture reads as one consistent magic-from-the-sky attack instead of six unrelated animations." }
+    ]
+  },
   {
     version: '1.3.3',
     date: '2026-07-18',
