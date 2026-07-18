@@ -4656,9 +4656,10 @@ const THEMES = {
   // sacred-red ink square, ivory vs charcoal-cloth piece panels (the
   // '2dyantra' art set: nested square/diamond/circle sacred geometry,
   // a khom-script-stand-in syllable-dot border, corner flame points, all
-  // in plain ink -- no gold trim, unlike the rest of the Khmer Heritage
-  // sets, since a tattoo/cloth yantra is monochrome linework, not gilded).
-  // Matte, almost no mirror, like inked cloth rather than lacquer. Paired
+  // in plain ink -- except each rank's own inner circle, a gold ring
+  // inscribed to touch its own outer seal on every side, tucked behind
+  // the Khmer glyph). Matte, almost no mirror, like inked cloth rather
+  // than lacquer. Paired
   // with its own elemental capture-effect system (yantraFx, see
   // triggerYantraEffect) -- each rank channels a different classical
   // element on capture, echoing its own yantra motif.
@@ -6505,19 +6506,30 @@ function flat2DArtTexture(setStyle, type, color) {
     // small concave notched quadrilateral; Rook keeps the original
     // square seal. King also keeps the square, but -- as the one piece
     // that stands for the monarchy itself -- breaks the theme's own
-    // "plain ink, no gold" rule (see below) and gets a gold frame
-    // instead. Every rank's flame/script-border frame is built by the
-    // same shared helpers (flame/outerSeal below) against whatever point
-    // list and ink color that rank passes in, so the "frame style" --
-    // flame-tipped corners, a script-mark border, a sacred-red accent --
-    // stays identical across all six even though the outline and (for
-    // the King) the color each is drawn with now differs. Every inner
-    // circle and its accents are sized specifically to fit inside that
-    // rank's own outer seal with a real clearance margin -- an earlier
-    // pass sized several of them (the Pawn's especially, whose concave
-    // notch cuts a gap right through the circle's own lower arc) too
-    // large for the shape they sat inside.
+    // "plain ink, no gold" FRAME rule (its outer seal is drawn in gold,
+    // not ink) instead. Every rank's flame/script-border frame is built
+    // by the same shared helpers (flame/outerSeal below) against
+    // whatever point list and ink color that rank passes in, so the
+    // "frame style" -- flame-tipped corners, a script-mark border, a
+    // sacred-red accent -- stays identical across all six even though
+    // the outline and (for the King) the color each is drawn with now
+    // differs. Every inner circle is gold (tucked BEHIND that rank's own
+    // Khmer glyph, drawn afterward below) and inscribed to actually
+    // touch its own rank's outer seal on every side -- true incircle
+    // geometry per shape, not just a fixed radius with clearance to
+    // spare, so King/Rook (a square) get a circle centered on the
+    // square's own center touching all 4 edge midpoints, while Queen's
+    // triangle, Bishop's kite, and Pawn's concave dart each need their
+    // own computed incenter (off the canvas's numeric center) as well as
+    // their own inradius for genuine edge-to-edge tangency; Knight's
+    // rhombus, being symmetric on both axes, keeps its incircle centered
+    // like the square.
     const cxp = 128, cyp = 128;
+    // Gold, used for every rank's inner circle below (two shades -- light
+    // for the pale card, deep for the dark card -- mirror how `ink`
+    // itself picks light-vs-dark for contrast); also the King's own
+    // outer-seal color (see the comment above).
+    const gold = light ? '#8a6316' : '#f0c65a';
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     // A small abstract "sacred script" mark standing in for a khom-script
     // syllable: a stem plus a hook, bar, or curl (one of three variants,
@@ -6554,10 +6566,14 @@ function flat2DArtTexture(setStyle, type, color) {
       }
     };
     // A ring of script marks around the inner circle, tangential to it.
-    const scriptRing = (r, count, startAngle, col) => {
+    // ccx/ccy (optional): the circle's own center, for ranks whose
+    // inscribed circle isn't centered on the canvas's own (cxp,cyp) --
+    // defaults to (cxp,cyp) for the ranks where it is.
+    const scriptRing = (r, count, startAngle, col, ccx, ccy) => {
+      const cx = ccx != null ? ccx : cxp, cy = ccy != null ? ccy : cyp;
       for (let i = 0; i < count; i++) {
         const a = (startAngle || 0) + (i / count) * Math.PI * 2;
-        scriptMark(cxp + Math.cos(a) * r, cyp + Math.sin(a) * r, 0.55, a + Math.PI / 2, i % 3, col);
+        scriptMark(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 0.55, a + Math.PI / 2, i % 3, col);
       }
     };
     const redDot = (x, y) => { ctx.fillStyle = '#b3261e'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); };
@@ -6610,13 +6626,13 @@ function flat2DArtTexture(setStyle, type, color) {
       case E.KING: {
         const S = 40, EDGE = 216;
         // gold, not the theme's usual plain ink -- the one deliberate
-        // break from "no gold trim" every other yantra piece keeps,
-        // since the King's own seal stands for the monarchy itself.
-        // Two shades (light for the pale card, deep for the dark card)
-        // mirror how `ink` itself picks light-vs-dark for contrast.
-        const gold = light ? '#8a6316' : '#f0c65a';
+        // break from "no gold trim" every other yantra piece's own FRAME
+        // keeps, since the King's own seal stands for the monarchy itself.
         outerSeal([[S, S], [EDGE, S], [EDGE, EDGE], [S, EDGE]], null, gold);
-        ctx.beginPath(); ctx.arc(cxp, cyp, 52, 0, Math.PI * 2);
+        // inradius of the square = half its own side length, centered on
+        // the square's own center (which is also cxp,cyp here) -- touches
+        // all 4 edges at their midpoints
+        ctx.beginPath(); ctx.arc(cxp, cyp, (EDGE - S) / 2, 0, Math.PI * 2);
         ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(cxp, cyp - 68); ctx.lineTo(cxp + 68, cyp); ctx.lineTo(cxp, cyp + 68); ctx.lineTo(cxp - 68, cyp);
@@ -6645,18 +6661,23 @@ function flat2DArtTexture(setStyle, type, color) {
       case E.QUEEN: {
         const apexY = cyp - 108, baseY = cyp + 72, halfW = 96;
         outerSeal([[cxp, apexY], [cxp + halfW, baseY], [cxp - halfW, baseY]]);
-        const r = 46; // a real margin under the triangle's own width at every height the circle spans (checked at its widest, the vertical center)
-        ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
-        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+        // true incircle of this (isosceles) triangle -- incenter/inradius
+        // via the standard side-length-weighted formula, NOT the
+        // triangle's own centroid or cxp/cyp, so the circle is genuinely
+        // tangent to all 3 edges rather than just roughly centered
+        // with clearance to spare.
+        const qcy = 142, r = 58;
+        ctx.beginPath(); ctx.arc(cxp, qcy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2;
         for (let i = 0; i < 8; i++) {
           const a = -Math.PI / 2 + i * (Math.PI / 4);
-          const px = cxp + Math.cos(a) * r, py = cyp + Math.sin(a) * r;
+          const px = cxp + Math.cos(a) * r, py = qcy + Math.sin(a) * r;
           ctx.save(); ctx.translate(px, py); ctx.rotate(a + Math.PI / 2);
           ctx.beginPath(); ctx.arc(0, 0, 6, Math.PI, Math.PI * 2); ctx.stroke();
           ctx.restore();
         }
-        scriptRing(r - 16, 6, Math.PI * 0.5);
+        scriptRing(r - 16, 6, Math.PI * 0.5, null, cxp, qcy);
         glyphOy = (apexY + baseY + baseY) / 3 - cyp; // triangle's own centroid
         glyphMaxW = 108;
         topY = apexY; botY = baseY;
@@ -6671,17 +6692,22 @@ function flat2DArtTexture(setStyle, type, color) {
         // own (see r below, re-checked and still safe under the wider kite).
         const topPtY = cyp - 112, midW = 67, midY = cyp, botPtY = cyp + 48;
         outerSeal([[cxp, topPtY], [cxp + midW, midY], [cxp, botPtY], [cxp - midW, midY]]);
-        const r = 36; // re-checked against the narrower kite's own tightest cross-section (just above the shorter bottom point)
-        ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
-        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+        // true incircle of this kite -- symmetric left-right so the
+        // incenter sits on x=cxp, but the top/bottom asymmetry (a much
+        // longer top edge than bottom edge) pulls it well above cyp;
+        // computed from the kite's own 4 edge lines, not just cyp with a
+        // fixed clearance.
+        const bcy = 114, r = 50;
+        ctx.beginPath(); ctx.arc(cxp, bcy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.fillStyle = ink;
         const tri = (px, py, rot) => {
           ctx.save(); ctx.translate(px, py); ctx.rotate(rot);
           ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(7, 6); ctx.lineTo(-7, 6); ctx.closePath(); ctx.fill();
           ctx.restore();
         };
-        tri(cxp, cyp - r, 0); tri(cxp + r, cyp, Math.PI / 2);
-        tri(cxp, cyp + r, Math.PI); tri(cxp - r, cyp, -Math.PI / 2);
+        tri(cxp, bcy - r, 0); tri(cxp + r, bcy, Math.PI / 2);
+        tri(cxp, bcy + r, Math.PI); tri(cxp - r, bcy, -Math.PI / 2);
         glyphOy = midY - cyp; // the kite's own widest cross-section
         glyphMaxW = 118;
         topY = topPtY; botY = botPtY;
@@ -6696,9 +6722,12 @@ function flat2DArtTexture(setStyle, type, color) {
         // Bishop's/Pawn's own.
         const rv = 100, rh = 59;
         outerSeal([[cxp, cyp - rv], [cxp + rh, cyp], [cxp, cyp + rv], [cxp - rh, cyp]]);
-        const r = 42;
+        // true incircle of this rhombus -- symmetric on both axes, so it
+        // stays centered on cxp/cyp; r is the actual distance from center
+        // to each edge line (not an arbitrary clearance-padded guess).
+        const r = 51;
         ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
-        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         scriptRing(r - 14, 8, Math.PI / 8);
         ctx.strokeStyle = ink; ctx.lineWidth = 3;
         for (const sx of [cxp - 26, cxp + 26]) {
@@ -6711,8 +6740,10 @@ function flat2DArtTexture(setStyle, type, color) {
       case E.ROOK: {
         const S = 40, EDGE = 216;
         outerSeal([[S, S], [EDGE, S], [EDGE, EDGE], [S, EDGE]]);
-        ctx.beginPath(); ctx.arc(cxp, cyp, 52, 0, Math.PI * 2);
-        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+        // same square as the King's own seal -- inradius = half the side
+        // length, touching all 4 edge midpoints
+        ctx.beginPath(); ctx.arc(cxp, cyp, (EDGE - S) / 2, 0, Math.PI * 2);
+        ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(cxp, cyp - 68); ctx.lineTo(cxp + 68, cyp); ctx.lineTo(cxp, cyp + 68); ctx.lineTo(cxp - 68, cyp);
         ctx.closePath();
@@ -6750,13 +6781,14 @@ function flat2DArtTexture(setStyle, type, color) {
           [[cxp, tipY], [cxp + shW, shY], [cxp, notchY], [cxp - shW, shY]],
           [[cxp, tipY], [cxp + shW, shY], [cxp - shW, shY]] // skip the reflex notch vertex
         );
-        // pulled down from the tip and re-checked against the narrower
-        // dart's own taper (its tightest point is now just below the
-        // circle's own top, not the notch gap below it) -- both smaller
-        // and repositioned from before to clear the new proportions
-        const r = 30, cy2 = cyp - 18;
+        // true incircle of this concave dart, tangent to BOTH the outer
+        // tip-to-shoulder edges and the inner shoulder-to-notch edges
+        // (computed from those 4 edge lines directly) -- sits low enough
+        // that its bottom just clears the notch vertex without poking
+        // through the concave opening.
+        const r = 41, cy2 = 126;
         ctx.beginPath(); ctx.arc(cxp, cy2, r, 0, Math.PI * 2);
-        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2;
         for (const sx of [cxp - 26, cxp + 26]) {
           ctx.beginPath(); ctx.arc(sx, cyp + 45, 8, Math.PI * 0.3, Math.PI * 0.7); ctx.stroke();
@@ -13955,8 +13987,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.5.5';
+const APP_VERSION = '1.5.6';
 const WHATS_NEW = [
+  {
+    version: '1.5.6',
+    date: '2026-07-18',
+    title: { kh: 'សាក់យន្ត៖ រង្វង់ខាងក្នុងប៉ះគ្រប់ជ្រុងស៊ុម ប្ដូរជាពណ៌មាស នៅពីក្រោយអក្សរខ្មែរ', en: 'Sak Yantra: inner circle now touches every side of the frame, in gold, behind the glyph' },
+    items: [
+      { kh: 'រង្វង់ខាងក្នុងរបស់កូនអុកសាក់យន្តទាំងប្រាំមួយឥឡូវត្រូវបានគណនាឡើងវិញឲ្យប៉ះគ្រប់ជ្រុងនៃស៊ុមខាងក្រៅផ្ទាល់ខ្លួន (រង្វង់ចារឹកពិតប្រាកដ មិនមែនគ្រាន់តែកម្រិតដែលមានគម្លាតទេ) ជំនួសឲ្យរង្វង់តូចមានគម្លាតពីមុន។ រង្វង់ទាំងអស់ត្រូវបានប្ដូរទៅជាពណ៌មាស (ដូចស្តេចដែលមានស៊ុមមាសរួចទៅហើយ) ហើយនៅតែគូរពីក្រោយអក្សរខ្មែរកណ្ដាល ដូច្នេះអក្សរនៅតែអានច្បាស់នៅពីលើ។',
+        en: "Every rank's inner circle in Sak Yantra is now sized to actually touch its own outer seal on all sides (a real inscribed circle, computed per shape, not just a smaller circle with clearance to spare) instead of the old smaller circle. Every circle is now gold (matching the King's own gold-trimmed seal), and stays drawn behind the central Khmer glyph so the lettering still reads clearly on top." }
+    ]
+  },
   {
     version: '1.5.5',
     date: '2026-07-18',
