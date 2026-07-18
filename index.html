@@ -6210,48 +6210,28 @@ function flat2DArtTexture(setStyle, type, color) {
     ctx.fillText(NAMES[type].tr, 128, 198);
     ctx.globalAlpha = 1;
   } else if (setStyle === '2dyantra') {
-    // Sak Yantra: each rank gets its own real sacred-geometry composition
-    // -- six distinct silhouettes, each drawn from a real yantra/Sak Yant
-    // pattern chosen for what that rank represents -- redesigned after
-    // real Sak Yant reference plates (wheel yantras, sun/Rahu plates, a
-    // yantra icon atlas) to carry the vocabulary those actually use
-    // instead of plain dots and bare lines: khom SCRIPT curving around a
-    // ring (scriptRing) rather than a row of dots, a thin sunburst-ray
-    // halo just outside the piece's own silhouette (sunburst -- the one
-    // motif every reference plate shares), coil-tipped ray/spire ends
-    // (the little spring-like flourish those plates finish their spikes
-    // with), and, on the King specifically, a ring of oval script
-    // cartouches (the beaded pods a classic wheel-yantra amulet rings
-    // its center with):
-    //   King   - Gao Yord (nine spires): a nine-point radiating,
-    //            coil-tipped crown over a script ring and a cartouche
-    //            band -- closest of the six to a classic wheel plate.
-    //   Queen  - Paed Tidt (eight directions): an 8-point compass star,
-    //            each point coil-tipped, over an inner script ring.
-    //   Bishop - Hah Taew (five rows): a tall panel of khom-script rows,
-    //            the wisdom/mantra yantra -- deliberately the one non-
-    //            circular silhouette, now in actual script marks instead
-    //            of plain dots.
-    //   Knight - a four-armed swirling tomoe/pinwheel, for the horse's
-    //            leap and speed, over a script ring.
-    //   Rook   - a Sema boundary-stone silhouette (a tall pointed hull),
-    //            doubling as the Tuuk's boat hull, water-wave bands plus
-    //            a script ring following the hull's own curve.
-    //   Pawn   - a small plain circular seal with a light script ring --
-    //            deliberately the simplest of the six.
-    // All six stay in the same family: plain ink linework (no gold, unlike
-    // every other Khmer Heritage set -- a tattoo/cloth yantra is
-    // monochrome), a small sacred-red accent mark, and the Khmer name
-    // glyph centered on each shape's own true geometric center -- (128,128)
-    // for five of the six (each shape is itself symmetric around that
-    // point), plus a per-case glyphOy nudge (see below) for the King,
-    // whose own seal is drawn off that point to leave crown headroom.
-    const cxp = 128, cyp = 128;
+    // Sak Yantra: a real yantra diagram's own signature frame -- an
+    // axis-aligned square seal with nested diamond+circle sacred
+    // geometry, corner flame points, and a border of khom-script marks
+    // along all four edges (the specific combination every real Sak
+    // Yant reference plate shares) -- shared by ALL SIX ranks, with each
+    // rank differentiated by a small accent instead of an unrelated
+    // whole-piece silhouette. An earlier pass tried six different
+    // pictorial shapes (a crown, a compass star, a boat hull...) which,
+    // compared side-by-side against real reference plates, read as
+    // generic fantasy-game icons rather than an actual yantra -- this
+    // restores the original square-seal frame that actually photographs
+    // as "a yantra" at a glance, with the newer script-mark linework in
+    // place of that original frame's plain dots. All ink linework, no
+    // gold trim (a tattoo/cloth yantra is monochrome, the one deliberate
+    // break from the gilded language every other Khmer Heritage set
+    // here shares), with a sacred-red accent mark crowning the seal.
+    const S = 40, EDGE = 216, cxp = 128, cyp = 128;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    // A small abstract "sacred script" mark -- stands in for a khom-script
+    // A small abstract "sacred script" mark standing in for a khom-script
     // syllable: a stem plus a hook, bar, or curl (one of three variants,
-    // cycled), rotated to align with whatever ring it's placed on so it
-    // reads as script curving around the piece rather than a bare dot.
+    // cycled), rotated so it reads as script written along whatever line
+    // or ring it's placed on rather than a bare dot.
     const scriptMark = (x, y, scale, rot, variant) => {
       ctx.save();
       ctx.translate(x, y); ctx.rotate(rot || 0); ctx.scale(scale || 1, scale || 1);
@@ -6271,235 +6251,139 @@ function flat2DArtTexture(setStyle, type, color) {
       ctx.stroke();
       ctx.restore();
     };
-    // A ring of script marks curving around a circle at radius r, each
-    // rotated tangential to the ring so it reads as script written
-    // around the piece rather than a plain row of dots.
-    const scriptRing = (r, count, startAngle, oy2) => {
+    // A row of script marks evenly spaced between two points, each
+    // rotated tangential to the row so it reads as script written along
+    // that edge rather than a plain row of dots.
+    const scriptRow = (x0, y0, x1, y1, count) => {
+      const ang = Math.atan2(y1 - y0, x1 - x0);
       for (let i = 0; i < count; i++) {
-        const a = (startAngle || 0) + (i / count) * Math.PI * 2;
-        scriptMark(cxp + Math.cos(a) * r, cyp + (oy2 || 0) + Math.sin(a) * r, 0.6, a + Math.PI / 2, i % 3);
-      }
-    };
-    // A small oval cartouche holding a pair of tiny script strokes -- the
-    // radial pods a classic wheel-yantra plate rings its center with.
-    const cartouche = (x, y, rot) => {
-      ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
-      ctx.beginPath(); ctx.ellipse(0, 0, 9, 6, 0, 0, Math.PI * 2);
-      ctx.fillStyle = body; ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = 1.3; ctx.stroke();
-      ctx.lineWidth = 1.1;
-      ctx.beginPath(); ctx.moveTo(-3, -3); ctx.lineTo(-3, 3); ctx.moveTo(3, -3); ctx.lineTo(3, 3); ctx.stroke();
-      ctx.restore();
-    };
-    // A thin sunburst-ray halo just outside the piece's own silhouette --
-    // the one motif every reference plate shares -- with a small coil
-    // near the tip of every third ray for texture.
-    const sunburst = (r0, r1, count, oy2) => {
-      for (let i = 0; i < count; i++) {
-        const a = (i / count) * Math.PI * 2;
-        const coil = i % 3 === 0;
-        const rr1 = coil ? r1 : r1 - 6;
-        const x0 = cxp + Math.cos(a) * r0, y0 = cyp + (oy2 || 0) + Math.sin(a) * r0;
-        const x1 = cxp + Math.cos(a) * rr1, y1 = cyp + (oy2 || 0) + Math.sin(a) * rr1;
-        ctx.strokeStyle = ink; ctx.lineWidth = 1.3;
-        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-        if (coil) {
-          ctx.save(); ctx.translate(x1, y1); ctx.rotate(a);
-          ctx.beginPath();
-          ctx.moveTo(0, -3); ctx.quadraticCurveTo(4, -1, 0, 1); ctx.quadraticCurveTo(-4, 3, 0, 5);
-          ctx.stroke();
-          ctx.restore();
-        }
+        const t = (i + 0.5) / count;
+        scriptMark(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, 0.55, ang + Math.PI / 2, i % 3);
       }
     };
     const redDot = (x, y) => { ctx.fillStyle = '#b3261e'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); };
-    let translitY = 244;
-    // most shapes are symmetric around the canvas's own center (128,128),
-    // so the glyph anchor matches it directly -- except the King, whose
-    // crowned seal is itself drawn oy=8 lower to leave headroom for the
-    // spires, so glyphOy pulls the glyph down to match that shape's own
-    // true center instead of leaving it centered on the empty canvas.
-    let glyphOy = 0;
+
+    // the shared frame: square seal, corner flames, a script-mark border
+    // along all four edges, then nested diamond and circle -- the
+    // classic square/diamond/circle layering every reference plate's
+    // core is built from.
+    ctx.beginPath();
+    ctx.rect(S, S, EDGE - S, EDGE - S);
+    ctx.fillStyle = body; ctx.fill();
+    ctx.strokeStyle = ink; ctx.lineWidth = 7; ctx.stroke();
+    const flame = (fx, fy, dx, dy) => {
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(fx + dx * 16, fy + dy * 4);
+      ctx.lineTo(fx + dx * 22, fy + dy * 22);
+      ctx.lineTo(fx + dx * 4, fy + dy * 16);
+      ctx.closePath();
+      ctx.fill();
+    };
+    ctx.fillStyle = ink;
+    flame(S, S, -1, -1); flame(EDGE, S, 1, -1);
+    flame(S, EDGE, -1, 1); flame(EDGE, EDGE, 1, 1);
+    const inset = 16;
+    scriptRow(S + inset, S + inset, EDGE - inset, S + inset, 5); // top
+    scriptRow(S + inset, EDGE - inset, EDGE - inset, EDGE - inset, 5); // bottom
+    scriptRow(S + inset, S + inset, S + inset, EDGE - inset, 5); // left
+    scriptRow(EDGE - inset, S + inset, EDGE - inset, EDGE - inset, 5); // right
+    const dr = 68;
+    ctx.beginPath();
+    ctx.moveTo(cxp, cyp - dr); ctx.lineTo(cxp + dr, cyp); ctx.lineTo(cxp, cyp + dr); ctx.lineTo(cxp - dr, cyp);
+    ctx.closePath();
+    ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cxp, cyp, 52, 0, Math.PI * 2);
+    ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+    redDot(cxp, S - 8);
+
+    // per-rank accent, small and placed around/inside the shared frame
+    // rather than replacing it:
+    //   King   - a triple-flame crown poking above the top edge, plus a
+    //            script ring inside the circle -- closest of the six to
+    //            a classic wheel-yantra plate.
+    //   Queen  - eight lotus-petal arcs ringing the circle (Paed Tidt --
+    //            "eight directions").
+    //   Bishop - four wisdom triangles at the circle's cardinal points.
+    //   Knight - a pair of horseshoe/leap arcs at the base, for the
+    //            horse's leap.
+    //   Rook   - a water-wave band at the base (the Tuuk's boat).
+    //   Pawn   - a pair of plain scale-arcs flanking the glyph --
+    //            deliberately the simplest of the six.
     switch (type) {
       case E.KING: {
-        // Gao Yord: nine graduated coil-tipped spires radiating from the
-        // top of a circular seal like a crown, a script ring, and a band
-        // of oval cartouches around the lower arc.
-        const R = 74, oy = 8;
-        sunburst(R + 26, R + 42, 20, oy);
-        ctx.beginPath(); ctx.arc(cxp, cyp + oy, R, 0, Math.PI * 2);
-        ctx.fillStyle = body; ctx.fill();
-        ctx.strokeStyle = ink; ctx.lineWidth = 6; ctx.stroke();
-        const spire = (angle, len) => {
-          const b1 = angle - 0.09, b2 = angle + 0.09;
-          const tx = cxp + Math.cos(angle) * (R + len), ty = cyp + oy + Math.sin(angle) * (R + len);
-          ctx.beginPath();
-          ctx.moveTo(cxp + Math.cos(b1) * R, cyp + oy + Math.sin(b1) * R);
-          ctx.lineTo(tx, ty);
-          ctx.lineTo(cxp + Math.cos(b2) * R, cyp + oy + Math.sin(b2) * R);
-          ctx.closePath(); ctx.fill();
-          // a small coil at the very tip, echoing the spring-like ray
-          // ends real yantra wheel plates finish their spikes with
-          ctx.save(); ctx.translate(tx, ty); ctx.rotate(angle);
-          ctx.strokeStyle = ink; ctx.lineWidth = 1.2;
-          ctx.beginPath();
-          ctx.moveTo(0, -2); ctx.quadraticCurveTo(4, 0, 0, 2); ctx.quadraticCurveTo(-4, 4, 0, 6);
-          ctx.stroke();
-          ctx.restore();
-        };
         ctx.fillStyle = ink;
-        for (let i = 0; i < 9; i++) {
-          // spans -170deg to -10deg (i.e. -90deg/straight-up +/- 80deg),
-          // so the fan sits centered over the TOP of the circle like a crown
-          const angle = -Math.PI / 2 + (i / 8 - 0.5) * (160 * Math.PI / 180);
-          const len = 14 + (4 - Math.abs(i - 4)) * 5;
-          spire(angle, len);
+        for (const off of [-14, 0, 14]) {
+          const tipY = S - 22 - (off === 0 ? 8 : 0);
+          ctx.beginPath();
+          ctx.moveTo(cxp + off, S - 6);
+          ctx.lineTo(cxp + off + 5, tipY);
+          ctx.lineTo(cxp + off - 5, tipY);
+          ctx.closePath(); ctx.fill();
         }
-        scriptRing(R - 16, 10, Math.PI * 0.5, oy);
-        for (let i = 0; i < 6; i++) {
-          const a = Math.PI * 0.18 + (i / 6) * Math.PI * 1.64; // lower 3/4 arc, clear of the spires
-          cartouche(cxp + Math.cos(a) * R, cyp + oy + Math.sin(a) * R, a + Math.PI / 2);
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2;
+          scriptMark(cxp + Math.cos(a) * 36, cyp + Math.sin(a) * 36, 0.55, a + Math.PI / 2, i % 3);
         }
-        redDot(cxp, cyp + oy - R - 48);
-        translitY = cyp + oy + R + 20;
-        glyphOy = oy;
         break;
       }
       case E.QUEEN: {
-        // Paed Tidt: an 8-point compass star, each point coil-tipped,
-        // inscribed in a circular seal with an inner script ring.
-        const Rout = 88, Rin = 54, Rcirc = 60, oy = 0;
-        ctx.beginPath();
-        for (let i = 0; i < 16; i++) {
-          const a = -Math.PI / 2 + i * (Math.PI / 8);
-          const r = i % 2 === 0 ? Rout : Rin * 0.72;
-          const x = cxp + Math.cos(a) * r, y = cyp + oy + Math.sin(a) * r;
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.closePath();
-        ctx.fillStyle = body; ctx.fill();
-        ctx.strokeStyle = ink; ctx.lineWidth = 3; ctx.stroke();
-        ctx.beginPath(); ctx.arc(cxp, cyp + oy, Rcirc, 0, Math.PI * 2);
-        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.strokeStyle = ink; ctx.lineWidth = 2;
         for (let i = 0; i < 8; i++) {
           const a = -Math.PI / 2 + i * (Math.PI / 4);
-          const tx = cxp + Math.cos(a) * Rout, ty = cyp + oy + Math.sin(a) * Rout;
-          ctx.save(); ctx.translate(tx, ty); ctx.rotate(a);
-          ctx.strokeStyle = ink; ctx.lineWidth = 1.2;
-          ctx.beginPath();
-          ctx.moveTo(0, -2); ctx.quadraticCurveTo(4, 0, 0, 2); ctx.quadraticCurveTo(-4, 4, 0, 6);
-          ctx.stroke();
+          const px = cxp + Math.cos(a) * 52, py = cyp + Math.sin(a) * 52;
+          ctx.save(); ctx.translate(px, py); ctx.rotate(a + Math.PI / 2);
+          ctx.beginPath(); ctx.arc(0, 0, 6, Math.PI, Math.PI * 2); ctx.stroke();
           ctx.restore();
         }
-        scriptRing(Rcirc - 8, 8, Math.PI * 0.4, oy);
-        redDot(cxp, cyp + oy - Rout - 12);
-        translitY = cyp + oy + Rout + 16;
         break;
       }
       case E.BISHOP: {
-        // Hah Taew: a tall panel of five script rows -- the one panel
-        // (not circular) silhouette, for the wisdom/mantra yantra. The
-        // middle row is left clear for the glyph.
-        const x0 = 62, x1 = 194, y0 = 26, y1 = 230, rows = 5;
-        const rh = (y1 - y0) / rows;
-        ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(x0, y0, x1 - x0, y1 - y0, 10); else ctx.rect(x0, y0, x1 - x0, y1 - y0);
-        ctx.fillStyle = body; ctx.fill();
-        ctx.strokeStyle = ink; ctx.lineWidth = 6; ctx.stroke();
-        for (let i = 1; i < rows; i++) {
-          const y = y0 + rh * i;
-          ctx.beginPath(); ctx.moveTo(x0 + 8, y); ctx.lineTo(x1 - 8, y);
-          ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.stroke();
-        }
-        for (let r = 0; r < rows; r++) {
-          if (r === 2) continue; // glyph row
-          const y = y0 + rh * (r + 0.5);
-          for (let i = 0; i < 6; i++) {
-            const x = x0 + (x1 - x0) * ((i + 0.5) / 6);
-            scriptMark(x, y, 0.62, 0, (r + i) % 3);
-          }
-        }
-        redDot(cxp, y0 - 10);
-        translitY = y1 + 14;
+        ctx.fillStyle = ink;
+        const tri = (px, py, rot) => {
+          ctx.save(); ctx.translate(px, py); ctx.rotate(rot);
+          ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(7, 6); ctx.lineTo(-7, 6); ctx.closePath(); ctx.fill();
+          ctx.restore();
+        };
+        tri(cxp, cyp - 52, 0); tri(cxp + 52, cyp, Math.PI / 2);
+        tri(cxp, cyp + 52, Math.PI); tri(cxp - 52, cyp, -Math.PI / 2);
         break;
       }
       case E.KNIGHT: {
-        // a four-armed swirling tomoe/pinwheel -- the horse's leap and
-        // speed -- over a script ring, with a sunburst halo.
-        const R = 74;
-        sunburst(R + 4, R + 20, 18, 0);
-        ctx.beginPath(); ctx.arc(cxp, cyp, R, 0, Math.PI * 2);
-        ctx.fillStyle = body; ctx.fill();
-        ctx.strokeStyle = ink; ctx.lineWidth = 6; ctx.stroke();
-        // inner edge kept a good 24-30px clear of center so the tails
-        // never encroach on the glyph sitting there
-        const tomoe = (rot) => {
-          ctx.save(); ctx.translate(cxp, cyp); ctx.rotate(rot);
-          ctx.beginPath();
-          ctx.moveTo(0, -24);
-          ctx.quadraticCurveTo(42, -24, 39, -50);
-          ctx.quadraticCurveTo(35, -63, 18, -58);
-          ctx.quadraticCurveTo(27, -45, 14, -37);
-          ctx.quadraticCurveTo(4, -30, 0, -24);
-          ctx.closePath(); ctx.fill();
-          ctx.restore();
-        };
-        ctx.fillStyle = ink;
-        for (let i = 0; i < 4; i++) tomoe(i * Math.PI / 2);
-        scriptRing(R - 12, 12, Math.PI / 8, 0);
-        redDot(cxp, cyp - R - 14);
-        translitY = cyp + R + 20;
+        ctx.strokeStyle = ink; ctx.lineWidth = 3;
+        for (const sx of [S + 22, EDGE - 22]) {
+          ctx.beginPath(); ctx.arc(sx, EDGE - 20, 9, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+        }
         break;
       }
       case E.ROOK: {
-        // Sema boundary-stone: a tall pointed hull (also reads as the
-        // Tuuk's boat), with water-wave bands and a script ring
-        // following the hull's own curve.
+        ctx.strokeStyle = ink; ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.moveTo(cxp, 24);
-        ctx.quadraticCurveTo(204, 66, 204, 128);
-        ctx.quadraticCurveTo(204, 190, cxp, 232);
-        ctx.quadraticCurveTo(52, 190, 52, 128);
-        ctx.quadraticCurveTo(52, 66, cxp, 24);
-        ctx.closePath();
-        ctx.fillStyle = body; ctx.fill();
-        ctx.strokeStyle = ink; ctx.lineWidth = 6; ctx.stroke();
-        ctx.strokeStyle = ink; ctx.lineWidth = 2.2;
-        for (const wy of [176, 194]) {
-          ctx.beginPath();
-          ctx.moveTo(66, wy);
-          for (let i = 0; i < 4; i++) {
-            const wx = 66 + (190 - 66) * ((i + 0.5) / 4);
-            ctx.quadraticCurveTo(wx, wy + (i % 2 ? 8 : -8), wx + (190 - 66) / 8, wy);
-          }
-          ctx.stroke();
+        ctx.moveTo(S + 10, EDGE - 12);
+        for (let i = 0; i < 4; i++) {
+          const wx = S + 10 + (EDGE - S - 20) * ((i + 0.5) / 4);
+          ctx.quadraticCurveTo(wx, EDGE - (i % 2 ? 18 : 6), wx + (EDGE - S - 20) / 8, EDGE - 12);
         }
-        scriptRing(84, 16, Math.PI * 0.05, 0);
-        redDot(cxp, 10);
-        translitY = 246;
+        ctx.stroke();
         break;
       }
       case E.PAWN:
       default: {
-        // a small plain circular seal with a light script ring --
-        // deliberately the simplest of the six.
-        const R = 50;
-        ctx.beginPath(); ctx.arc(cxp, cyp, R, 0, Math.PI * 2);
-        ctx.fillStyle = body; ctx.fill();
-        ctx.strokeStyle = ink; ctx.lineWidth = 5; ctx.stroke();
-        scriptRing(R - 12, 8, 0, 0);
-        redDot(cxp, cyp - R - 12);
-        translitY = cyp + R + 22;
+        ctx.strokeStyle = ink; ctx.lineWidth = 2;
+        for (const sx of [cxp - 30, cxp + 30]) {
+          ctx.beginPath(); ctx.arc(sx, cyp + 44, 9, Math.PI * 0.3, Math.PI * 0.7); ctx.stroke();
+        }
         break;
       }
     }
     const khY = NAMES[type].kh;
-    glyphCentered(khY, cxp, cyp + glyphOy,
+    glyphCentered(khY, cxp, cyp,
       '700 ' + (khY.length > 3 ? 42 : 50) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink);
     ctx.font = '600 18px "Segoe UI",sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = ink;
     ctx.globalAlpha = 0.8;
-    ctx.fillText(NAMES[type].tr, cxp, translitY);
+    ctx.fillText(NAMES[type].tr, cxp, EDGE + 14);
     ctx.globalAlpha = 1;
   } else if (setStyle === '2dclassic') {
     // Round medallion with the classic (western) chess glyph -- the
@@ -13070,8 +12954,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.3.2';
+const APP_VERSION = '1.3.3';
 const WHATS_NEW = [
+  {
+    version: '1.3.3',
+    date: '2026-07-18',
+    title: { kh: 'រចនាស្បែកសាក់យន្តឲ្យដូចយន្តពិតប្រាកដ និងជួសជុលរូបភាព Facebook', en: 'Sak Yantra redesigned to actually look like a yantra, Facebook photo fix' },
+    items: [
+      { kh: 'រចនាកូនអុកស្បែកសាក់យន្តឡើងវិញម្ដងទៀត — ត្រឡប់ទៅរកស៊ុមការ៉េពិសិដ្ឋដើម (ការ៉េ ត្រីកោណជ្រុង និងរង្វង់តម្រៀបគ្នា ជ្រុងទាំងបួនមានចង្កៀងភ្លើង និងព្រំដែនអក្សរខម) ដែលកូនអុកទាំងប្រាំមួយប្រភេទចែករំលែកគ្នា ជំនួសរូបរាងខុសៗគ្នាទាំងស្រុងកាលពីមុន (មកុដ ផ្កាយ គ្រែទូក) ដែលមើលទៅដូចរូបហ្គេមទូទៅជាងជាសាក់យន្តខ្មែរ។ កូនអុកនីមួយៗឥឡូវមានចំណុចខុសគ្នាតូចមួយបន្ថែមលើស៊ុមរួម។',
+        en: 'Redesigned the Sak Yantra piece set again -- back to the original sacred-geometry square frame (nested square/diamond/circle layers, corner flame points, a khom-script border) shared by all six ranks, replacing the previous pass\'s six unrelated pictorial silhouettes (a crown, a compass star, a boat hull) that read as generic fantasy-game icons rather than an actual yantra once compared against real reference plates. Each rank now gets a small accent on top of that shared frame instead of a whole different shape.' },
+      { kh: 'ជួសជុលការចូលគណនីតាម Facebook មិនបង្ហាញរូបថតប្រូហ្វាល់ — Firebase ជាញឹកញាប់មិនផ្ដល់ photoURL នៅកម្រិតខ្ពស់សម្រាប់ Facebook ទោះបីជាមានរូបនៅក្នុងទិន្នន័យចូលគណនីក៏ដោយ ដូច្នេះឥឡូវនេះប្រព័ន្ធស្វែងរករូបថតតាមវិធីជាច្រើនស្រទាប់រហូតដល់ស្វែងរកឃើញ។',
+        en: "Fixed Facebook sign-in not showing the profile photo on the scorecard -- Firebase's top-level photoURL is frequently null for Facebook specifically even though the picture is right there in the sign-in response, so photo lookup now falls back through the provider data, then the raw Facebook profile Firebase attaches to the sign-in result, then the public Graph API picture endpoint, before giving up." }
+    ]
+  },
   {
     version: '1.3.2',
     date: '2026-07-18',
@@ -14133,6 +14028,27 @@ document.getElementById('loginEmailSubmitBtn').onclick = () => {
 document.getElementById('loginEmailPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('loginEmailSubmitBtn').click();
 });
+// Firebase's top-level cred.user.photoURL is frequently null for Facebook
+// specifically (a long-documented Firebase+Facebook quirk -- unlike
+// Google, which reliably populates it) even though the picture is right
+// there in the OAuth handshake response, so this checks progressively
+// deeper fallbacks before giving up: the per-provider entry in
+// providerData, the raw Facebook Graph profile Firebase attaches to
+// additionalUserInfo, and finally the Graph API picture endpoint built
+// directly from the Facebook user id (always publicly resolvable for a
+// profile picture, no access token required).
+function extractOAuthPhotoURL(cred, providerId) {
+  const u = cred.user;
+  if (u.photoURL) return u.photoURL;
+  const pd = (u.providerData || []).find((p) => p && p.providerId === providerId);
+  if (pd && pd.photoURL) return pd.photoURL;
+  if (providerId === 'facebook.com' && cred.additionalUserInfo && cred.additionalUserInfo.profile) {
+    const prof = cred.additionalUserInfo.profile;
+    if (prof.picture && prof.picture.data && prof.picture.data.url) return prof.picture.data.url;
+    if (prof.id) return 'https://graph.facebook.com/' + prof.id + '/picture?type=large';
+  }
+  return undefined;
+}
 function handleOAuthSignup(btnId, signInPromiseFn, providerName) {
   const btn = document.getElementById(btnId);
   btn.onclick = () => {
@@ -14143,7 +14059,7 @@ function handleOAuthSignup(btnId, signInPromiseFn, providerName) {
       .then((cred) => completeSignIn(cred.user.uid, {
         displayName: cred.user.displayName || (cred.user.email ? cred.user.email.split('@')[0] : 'Player'),
         email: cred.user.email || undefined,
-        photoURL: cred.user.photoURL || undefined,
+        photoURL: extractOAuthPhotoURL(cred, providerName),
         provider: providerName
       }))
       .then((profile) => { rememberUsername(profile.displayName); finishLogin(); })
@@ -14589,6 +14505,7 @@ window.__ouk = {
   // Playwright can exercise capture/check/checkmate effects without
   // having to play out a whole game through UI clicks.
   debugLoadState: (json) => { state = E.fromJSON(json); lastMove = null; selected = -1; legalForSelected = []; gameOver = false; clearMarkers(); refreshAll(); },
+  debugCurrentProfile: () => currentProfile,
   debugApplyMove: (m) => applyMove(m),
   debugFxLog: () => window.__oukFxLog.slice(),
   debugSfxLog: () => window.__oukSfxLog.slice(),
