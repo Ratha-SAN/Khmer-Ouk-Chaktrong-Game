@@ -11721,15 +11721,6 @@ const ORB_ACCENT_COLOR = {
   [E.KING]: '#ffb84d', [E.QUEEN]: '#4fc3ff', [E.BISHOP]: '#7fe86a',
   [E.KNIGHT]: '#bfe8ff', [E.ROOK]: '#ff7a4a', [E.PAWN]: '#e89aff'
 };
-// A brief impact shake on capture -- same .fx-shake every other theme's
-// own capture/check shockwave uses (see fxCheck/fxYantraShake).
-function fxOrbShake() {
-  const sceneEl = document.getElementById('scene');
-  sceneEl.classList.remove('fx-shake');
-  void sceneEl.offsetWidth;
-  sceneEl.classList.add('fx-shake');
-  setTimeout(() => sceneEl.classList.remove('fx-shake'), 380);
-}
 function fxOrbCapture(sq, effType) {
   const pt = fxScreenPoint(sq);
   const col = ORB_ACCENT_COLOR[effType] || '#c9a6ff';
@@ -11746,7 +11737,6 @@ function fxOrbCapture(sq, effType) {
         const dist = (big ? 34 : 24) + Math.random() * (big ? 34 : 24);
         fxSpawn(fxAt(pt, 'fx-orb-shard', { '--fxcol': col, '--mx': (Math.cos(a) * dist) + 'px', '--my': (Math.sin(a) * dist) + 'px' }), 520);
       }
-      fxOrbShake();
     } catch (err) { console.warn('orb-capture burst failed (ignored):', err); }
   }, 200);
   window.__oukFxLog.push({ tier: 2, key: 'orb_capture_' + (big ? 'big' : 'small') });
@@ -11777,7 +11767,6 @@ function fxOrbCheckmate(kingSq) {
       void fxCheckVignette.offsetWidth;
       fxCheckVignette.classList.add('orbmate');
       setTimeout(() => fxCheckVignette.classList.remove('orbmate'), 600);
-      fxOrbShake();
     } catch (err) { console.warn('orb checkmate supernova failed (ignored):', err); }
   }, 520);
   window.__oukFxLog.push({ tier: 4, key: 'orb_checkmate_super' });
@@ -11817,13 +11806,6 @@ const GALACTIC_ACCENT_COLOR = {
   [E.KING]: '#ffd36a', [E.QUEEN]: '#b98cff', [E.BISHOP]: '#8fe86a',
   [E.KNIGHT]: '#bfe8ff', [E.ROOK]: '#ff8a4a', [E.PAWN]: '#ffe9b0'
 };
-function fxGalacticShake() {
-  const sceneEl = document.getElementById('scene');
-  sceneEl.classList.remove('fx-shake');
-  void sceneEl.offsetWidth;
-  sceneEl.classList.add('fx-shake');
-  setTimeout(() => sceneEl.classList.remove('fx-shake'), 380);
-}
 function fxGalacticCapture(fromSq, toSq, effType) {
   const a = fxScreenPoint(fromSq), b = fxScreenPoint(toSq);
   const col = GALACTIC_ACCENT_COLOR[effType] || '#8fd0ff';
@@ -11842,7 +11824,6 @@ function fxGalacticCapture(fromSq, toSq, effType) {
         const dist = (big ? 36 : 26) + Math.random() * (big ? 30 : 22);
         fxSpawn(fxAt(b, 'fx-galactic-star', { '--fxcol': col, '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 560);
       }
-      fxGalacticShake();
     } catch (err) { console.warn('galactic-capture explosion failed (ignored):', err); }
   }, 220);
   window.__oukFxLog.push({ tier: 2, key: 'galactic_capture_' + (big ? 'big' : 'small') });
@@ -11873,7 +11854,6 @@ function fxGalacticCheckmate(kingSq) {
       void fxCheckVignette.offsetWidth;
       fxCheckVignette.classList.add('galacticmate');
       setTimeout(() => fxCheckVignette.classList.remove('galacticmate'), 620);
-      fxGalacticShake();
     } catch (err) { console.warn('galactic checkmate supernova failed (ignored):', err); }
   }, 520);
   window.__oukFxLog.push({ tier: 4, key: 'galactic_checkmate_super' });
@@ -13917,8 +13897,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.5.2';
+const APP_VERSION = '1.5.3';
 const WHATS_NEW = [
+  {
+    version: '1.5.3',
+    date: '2026-07-18',
+    title: { kh: 'ដកចេញការញ័រអេក្រង់ពេលស៊ីកូនអុកនៅកូនកែវវេទមន្ត/ល្អឹមល្អែម/ចក្រវាឡ', en: 'Removed the capture screen-shake for Magic Orb, Orbs, and Galactic' },
+    items: [
+      { kh: 'ដកចេញការញ័រអេក្រង់ដែលកើតឡើងនៅពេលស៊ីកូនអុក ឬស្តេចស្លាប់ ក្នុងស្បែកកូនកែវវេទមន្ត (Magic Orb) ស្បែកកូនកែវល្អឹមល្អែម (Orbs) និងស្បែកចក្រវាឡ (Galactic) — បែបផ្ទុះនិងកាំរស្មីនៅតែមាន គ្រាន់តែគ្មានការញ័រអេក្រង់តាមទៀត។',
+        en: "Removed the screen-shake that fired on every capture and checkmate in the Magic Orb, Orbs, and Galactic themes -- the collapse/explosion/death-ray visuals themselves are unchanged, just without the accompanying camera shake." }
+    ]
+  },
   {
     version: '1.5.2',
     date: '2026-07-18',
