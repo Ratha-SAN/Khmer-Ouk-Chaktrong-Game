@@ -1728,11 +1728,17 @@
         window.__oukAuth.recordGameResult = function (uid, entry) {
           try {
             var inc = firebase.firestore.FieldValue.increment(1);
-            var incField = entry.result === 'win' ? 'stats.wins' : entry.result === 'loss' ? 'stats.losses' : 'stats.draws';
+            var incField = entry.result === 'win' ? 'stats.wins' : entry.result === 'loss' ? 'stats.losses'
+              : entry.result === 'abandon' ? 'stats.abandons' : 'stats.draws';
             db.collection('users').doc(uid).collection('games').add(Object.assign({}, entry, {
               playedAt: firebase.firestore.FieldValue.serverTimestamp()
             })).catch(function (err) { console.warn('Firestore game-result save failed:', err); });
-            var statsUpdate = {}; statsUpdate['stats.games'] = inc; statsUpdate[incField] = inc;
+            // "Games" (and the win-rate derived from it) only counts games
+            // that actually reached a decisive end -- an abandoned game
+            // still increments its own counter, just not that one.
+            var statsUpdate = {};
+            if (entry.result !== 'abandon') statsUpdate['stats.games'] = inc;
+            statsUpdate[incField] = inc;
             db.collection('users').doc(uid).set(statsUpdate, { merge: true })
               .catch(function (err) { console.warn('Firestore stats update failed:', err); });
           } catch (err) { console.warn('Firestore game-result save threw:', err); }
@@ -2488,6 +2494,7 @@
       <div class="statTile"><span id="statWins">0</span><small>ឈ្នះ Wins</small></div>
       <div class="statTile"><span id="statLosses">0</span><small>ចាញ់ Losses</small></div>
       <div class="statTile"><span id="statDraws">0</span><small>ស្មើ Draws</small></div>
+      <div class="statTile"><span id="statAbandons">0</span><small>បោះបង់ Abandoned</small></div>
       <div class="statTile"><span id="statWinRate">—</span><small>អត្រាឈ្នះ Win rate</small></div>
     </div>
     <p id="statsEmpty" class="loginHint" style="text-align:center;display:none">មិនទាន់មានទិន្នន័យ — No games recorded yet. Play a vs-Computer or online game!</p>
@@ -10755,7 +10762,7 @@ function refreshStatus() {
       '<button id="bannerChangeMode">ប្ដូររបៀប Change Mode</button>' +
       '</div>';
     bannerEl.style.display = 'block';
-    if (mode !== 'online') document.getElementById('bannerRematch').onclick = () => { bannerEl.style.display = 'none'; resetGame(); };
+    if (mode !== 'online') document.getElementById('bannerRematch').onclick = () => { bannerEl.style.display = 'none'; recordGameAbandonIfInProgress(); resetGame(); };
     document.getElementById('bannerReview').onclick = () => enterReview();
     document.getElementById('bannerChangeMode').onclick = () => { bannerEl.style.display = 'none'; modeScreenOrigin = 'game'; openModeScreen(); };
     wrapLangRuns(bannerEl); // keep the banner's bilingual labels honoring the language toggle
@@ -10966,6 +10973,19 @@ function recordGameStat(result, endType) {
   if (mode.startsWith('ai')) entry.aiLevel = +mode.slice(2);
   if (mode === 'online' && onlineOpponentName) entry.opponentName = onlineOpponentName;
   window.__oukAuth.recordGameResult(currentProfile.uid, entry);
+}
+// Counts a vs-Computer/online game as abandoned when the player leaves it
+// (Cancel Game, Change Mode, End Session, New Game/Rematch, or accepting a
+// new match) before it ever reaches its own natural end -- otherwise a
+// quit game just vanishes with no trace, which is what made the stats
+// look broken/incomplete in the first place. Must be called by whichever
+// code path is about to overwrite mode/state/moveEntries, and BEFORE that
+// overwrite happens -- it reads all three off their current values.
+function recordGameAbandonIfInProgress() {
+  if (gameEndTracked) return; // already concluded (and recorded) naturally, or already handled
+  if (!moveEntries.length) return; // nothing played yet -- not a real abandon
+  gameEndTracked = true;
+  recordGameStat('abandon', 'abandon');
 }
 // The signed-up player's own scorecard shows their actual profile picture
 // (uploaded photo, their Google/Apple sign-in photo, or their chosen
@@ -12414,6 +12434,13 @@ function resetGame() {
   hintMove = null; hintBusy = false;
   document.getElementById('hintBtn').disabled = false;
   timeoutResult = null;
+  // Re-arm the "has this game's result already been recorded" guard for
+  // the fresh game about to start -- New Game and Rematch both funnel
+  // through here without going through startGameWithMode, so without this
+  // they'd stay permanently latched from the *previous* game's finish and
+  // every game after the first in a session would silently stop being
+  // recorded into the player's stats.
+  gameEndTracked = false;
   clockMs = clockCfg ? [clockCfg.base * 1000, clockCfg.base * 1000] : [0, 0];
   clockTurnStart = clockCfg ? Date.now() : null;
   // face the board from whichever chess set (side) was chosen on the
@@ -12426,8 +12453,12 @@ function resetGame() {
   refreshModeReadout();
   scheduleAI(); // in case the human plays Black
 }
-function newGame() { resetGame(); }
+function newGame() { recordGameAbandonIfInProgress(); resetGame(); }
 function startGameWithMode(modeStr, side) {
+  // Must run before mode/humanSide below get overwritten -- it looks at
+  // the *current* (about-to-be-replaced) game to decide whether the one
+  // being left behind counts as abandoned.
+  recordGameAbandonIfInProgress();
   // Change Mode can be opened from Training as well as from an ongoing
   // game, so starting a new Play-mode game here must force uiMode back to
   // 'play' and show its panels itself -- setUiMode('play') would instead
@@ -12442,8 +12473,7 @@ function startGameWithMode(modeStr, side) {
   document.getElementById('trainPanel').style.display = 'none';
   mode = modeStr; humanSide = side;
   clockCfg = pendingClock; // time control chosen on the mode-select screen
-  gameEndTracked = false;
-  resetGame();
+  resetGame(); // also re-arms gameEndTracked for this fresh game
   trackEvent('game_start', { mode: modeStr, side: side === E.WHITE ? 'white' : 'black' });
 }
 function refreshModeReadout() {
@@ -12716,6 +12746,9 @@ document.getElementById('onlineJoinCodeBtn').onclick = () => {
 // E.initialState(currentVariant()), two clients with different variant
 // selections would silently start out-of-sync.
 function beginOnlineMatch(matchId, color, opponentName, stateJson, existingUnsub) {
+  // Must run before mode/state below get overwritten -- covers e.g.
+  // leaving an unfinished vs-Computer game to accept an online match.
+  recordGameAbandonIfInProgress();
   onlineLobbyId = null;
   onlineMatchId = matchId;
   onlineOpponentName = opponentName;
@@ -12838,6 +12871,13 @@ function broadcastOnlineMove() {
 // or navigating away mid-search) -- stops listening and cancels an
 // unmatched lobby so it doesn't linger as a phantom "open" entry.
 function leaveOnlineMatch() {
+  // An online match is torn down here the instant the player navigates
+  // away (Change Mode, Cancel Game, End Session) -- unlike a vs-Computer
+  // game, which just sits dormant and only counts as abandoned once a
+  // *new* game actually replaces it, this disconnect is immediate and
+  // final for the opponent too, so the abandon (if the game was still in
+  // progress) needs recording right here.
+  recordGameAbandonIfInProgress();
   if (onlineUnsubMatch) { onlineUnsubMatch(); onlineUnsubMatch = null; }
   if (onlinePresenceTimer) { clearInterval(onlinePresenceTimer); onlinePresenceTimer = null; }
   if (onlinePresenceCheckTimer) { clearInterval(onlinePresenceCheckTimer); onlinePresenceCheckTimer = null; }
@@ -13422,11 +13462,12 @@ function closeProfileScreen() {
 }
 // ---------- player statistics + progress graph ----------
 function paintStatTiles(s) {
-  s = s || { games: 0, wins: 0, losses: 0, draws: 0 };
+  s = s || { games: 0, wins: 0, losses: 0, draws: 0, abandons: 0 };
   document.getElementById('statGames').textContent = s.games || 0;
   document.getElementById('statWins').textContent = s.wins || 0;
   document.getElementById('statLosses').textContent = s.losses || 0;
   document.getElementById('statDraws').textContent = s.draws || 0;
+  document.getElementById('statAbandons').textContent = s.abandons || 0;
   document.getElementById('statWinRate').textContent = s.games ? Math.round((s.wins / s.games) * 100) + '%' : '—';
 }
 // Plots cumulative net score (win +1 / draw 0 / loss -1) across the most
@@ -13453,7 +13494,7 @@ function renderStatsGraph(history) {
   const py = (v) => h - pad - ((v - minV) / range) * (h - pad * 2);
   const pathPts = points.map((v, i) => px(i).toFixed(1) + ',' + py(v).toFixed(1)).join(' ');
   const zeroY = py(0).toFixed(1);
-  const dotColor = (r) => r === 'win' ? '#34d399' : r === 'loss' ? '#f87171' : '#facc15';
+  const dotColor = (r) => r === 'win' ? '#34d399' : r === 'loss' ? '#f87171' : r === 'abandon' ? '#9ca3af' : '#facc15';
   svg.innerHTML =
     '<line x1="0" y1="' + zeroY + '" x2="' + w + '" y2="' + zeroY + '" stroke="var(--line)" stroke-width="1" stroke-dasharray="3,3"/>' +
     '<polyline points="' + pathPts + '" fill="none" stroke="var(--accent)" stroke-width="2"/>' +
@@ -13789,6 +13830,17 @@ window.__ouk = {
   },
   lockPopupVisible: () => document.getElementById('lockPopup').style.display === 'flex',
   gameOver: () => gameOver,
+  gameEndTracked: () => gameEndTracked,
+  recordGameAbandonIfInProgress: () => recordGameAbandonIfInProgress(),
+  refreshStatsUI: () => refreshStatsUI(),
+  statTileValues: () => ({
+    games: document.getElementById('statGames').textContent,
+    wins: document.getElementById('statWins').textContent,
+    losses: document.getElementById('statLosses').textContent,
+    draws: document.getElementById('statDraws').textContent,
+    abandons: document.getElementById('statAbandons').textContent,
+    winRate: document.getElementById('statWinRate').textContent
+  }),
   aiBusy: () => aiBusy,
   uiMode: () => uiMode,
   theme: () => themeKey,
