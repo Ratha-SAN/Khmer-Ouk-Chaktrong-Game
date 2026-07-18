@@ -1296,6 +1296,123 @@
   }
   @keyframes fxModMateVignette { 0% { opacity: 0; } 10% { opacity: 1; } 30% { opacity: .85; } 100% { opacity: 0; } }
 
+  /* ============ Sak Yantra theme: elemental capture effects ============
+     Each rank channels a different classical element on capture (see
+     triggerYantraEffect): water/ice for the Trey depending on what it
+     captures, lightning for the Ses, fire for the Neang, earth for the
+     Koul, wind + magic particles for the Tuuk, and a burst of pure light
+     for the Sdach. Check reuses the shared shockwave (.fx-surge/
+     #fxCheckVignette.go, see fxCheck above) plus a falling lightning
+     bolt (fxLightningBolt, already built for Magic II's checkmate);
+     checkmate instead layers a much bigger light burst + rays + a
+     bright vignette flash on top of that same shockwave. */
+  .fx-yantra-water {
+    position: absolute; width: 42px; height: 42px; left: -21px; top: -21px; border-radius: 50%;
+    background: radial-gradient(circle, #eaf9ff 0%, #2e9bc9 45%, transparent 76%);
+    animation: fxYantraWater 420ms ease-out forwards;
+  }
+  @keyframes fxYantraWater { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
+  .fx-yantra-droplet {
+    position: absolute; width: 6px; height: 8px; left: -3px; top: -4px; border-radius: 50% 50% 50% 0;
+    background: #6fc6ec; box-shadow: 0 0 5px 1px #2e9bc9;
+    animation: fxYantraDroplet 460ms ease-in forwards;
+  }
+  @keyframes fxYantraDroplet { 0% { transform: translate(0,0); opacity: 1; } 100% { transform: translate(var(--mx), var(--my)); opacity: 0; } }
+
+  .fx-yantra-ice {
+    position: absolute; width: 40px; height: 40px; left: -20px; top: -20px; border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, #bfe8f5 50%, transparent 78%);
+    animation: fxYantraIce 420ms ease-out forwards;
+  }
+  @keyframes fxYantraIce { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+  .fx-yantra-shard {
+    position: absolute; width: 6px; height: 16px; left: -3px; top: -8px;
+    background: linear-gradient(#ffffff, #8fd0e8); clip-path: polygon(50% 0%, 100% 30%, 65% 100%, 35% 100%, 0% 30%);
+    animation: fxYantraShard 440ms ease-out forwards;
+  }
+  @keyframes fxYantraShard {
+    0% { transform: rotate(var(--rot)) translate(0,0); opacity: 1; }
+    100% { transform: rotate(var(--rot)) translate(var(--mx), var(--my)); opacity: 0; }
+  }
+
+  .fx-yantra-shock {
+    position: absolute; width: 20px; height: 20px; left: -10px; top: -10px; border-radius: 50%;
+    background: radial-gradient(circle, #fffbe0 0%, #ffe066 55%, transparent 80%);
+    animation: fxYantraShock 360ms ease-out forwards;
+  }
+  @keyframes fxYantraShock { 0% { transform: scale(.3); opacity: 1; } 100% { transform: scale(3.2); opacity: 0; } }
+
+  .fx-yantra-fire {
+    position: absolute; width: 46px; height: 46px; left: -23px; top: -23px; border-radius: 50%;
+    background: radial-gradient(circle, #fff3d0 0%, #ff5a2e 45%, transparent 78%);
+    animation: fxYantraFire 380ms ease-out forwards;
+  }
+  @keyframes fxYantraFire { 0% { transform: scale(.2); opacity: 1; } 50% { opacity: .95; } 100% { transform: scale(1.75); opacity: 0; } }
+  .fx-yantra-ember {
+    position: absolute; width: 5px; height: 5px; left: -2.5px; top: -2.5px; border-radius: 50%;
+    background: #ffcf70; box-shadow: 0 0 6px 2px #ff5a2e;
+    animation: fxYantraEmber 400ms ease-out forwards;
+  }
+  @keyframes fxYantraEmber { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) scale(.2); opacity: 0; } }
+
+  .fx-yantra-earth {
+    position: absolute; width: 40px; height: 40px; left: -20px; top: -20px; border-radius: 50%;
+    background: radial-gradient(circle, #d8c39a 0%, #6b5a3a 52%, transparent 78%);
+    animation: fxYantraEarth 380ms ease-out forwards;
+  }
+  @keyframes fxYantraEarth { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(1.55); opacity: 0; } }
+  .fx-yantra-rock {
+    position: absolute; width: 8px; height: 10px; left: -4px; top: -5px;
+    background: #5a4527; clip-path: polygon(50% 0%, 100% 40%, 75% 100%, 25% 100%, 0% 40%);
+    animation: fxYantraRock 460ms ease-out forwards;
+  }
+  @keyframes fxYantraRock { 0% { transform: translate(0,0) rotate(0deg); opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) rotate(160deg); opacity: 0; } }
+
+  .fx-yantra-wind {
+    position: absolute; width: 22px; height: 22px; left: -11px; top: -11px; border-radius: 50%;
+    border: 3px solid #e8f0f5; box-shadow: 0 0 10px 2px #cfd8dc;
+    animation: fxYantraWind 420ms ease-out forwards;
+  }
+  @keyframes fxYantraWind { 0% { transform: scale(.3); opacity: .95; } 100% { transform: scale(3.4); opacity: 0; } }
+  .fx-yantra-gust {
+    position: absolute; width: 28px; height: 3px; left: -14px; top: -1.5px; border-radius: 2px;
+    background: linear-gradient(90deg, transparent, #e8f0f5, transparent);
+    animation: fxYantraGust 440ms ease-out forwards;
+  }
+  @keyframes fxYantraGust { 0% { transform: rotate(var(--ang)) translateX(0); opacity: 1; } 100% { transform: rotate(var(--ang)) translateX(30px); opacity: 0; } }
+  .fx-yantra-particle {
+    position: absolute; width: 5px; height: 5px; left: -2.5px; top: -2.5px; border-radius: 50%;
+    background: #e0a83c; box-shadow: 0 0 7px 2px #b3261e;
+    animation: fxYantraParticle 480ms ease-out forwards;
+  }
+  @keyframes fxYantraParticle { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) scale(.3); opacity: 0; } }
+
+  .fx-yantra-light {
+    position: absolute; width: 48px; height: 48px; left: -24px; top: -24px; border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, #fff3c0 40%, #ffe089 65%, transparent 82%);
+    animation: fxYantraLight 460ms ease-out forwards;
+  }
+  @keyframes fxYantraLight { 0% { transform: scale(.15); opacity: 1; } 45% { opacity: 1; } 100% { transform: scale(2.1); opacity: 0; } }
+  .fx-yantra-light-big {
+    position: absolute; width: 160px; height: 160px; left: -80px; top: -80px; border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, #fff3c0 40%, #ffe089 65%, transparent 82%);
+    animation: fxYantraLightBig 640ms ease-out forwards;
+  }
+  @keyframes fxYantraLightBig { 0% { transform: scale(.1); opacity: 1; } 40% { opacity: 1; } 100% { transform: scale(1.8); opacity: 0; } }
+  .fx-yantra-ray {
+    position: absolute; width: 60px; height: 3px; left: -30px; top: -1.5px; border-radius: 2px;
+    background: linear-gradient(90deg, transparent, #fffbe0, transparent);
+    animation: fxYantraRay 420ms ease-out forwards;
+  }
+  @keyframes fxYantraRay { 0% { transform: rotate(var(--ang)) translateX(0); opacity: 1; } 100% { transform: rotate(var(--ang)) translateX(60px); opacity: 0; } }
+
+  /* checkmate: a bright vignette flash layered after the shared shockwave */
+  #fxCheckVignette.yantramate {
+    animation: fxYantraMateFlash 580ms ease-out forwards;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,.92) 0%, rgba(255,224,137,.75) 55%, rgba(30,20,10,.6) 100%);
+  }
+  @keyframes fxYantraMateFlash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+
   /* ============ Last Airbender theme: footstep-gust move / four-element capture effects ============
      A plain footstep gust for a normal move (no element -- the four
      bending elements are reserved for captures, see triggerAtlaEffect),
@@ -4302,14 +4419,17 @@ const THEMES = {
   // a khom-script-stand-in syllable-dot border, corner flame points, all
   // in plain ink -- no gold trim, unlike the rest of the Khmer Heritage
   // sets, since a tattoo/cloth yantra is monochrome linework, not gilded).
-  // Matte, almost no mirror, like inked cloth rather than lacquer.
+  // Matte, almost no mirror, like inked cloth rather than lacquer. Paired
+  // with its own elemental capture-effect system (yantraFx, see
+  // triggerYantraEffect) -- each rank channels a different classical
+  // element on capture, echoing its own yantra motif.
   yantra: {
     name: 'Sak Yantra', style: '2dyantra',
     bg: 0x140b09, fog: null,
     frame: 0x231613, tileLight: 0xe6d2a8, tileDark: 0x6b1f1a,
     pieceW: 0xfaf1da, pieceB: 0x241f1d, rough: 0.88, metal: 0.0, pieceBFloor: 0.13,
     labelInk: '#e9c896', tray: 0x1a100d,
-    reflectOpacity: 0.08
+    reflectOpacity: 0.08, yantraFx: true
   },
   // Modern Ops: a tactical map board (concrete/tarmac grid on gunmetal)
   // for the buildModernPiece military-hardware set -- NATO sand tan vs
@@ -10632,6 +10752,154 @@ function triggerModernEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate,
     console.warn('modern-effect render failed (ignored):', err);
   }
 }
+
+// ============ Sak Yantra theme: elemental capture effects ============
+// Each rank's capture channels a different classical element, echoing
+// the piece's own yantra motif (see flat2DArtTexture's '2dyantra' case):
+// Trey (Pawn) calls water against another Trey, ice against anything
+// else; Ses (Knight) calls lightning; Neang (Queen) calls fire; Koul
+// (Bishop) calls earth; Tuuk (Rook) calls wind with scattering magic
+// particles; Sdach (King) calls a burst of pure light. Check layers a
+// falling lightning bolt (fxLightningBolt, already built for Magic II's
+// checkmate) onto the shared shockwave every theme's check effect uses
+// (fxCheck); checkmate instead layers a much bigger light burst + rays +
+// a bright vignette flash on top of that same shockwave, staged to start
+// only once the shockwave's own vignette has finished (~520ms) rather
+// than cutting it off mid-flight. Fires only while yantraFx is on --
+// same fire-and-forget, try/catch-wrapped pattern every other theme's
+// own effect system uses.
+const YANTRA_ELEMENT_COLOR = {
+  [E.PAWN]: '#2e9bc9', [E.KNIGHT]: '#ffe066', [E.QUEEN]: '#ff5a2e',
+  [E.BISHOP]: '#8a6a3a', [E.ROOK]: '#e8f0f5', [E.KING]: '#fff3c0'
+};
+function fxYantraWater(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-yantra-water', {}), 420);
+  for (let i = 0; i < 7; i++) {
+    const a2 = (i / 7) * Math.PI * 2 + Math.random() * 0.3;
+    const dist = 22 + Math.random() * 22;
+    fxSpawn(fxAt(pt, 'fx-yantra-droplet', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist + 16) + 'px' }), 460);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'yantra_water' });
+}
+function fxYantraIce(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-yantra-ice', {}), 420);
+  for (let i = 0; i < 6; i++) {
+    const a2 = (i / 6) * Math.PI * 2;
+    const dist = 26 + Math.random() * 14;
+    fxSpawn(fxAt(pt, 'fx-yantra-shard', { '--rot': (a2 * 180 / Math.PI) + 'deg', '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 440);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'yantra_ice' });
+}
+function fxYantraLightning(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxLightningBolt(pt.x, pt.y), 260);
+  fxSpawn(fxAt(pt, 'fx-yantra-shock', {}), 360);
+  window.__oukFxLog.push({ tier: 2, key: 'yantra_lightning' });
+}
+function fxYantraFire(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-yantra-fire', {}), 380);
+  for (let i = 0; i < 7; i++) {
+    const a2 = (i / 7) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 22 + Math.random() * 20;
+    fxSpawn(fxAt(pt, 'fx-yantra-ember', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 400);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'yantra_fire' });
+}
+function fxYantraEarth(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-yantra-earth', {}), 380);
+  for (let i = 0; i < 6; i++) {
+    const a2 = (i / 6) * Math.PI * 2 + Math.random() * 0.3;
+    const dist = 24 + Math.random() * 20;
+    fxSpawn(fxAt(pt, 'fx-yantra-rock', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist - 8) + 'px' }), 460);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'yantra_earth' });
+}
+function fxYantraWind(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-yantra-wind', {}), 420);
+  for (let i = 0; i < 4; i++) {
+    fxSpawn(fxAt(pt, 'fx-yantra-gust', { '--ang': (i * 90) + 'deg' }), 440);
+  }
+  // magic particles: small glowing motes (the sacred-red/gold accent
+  // pair every yantra piece card already carries) scattering outward
+  for (let i = 0; i < 8; i++) {
+    const a2 = (i / 8) * Math.PI * 2 + Math.random() * 0.5;
+    const dist = 26 + Math.random() * 30;
+    fxSpawn(fxAt(pt, 'fx-yantra-particle', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 480);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'yantra_wind' });
+}
+function fxYantraLight(sq) {
+  const pt = fxScreenPoint(sq);
+  fxSpawn(fxAt(pt, 'fx-yantra-light', {}), 460);
+  for (let i = 0; i < 8; i++) {
+    fxSpawn(fxAt(pt, 'fx-yantra-ray', { '--ang': (i * 45) + 'deg' }), 420);
+  }
+  window.__oukFxLog.push({ tier: 2, key: 'yantra_light' });
+}
+function fxYantraCheck(kingSq) {
+  fxCheck(kingSq); // shared shockwave (ring surge + vignette + shake)
+  if (fxPrefersReducedMotion()) return; // fxCheck's own reduced-motion path already covered the beat
+  const pt = fxScreenPoint(kingSq);
+  fxSpawn(fxLightningBolt(pt.x, pt.y), 260);
+  window.__oukFxLog.push({ tier: 3, key: 'yantra_check_electric' });
+}
+function fxYantraCheckmate(kingSq) {
+  fxCheck(kingSq); // stage 1: shared shockwave
+  if (fxPrefersReducedMotion()) {
+    fxSimpleFlash(fxScreenPoint(kingSq), '#fff3c0');
+    window.__oukFxLog.push({ tier: 4, key: 'yantra_checkmate_simple' });
+    return;
+  }
+  const pt = fxScreenPoint(kingSq);
+  setTimeout(() => { // stage 2: once the shockwave's own vignette has finished (~520ms)
+    try {
+      fxSpawn(fxAt(pt, 'fx-yantra-light-big', {}), 640);
+      for (let i = 0; i < 10; i++) {
+        fxSpawn(fxAt(pt, 'fx-yantra-ray', { '--ang': (i * 36) + 'deg' }), 420);
+      }
+      fxCheckVignette.classList.remove('go', 'go2', 'simple', 'mategoflash', 'modgo', 'modmate');
+      void fxCheckVignette.offsetWidth;
+      fxCheckVignette.classList.add('yantramate');
+      setTimeout(() => fxCheckVignette.classList.remove('yantramate'), 580);
+    } catch (err) { console.warn('yantra checkmate light burst failed (ignored):', err); }
+  }, 520);
+  window.__oukFxLog.push({ tier: 4, key: 'yantra_checkmate_light' });
+}
+function triggerYantraEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.yantraFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      const effType = E.isProm(moverPiece) ? E.QUEEN : E.typeOf(moverPiece);
+      if (reduced) {
+        fxSimpleFlash(fxScreenPoint(m.to), YANTRA_ELEMENT_COLOR[effType] || '#e0a83c');
+      } else {
+        switch (effType) {
+          case E.PAWN:
+            if (E.typeOf(capturedPiece) === E.PAWN) fxYantraWater(m.to);
+            else fxYantraIce(m.to);
+            break;
+          case E.KNIGHT: fxYantraLightning(m.to); break;
+          case E.QUEEN: fxYantraFire(m.to); break;
+          case E.BISHOP: fxYantraEarth(m.to); break;
+          case E.ROOK: fxYantraWind(m.to); break;
+          case E.KING: fxYantraLight(m.to); break;
+        }
+      }
+    }
+    if (isCheckmate) fxYantraCheckmate(E.kingSq(state, state.turn));
+    else if (isCheck) fxYantraCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('yantra-effect render failed (ignored):', err);
+  }
+}
+
 // Ambient "sprinkle" twinkles: while Gem Blitz OR a Girly theme is active,
 // stray star glints pop at random board squares every second or so,
 // keeping the whole board alive with sparkle between moves -- skipped
@@ -11368,6 +11636,7 @@ function applyMove(m) {
   triggerGirlyEffect(m, mover, captured, isCheck, isCheckmate);
   triggerTransformersEffect(m, mover, captured, isCheck, isCheckmate);
   triggerModernEffect(m, mover, captured, isCheck, isCheckmate, modernCaptureCue);
+  triggerYantraEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
@@ -12631,8 +12900,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const WHATS_NEW = [
+  {
+    version: '1.3.0',
+    date: '2026-07-18',
+    title: { kh: 'អានុភាពយន្តតាមធាតុ ពេលស៊ីកូនអុក', en: 'Elemental capture magic for Sak Yantra' },
+    items: [
+      { kh: 'ស្បែកក្ដារសាក់យន្តឥឡូវមានអានុភាពវេទមន្តតាមធាតុពេលស៊ីកូនអុក៖ ត្រីហៅទឹក (ទល់នឹងត្រីសត្រូវ) ឬទឹកកក (ទល់នឹងកូនអុកផ្សេង), សេះហៅផ្លេកបន្ទោរ, នាងហៅភ្លើង, គោលហៅដី, ទូកហៅខ្យល់ជាមួយភាគល្អិតវេទមន្ត, និងស្ដេចហៅពន្លឺភ្លឺចែងចាំង។ ការអុកមានរលកយន់ជាមួយផ្លេកបន្ទោរ ហើយអុកងាប់មានរលកយន់ជាមួយពន្លឺភ្លឺបំផុត។',
+        en: 'The Sak Yantra theme now has elemental capture magic per rank: the Trey calls water against another Trey or ice against anything else, the Ses calls lightning, the Neang calls fire, the Koul calls earth, the Tuuk calls wind with scattering magic particles, and the Sdach calls a burst of pure light. Check layers a lightning strike onto a shockwave; checkmate layers a burst of super-bright light onto it instead.' }
+    ]
+  },
   {
     version: '1.2.0',
     date: '2026-07-18',
