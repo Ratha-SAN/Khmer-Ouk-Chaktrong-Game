@@ -1314,28 +1314,28 @@
      checkmate instead layers a much bigger light burst + rays + a
      bright vignette flash on top of that same shockwave. */
   .fx-yantra-water {
-    position: absolute; width: 42px; height: 42px; left: -21px; top: -21px; border-radius: 50%;
+    position: absolute; width: 54px; height: 54px; left: -27px; top: -27px; border-radius: 50%;
     background: radial-gradient(circle, #eaf9ff 0%, #2e9bc9 45%, transparent 76%);
-    animation: fxYantraWater 420ms ease-out forwards;
+    animation: fxYantraWater 460ms ease-out forwards;
   }
-  @keyframes fxYantraWater { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
+  @keyframes fxYantraWater { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(2.1); opacity: 0; } }
   .fx-yantra-droplet {
-    position: absolute; width: 6px; height: 8px; left: -3px; top: -4px; border-radius: 50% 50% 50% 0;
-    background: #6fc6ec; box-shadow: 0 0 5px 1px #2e9bc9;
-    animation: fxYantraDroplet 460ms ease-in forwards;
+    position: absolute; width: 8px; height: 10px; left: -4px; top: -5px; border-radius: 50% 50% 50% 0;
+    background: #6fc6ec; box-shadow: 0 0 7px 2px #2e9bc9;
+    animation: fxYantraDroplet 500ms ease-in forwards;
   }
   @keyframes fxYantraDroplet { 0% { transform: translate(0,0); opacity: 1; } 100% { transform: translate(var(--mx), var(--my)); opacity: 0; } }
 
   .fx-yantra-ice {
-    position: absolute; width: 40px; height: 40px; left: -20px; top: -20px; border-radius: 50%;
+    position: absolute; width: 52px; height: 52px; left: -26px; top: -26px; border-radius: 50%;
     background: radial-gradient(circle, #ffffff 0%, #bfe8f5 50%, transparent 78%);
-    animation: fxYantraIce 420ms ease-out forwards;
+    animation: fxYantraIce 460ms ease-out forwards;
   }
-  @keyframes fxYantraIce { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+  @keyframes fxYantraIce { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
   .fx-yantra-shard {
-    position: absolute; width: 6px; height: 16px; left: -3px; top: -8px;
+    position: absolute; width: 8px; height: 20px; left: -4px; top: -10px;
     background: linear-gradient(#ffffff, #8fd0e8); clip-path: polygon(50% 0%, 100% 30%, 65% 100%, 35% 100%, 0% 30%);
-    animation: fxYantraShard 440ms ease-out forwards;
+    animation: fxYantraShard 480ms ease-out forwards;
   }
   @keyframes fxYantraShard {
     0% { transform: rotate(var(--rot)) translate(0,0); opacity: 1; }
@@ -1343,75 +1343,75 @@
   }
 
   .fx-yantra-shock {
-    position: absolute; width: 20px; height: 20px; left: -10px; top: -10px; border-radius: 50%;
+    position: absolute; width: 28px; height: 28px; left: -14px; top: -14px; border-radius: 50%;
     background: radial-gradient(circle, #fffbe0 0%, #ffe066 55%, transparent 80%);
-    animation: fxYantraShock 360ms ease-out forwards;
+    animation: fxYantraShock 380ms ease-out forwards;
   }
-  @keyframes fxYantraShock { 0% { transform: scale(.3); opacity: 1; } 100% { transform: scale(3.2); opacity: 0; } }
+  @keyframes fxYantraShock { 0% { transform: scale(.3); opacity: 1; } 100% { transform: scale(4.2); opacity: 0; } }
 
   .fx-yantra-fire {
-    position: absolute; width: 46px; height: 46px; left: -23px; top: -23px; border-radius: 50%;
+    position: absolute; width: 60px; height: 60px; left: -30px; top: -30px; border-radius: 50%;
     background: radial-gradient(circle, #fff3d0 0%, #ff5a2e 45%, transparent 78%);
-    animation: fxYantraFire 380ms ease-out forwards;
+    animation: fxYantraFire 420ms ease-out forwards;
   }
-  @keyframes fxYantraFire { 0% { transform: scale(.2); opacity: 1; } 50% { opacity: .95; } 100% { transform: scale(1.75); opacity: 0; } }
+  @keyframes fxYantraFire { 0% { transform: scale(.2); opacity: 1; } 50% { opacity: .95; } 100% { transform: scale(2.15); opacity: 0; } }
   .fx-yantra-ember {
-    position: absolute; width: 5px; height: 5px; left: -2.5px; top: -2.5px; border-radius: 50%;
-    background: #ffcf70; box-shadow: 0 0 6px 2px #ff5a2e;
-    animation: fxYantraEmber 400ms ease-out forwards;
+    position: absolute; width: 7px; height: 7px; left: -3.5px; top: -3.5px; border-radius: 50%;
+    background: #ffcf70; box-shadow: 0 0 8px 3px #ff5a2e;
+    animation: fxYantraEmber 440ms ease-out forwards;
   }
   @keyframes fxYantraEmber { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) scale(.2); opacity: 0; } }
 
   .fx-yantra-earth {
-    position: absolute; width: 40px; height: 40px; left: -20px; top: -20px; border-radius: 50%;
+    position: absolute; width: 52px; height: 52px; left: -26px; top: -26px; border-radius: 50%;
     background: radial-gradient(circle, #d8c39a 0%, #6b5a3a 52%, transparent 78%);
-    animation: fxYantraEarth 380ms ease-out forwards;
+    animation: fxYantraEarth 420ms ease-out forwards;
   }
-  @keyframes fxYantraEarth { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(1.55); opacity: 0; } }
+  @keyframes fxYantraEarth { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(1.9); opacity: 0; } }
   .fx-yantra-rock {
-    position: absolute; width: 8px; height: 10px; left: -4px; top: -5px;
+    position: absolute; width: 10px; height: 13px; left: -5px; top: -6.5px;
     background: #5a4527; clip-path: polygon(50% 0%, 100% 40%, 75% 100%, 25% 100%, 0% 40%);
-    animation: fxYantraRock 460ms ease-out forwards;
+    animation: fxYantraRock 500ms ease-out forwards;
   }
   @keyframes fxYantraRock { 0% { transform: translate(0,0) rotate(0deg); opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) rotate(160deg); opacity: 0; } }
 
   .fx-yantra-wind {
-    position: absolute; width: 22px; height: 22px; left: -11px; top: -11px; border-radius: 50%;
-    border: 3px solid #e8f0f5; box-shadow: 0 0 10px 2px #cfd8dc;
-    animation: fxYantraWind 420ms ease-out forwards;
+    position: absolute; width: 30px; height: 30px; left: -15px; top: -15px; border-radius: 50%;
+    border: 4px solid #e8f0f5; box-shadow: 0 0 14px 3px #cfd8dc;
+    animation: fxYantraWind 460ms ease-out forwards;
   }
-  @keyframes fxYantraWind { 0% { transform: scale(.3); opacity: .95; } 100% { transform: scale(3.4); opacity: 0; } }
+  @keyframes fxYantraWind { 0% { transform: scale(.3); opacity: .95; } 100% { transform: scale(4.2); opacity: 0; } }
   .fx-yantra-gust {
-    position: absolute; width: 28px; height: 3px; left: -14px; top: -1.5px; border-radius: 2px;
+    position: absolute; width: 38px; height: 4px; left: -19px; top: -2px; border-radius: 2px;
     background: linear-gradient(90deg, transparent, #e8f0f5, transparent);
-    animation: fxYantraGust 440ms ease-out forwards;
+    animation: fxYantraGust 480ms ease-out forwards;
   }
-  @keyframes fxYantraGust { 0% { transform: rotate(var(--ang)) translateX(0); opacity: 1; } 100% { transform: rotate(var(--ang)) translateX(30px); opacity: 0; } }
+  @keyframes fxYantraGust { 0% { transform: rotate(var(--ang)) translateX(0); opacity: 1; } 100% { transform: rotate(var(--ang)) translateX(42px); opacity: 0; } }
   .fx-yantra-particle {
-    position: absolute; width: 5px; height: 5px; left: -2.5px; top: -2.5px; border-radius: 50%;
-    background: #e0a83c; box-shadow: 0 0 7px 2px #b3261e;
-    animation: fxYantraParticle 480ms ease-out forwards;
+    position: absolute; width: 7px; height: 7px; left: -3.5px; top: -3.5px; border-radius: 50%;
+    background: #e0a83c; box-shadow: 0 0 9px 3px #b3261e;
+    animation: fxYantraParticle 520ms ease-out forwards;
   }
   @keyframes fxYantraParticle { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) scale(.3); opacity: 0; } }
 
   .fx-yantra-light {
-    position: absolute; width: 48px; height: 48px; left: -24px; top: -24px; border-radius: 50%;
+    position: absolute; width: 64px; height: 64px; left: -32px; top: -32px; border-radius: 50%;
     background: radial-gradient(circle, #ffffff 0%, #fff3c0 40%, #ffe089 65%, transparent 82%);
-    animation: fxYantraLight 460ms ease-out forwards;
+    animation: fxYantraLight 500ms ease-out forwards;
   }
-  @keyframes fxYantraLight { 0% { transform: scale(.15); opacity: 1; } 45% { opacity: 1; } 100% { transform: scale(2.1); opacity: 0; } }
+  @keyframes fxYantraLight { 0% { transform: scale(.15); opacity: 1; } 45% { opacity: 1; } 100% { transform: scale(2.6); opacity: 0; } }
   .fx-yantra-light-big {
-    position: absolute; width: 160px; height: 160px; left: -80px; top: -80px; border-radius: 50%;
+    position: absolute; width: 200px; height: 200px; left: -100px; top: -100px; border-radius: 50%;
     background: radial-gradient(circle, #ffffff 0%, #fff3c0 40%, #ffe089 65%, transparent 82%);
-    animation: fxYantraLightBig 640ms ease-out forwards;
+    animation: fxYantraLightBig 680ms ease-out forwards;
   }
-  @keyframes fxYantraLightBig { 0% { transform: scale(.1); opacity: 1; } 40% { opacity: 1; } 100% { transform: scale(1.8); opacity: 0; } }
+  @keyframes fxYantraLightBig { 0% { transform: scale(.1); opacity: 1; } 40% { opacity: 1; } 100% { transform: scale(2.1); opacity: 0; } }
   .fx-yantra-ray {
-    position: absolute; width: 60px; height: 3px; left: -30px; top: -1.5px; border-radius: 2px;
+    position: absolute; width: 78px; height: 4px; left: -39px; top: -2px; border-radius: 2px;
     background: linear-gradient(90deg, transparent, #fffbe0, transparent);
-    animation: fxYantraRay 420ms ease-out forwards;
+    animation: fxYantraRay 440ms ease-out forwards;
   }
-  @keyframes fxYantraRay { 0% { transform: rotate(var(--ang)) translateX(0); opacity: 1; } 100% { transform: rotate(var(--ang)) translateX(60px); opacity: 0; } }
+  @keyframes fxYantraRay { 0% { transform: rotate(var(--ang)) translateX(0); opacity: 1; } 100% { transform: rotate(var(--ang)) translateX(78px); opacity: 0; } }
 
   /* checkmate: a bright vignette flash layered after the shared shockwave */
   #fxCheckVignette.yantramate {
@@ -2496,7 +2496,7 @@
     <select id="musicSel">
       <option value="none">No music</option>
       <optgroup label="Relaxing (6)"></optgroup>
-      <optgroup label="Khmer Traditional (5)"></optgroup>
+      <optgroup label="Khmer Traditional (6)"></optgroup>
       <optgroup label="Arcade (5)"></optgroup>
       <optgroup label="Cinematic (2)"></optgroup>
       <optgroup label="Synth (2)"></optgroup>
@@ -6242,10 +6242,10 @@ function flat2DArtTexture(setStyle, type, color) {
     // All six stay in the same family: plain ink linework (no gold, unlike
     // every other Khmer Heritage set -- a tattoo/cloth yantra is
     // monochrome), a small sacred-red accent mark, and the Khmer name
-    // glyph centered on each shape's own true geometric center (128,128
-    // for every one of the six here, so it sits centered both
-    // mathematically -- glyphCentered measures the real ink box -- and
-    // visually, since each shape is itself symmetric around that point).
+    // glyph centered on each shape's own true geometric center -- (128,128)
+    // for five of the six (each shape is itself symmetric around that
+    // point), plus a per-case glyphOy nudge (see below) for the King,
+    // whose own seal is drawn off that point to leave crown headroom.
     const cxp = 128, cyp = 128;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     // A small abstract "sacred script" mark -- stands in for a khom-script
@@ -6313,6 +6313,12 @@ function flat2DArtTexture(setStyle, type, color) {
     };
     const redDot = (x, y) => { ctx.fillStyle = '#b3261e'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); };
     let translitY = 244;
+    // most shapes are symmetric around the canvas's own center (128,128),
+    // so the glyph anchor matches it directly -- except the King, whose
+    // crowned seal is itself drawn oy=8 lower to leave headroom for the
+    // spires, so glyphOy pulls the glyph down to match that shape's own
+    // true center instead of leaving it centered on the empty canvas.
+    let glyphOy = 0;
     switch (type) {
       case E.KING: {
         // Gao Yord: nine graduated coil-tipped spires radiating from the
@@ -6355,6 +6361,7 @@ function flat2DArtTexture(setStyle, type, color) {
         }
         redDot(cxp, cyp + oy - R - 48);
         translitY = cyp + oy + R + 20;
+        glyphOy = oy;
         break;
       }
       case E.QUEEN: {
@@ -6486,7 +6493,7 @@ function flat2DArtTexture(setStyle, type, color) {
       }
     }
     const khY = NAMES[type].kh;
-    glyphCentered(khY, cxp, cyp,
+    glyphCentered(khY, cxp, cyp + glyphOy,
       '700 ' + (khY.length > 3 ? 42 : 50) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink);
     ctx.font = '600 18px "Segoe UI",sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -8799,7 +8806,7 @@ function applyTheme(key) {
 // only on an actual theme-dropdown change (not every applyTheme() call,
 // e.g. toggling the Khmer-board checkbox re-applies the current theme and
 // must never yank the user's music choice back on its own).
-const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3', modern: 'arcade5' };
+const THEME_MUSIC_TRACK = { mario: 'arcade1', contra: 'arcade2', pvz: 'arcade3', avatar: 'cine1', scifi: 'synth1', atla: 'world1', starwars: 'cine2', nature: 'relax6', cambodia: 'anthem1', gems: 'arcade4', anno: 'synth2', transformers: 'cine3', modern: 'arcade5', yantra: 'khmer6' };
 document.getElementById('themeSel').onchange = (e) => {
   applyTheme(e.target.value);
   const track = THEME_MUSIC_TRACK[e.target.value];
@@ -8938,7 +8945,17 @@ function voiceDrum(freq, dur, gain) {
   envOsc({ freq: 95, type: 'sine', dur: Math.min(dur, 0.22), gain, bus: musicGain, attack: 0.002, freqTo: 42 });
   noiseBurst({ dur: Math.min(dur * 0.35, 0.05), filterFreq: 1500, q: 1.3, gain: gain * 0.55, bus: musicGain });
 }
-const VOICES = { pad: voicePad, flute: voiceFlute, piano: voicePiano, bell: voiceBell, pluck: voicePluck, guitar: voiceGuitar, chip: voiceChip, drum: voiceDrum };
+function voiceSralai(freq, dur, gain, filterHz, detune) {
+  // Sralai: the piercing double-reed oboe that leads a Pinpeat/Kun Khmer
+  // ringside band -- a buzzy sawtooth core plus a second, slightly
+  // detuned sawtooth layer standing in for a reed's characteristic
+  // beating "sour" edge, narrower and brighter than voiceFlute's pure
+  // breathy sine so it cuts through the drum underneath it.
+  envOsc({ freq, type: 'sawtooth', dur, gain, bus: musicGain, filterHz: filterHz || 2200, attack: dur * 0.1, detune: detune || 0 });
+  envOsc({ freq, type: 'sawtooth', dur, gain: gain * 0.65, bus: musicGain, filterHz: (filterHz || 2200) * 0.9, attack: dur * 0.12, detune: (detune || 0) + 13 });
+  envOsc({ freq: freq * 2, type: 'sine', dur: dur * 0.55, gain: gain * 0.22, bus: musicGain, attack: dur * 0.08 });
+}
+const VOICES = { pad: voicePad, flute: voiceFlute, piano: voicePiano, bell: voiceBell, pluck: voicePluck, guitar: voiceGuitar, chip: voiceChip, drum: voiceDrum, sralai: voiceSralai };
 // One sound palette per board-theme style: wood thump, stone knock, soft
 // electronic tick, 8-bit blip — move/capture/check for each.
 const SFX = {
@@ -10897,73 +10914,89 @@ const YANTRA_ELEMENT_COLOR = {
   [E.PAWN]: '#2e9bc9', [E.KNIGHT]: '#ffe066', [E.QUEEN]: '#ff5a2e',
   [E.BISHOP]: '#8a6a3a', [E.ROOK]: '#e8f0f5', [E.KING]: '#fff3c0'
 };
+// A brief impact shake on capture -- reuses the same .fx-shake the check
+// shockwave uses (see fxCheck), so every element's capture now lands with
+// a punch instead of only the King's check/checkmate ever shaking the board.
+function fxYantraShake() {
+  const sceneEl = document.getElementById('scene');
+  sceneEl.classList.remove('fx-shake');
+  void sceneEl.offsetWidth;
+  sceneEl.classList.add('fx-shake');
+  setTimeout(() => sceneEl.classList.remove('fx-shake'), 380);
+}
 function fxYantraWater(sq) {
   const pt = fxScreenPoint(sq);
-  fxSpawn(fxAt(pt, 'fx-yantra-water', {}), 420);
-  for (let i = 0; i < 7; i++) {
-    const a2 = (i / 7) * Math.PI * 2 + Math.random() * 0.3;
-    const dist = 22 + Math.random() * 22;
-    fxSpawn(fxAt(pt, 'fx-yantra-droplet', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist + 16) + 'px' }), 460);
+  fxSpawn(fxAt(pt, 'fx-yantra-water', {}), 460);
+  for (let i = 0; i < 10; i++) {
+    const a2 = (i / 10) * Math.PI * 2 + Math.random() * 0.3;
+    const dist = 26 + Math.random() * 28;
+    fxSpawn(fxAt(pt, 'fx-yantra-droplet', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist + 18) + 'px' }), 500);
   }
   window.__oukFxLog.push({ tier: 2, key: 'yantra_water' });
 }
 function fxYantraIce(sq) {
   const pt = fxScreenPoint(sq);
-  fxSpawn(fxAt(pt, 'fx-yantra-ice', {}), 420);
-  for (let i = 0; i < 6; i++) {
-    const a2 = (i / 6) * Math.PI * 2;
-    const dist = 26 + Math.random() * 14;
-    fxSpawn(fxAt(pt, 'fx-yantra-shard', { '--rot': (a2 * 180 / Math.PI) + 'deg', '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 440);
+  fxSpawn(fxAt(pt, 'fx-yantra-ice', {}), 460);
+  for (let i = 0; i < 9; i++) {
+    const a2 = (i / 9) * Math.PI * 2;
+    const dist = 30 + Math.random() * 18;
+    fxSpawn(fxAt(pt, 'fx-yantra-shard', { '--rot': (a2 * 180 / Math.PI) + 'deg', '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 480);
   }
+  fxYantraShake();
   window.__oukFxLog.push({ tier: 2, key: 'yantra_ice' });
 }
 function fxYantraLightning(sq) {
   const pt = fxScreenPoint(sq);
   fxSpawn(fxLightningBolt(pt.x, pt.y), 260);
-  fxSpawn(fxAt(pt, 'fx-yantra-shock', {}), 360);
+  fxSpawn(fxLightningBolt(pt.x + 14, pt.y - 6), 240);
+  fxSpawn(fxAt(pt, 'fx-yantra-shock', {}), 380);
+  fxYantraShake();
   window.__oukFxLog.push({ tier: 2, key: 'yantra_lightning' });
 }
 function fxYantraFire(sq) {
   const pt = fxScreenPoint(sq);
-  fxSpawn(fxAt(pt, 'fx-yantra-fire', {}), 380);
-  for (let i = 0; i < 7; i++) {
-    const a2 = (i / 7) * Math.PI * 2 + Math.random() * 0.4;
-    const dist = 22 + Math.random() * 20;
-    fxSpawn(fxAt(pt, 'fx-yantra-ember', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 400);
+  fxSpawn(fxAt(pt, 'fx-yantra-fire', {}), 420);
+  for (let i = 0; i < 11; i++) {
+    const a2 = (i / 11) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 26 + Math.random() * 26;
+    fxSpawn(fxAt(pt, 'fx-yantra-ember', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 440);
   }
+  fxYantraShake();
   window.__oukFxLog.push({ tier: 2, key: 'yantra_fire' });
 }
 function fxYantraEarth(sq) {
   const pt = fxScreenPoint(sq);
-  fxSpawn(fxAt(pt, 'fx-yantra-earth', {}), 380);
-  for (let i = 0; i < 6; i++) {
-    const a2 = (i / 6) * Math.PI * 2 + Math.random() * 0.3;
-    const dist = 24 + Math.random() * 20;
-    fxSpawn(fxAt(pt, 'fx-yantra-rock', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist - 8) + 'px' }), 460);
+  fxSpawn(fxAt(pt, 'fx-yantra-earth', {}), 420);
+  for (let i = 0; i < 9; i++) {
+    const a2 = (i / 9) * Math.PI * 2 + Math.random() * 0.3;
+    const dist = 28 + Math.random() * 24;
+    fxSpawn(fxAt(pt, 'fx-yantra-rock', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist - 8) + 'px' }), 500);
   }
+  fxYantraShake();
   window.__oukFxLog.push({ tier: 2, key: 'yantra_earth' });
 }
 function fxYantraWind(sq) {
   const pt = fxScreenPoint(sq);
-  fxSpawn(fxAt(pt, 'fx-yantra-wind', {}), 420);
-  for (let i = 0; i < 4; i++) {
-    fxSpawn(fxAt(pt, 'fx-yantra-gust', { '--ang': (i * 90) + 'deg' }), 440);
+  fxSpawn(fxAt(pt, 'fx-yantra-wind', {}), 460);
+  for (let i = 0; i < 6; i++) {
+    fxSpawn(fxAt(pt, 'fx-yantra-gust', { '--ang': (i * 60) + 'deg' }), 480);
   }
   // magic particles: small glowing motes (the sacred-red/gold accent
   // pair every yantra piece card already carries) scattering outward
-  for (let i = 0; i < 8; i++) {
-    const a2 = (i / 8) * Math.PI * 2 + Math.random() * 0.5;
-    const dist = 26 + Math.random() * 30;
-    fxSpawn(fxAt(pt, 'fx-yantra-particle', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 480);
+  for (let i = 0; i < 12; i++) {
+    const a2 = (i / 12) * Math.PI * 2 + Math.random() * 0.5;
+    const dist = 30 + Math.random() * 36;
+    fxSpawn(fxAt(pt, 'fx-yantra-particle', { '--mx': (Math.cos(a2) * dist) + 'px', '--my': (Math.sin(a2) * dist) + 'px' }), 520);
   }
   window.__oukFxLog.push({ tier: 2, key: 'yantra_wind' });
 }
 function fxYantraLight(sq) {
   const pt = fxScreenPoint(sq);
-  fxSpawn(fxAt(pt, 'fx-yantra-light', {}), 460);
-  for (let i = 0; i < 8; i++) {
-    fxSpawn(fxAt(pt, 'fx-yantra-ray', { '--ang': (i * 45) + 'deg' }), 420);
+  fxSpawn(fxAt(pt, 'fx-yantra-light', {}), 500);
+  for (let i = 0; i < 12; i++) {
+    fxSpawn(fxAt(pt, 'fx-yantra-ray', { '--ang': (i * 30) + 'deg' }), 440);
   }
+  fxYantraShake();
   window.__oukFxLog.push({ tier: 2, key: 'yantra_light' });
 }
 function fxYantraCheck(kingSq) {
@@ -10971,6 +11004,7 @@ function fxYantraCheck(kingSq) {
   if (fxPrefersReducedMotion()) return; // fxCheck's own reduced-motion path already covered the beat
   const pt = fxScreenPoint(kingSq);
   fxSpawn(fxLightningBolt(pt.x, pt.y), 260);
+  fxSpawn(fxLightningBolt(pt.x - 12, pt.y + 8), 240);
   window.__oukFxLog.push({ tier: 3, key: 'yantra_check_electric' });
 }
 function fxYantraCheckmate(kingSq) {
@@ -10983,14 +11017,15 @@ function fxYantraCheckmate(kingSq) {
   const pt = fxScreenPoint(kingSq);
   setTimeout(() => { // stage 2: once the shockwave's own vignette has finished (~520ms)
     try {
-      fxSpawn(fxAt(pt, 'fx-yantra-light-big', {}), 640);
-      for (let i = 0; i < 10; i++) {
-        fxSpawn(fxAt(pt, 'fx-yantra-ray', { '--ang': (i * 36) + 'deg' }), 420);
+      fxSpawn(fxAt(pt, 'fx-yantra-light-big', {}), 680);
+      for (let i = 0; i < 14; i++) {
+        fxSpawn(fxAt(pt, 'fx-yantra-ray', { '--ang': (i * 25.7) + 'deg' }), 440);
       }
       fxCheckVignette.classList.remove('go', 'go2', 'simple', 'mategoflash', 'modgo', 'modmate');
       void fxCheckVignette.offsetWidth;
       fxCheckVignette.classList.add('yantramate');
       setTimeout(() => fxCheckVignette.classList.remove('yantramate'), 580);
+      fxYantraShake();
     } catch (err) { console.warn('yantra checkmate light burst failed (ignored):', err); }
   }, 520);
   window.__oukFxLog.push({ tier: 4, key: 'yantra_checkmate_light' });
@@ -11100,6 +11135,16 @@ const MUSIC_TRACKS = {
   khmer5: { label: 'ភ្លេងខ្មែរ៥ Gong & Drone (pad + bell mix)', instrument: 'pad', instrument2: 'bell', noteLen: 1600, gain: 0.07,
     filterHz: 900, detune: 6,
     notes: [261.63, 293.66, 349.23] },
+  // An original fast, driving Sralai-and-drum piece for the Sak Yantra
+  // theme -- evoking the piercing reed melody and pounding Skor Yaul drum
+  // of a Pinpeat ringside band, the traditional music that accompanies a
+  // Kun Khmer (Pradal Serey) boxing match -- the same sacred art the
+  // yantra tattoo comes from. A brisk driving tempo (twice as fast as
+  // khmer1-5's slower "temple ensemble" feel) with a wailing, ornamented
+  // line, not a transcription of any existing recording.
+  khmer6: { label: 'ភ្លេងប្រដាល់ខ្មែរ Pradal Serey Ringside (sralai + drum mix)', instrument: 'sralai', instrument2: 'drum', noteLen: 165, gain: 0.09,
+    filterHz: 2400, sustain: 0.85,
+    notes: [440.00, 493.88, 523.25, 493.88, 440.00, 392.00, 440.00, null, 587.33, 523.25, 493.88, 440.00, 392.00, 349.23, 392.00, null] },
   // An original bouncy 8-bit arpeggio for the Mario theme -- an upbeat
   // chiptune *feel* (square-wave voice, staccato skip pattern), not a
   // transcription of any specific existing melody.
@@ -13025,8 +13070,21 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.3.2';
 const WHATS_NEW = [
+  {
+    version: '1.3.2',
+    date: '2026-07-18',
+    title: { kh: 'អានុភាពវេទមន្តខ្លាំងជាងមុន តន្ត្រីប្រដាល់ខ្មែរ និងជួសជុលអក្សរស្ដេច', en: 'Stronger Yantra magic, Khmer boxing music, King text fix' },
+    items: [
+      { kh: 'អានុភាពវេទមន្តតាមធាតុរបស់ស្បែកសាក់យន្តខ្លាំងជាងមុន៖ រូបភាពធំជាង ភាគល្អិតច្រើនជាង ចម្ងាយហោះឆ្ងាយជាង ហើយពេលស៊ីកូនអុកតាមទឹកកក ផ្លេកបន្ទោរ ភ្លើង ដី ឬពន្លឺ ក្ដារអុកនឹងញាប់បន្តិចបន្ថែមពីលើភាពរំភើបដែលមានស្រាប់ ស្រដៀងនឹងអុកអាចម៉ាត់។ អុកងាប់ឥឡូវក៏ធ្វើឲ្យក្ដារញាប់ដែរ។',
+        en: 'The Sak Yantra theme\'s elemental capture magic hits harder: bigger blooms, more particles, longer travel distance, and a brief board shake on ice/lightning/fire/earth/light captures (echoing the shake checkmate already used), plus checkmate now shakes the board too.' },
+      { kh: 'បន្ថែមបទចម្រៀង "ភ្លេងប្រដាល់ខ្មែរ Pradal Serey Ringside" ទៅកម្មវិធីចាក់ភ្លេង — ស្រៃឡាយនិងស្គរយួលលឿន ស្រដៀងតន្ត្រីក្រុមប្រដាល់ខ្មែរនៅចំហៀងសង្វៀន ដែលជាប្រពៃណីជាប់នឹងសាក់យន្តខ្លួនឯង។ ជ្រើសរើសស្បែកសាក់យន្តនឹងប្ដូរទៅចាក់បទនេះដោយស្វ័យប្រវត្តិ។',
+        en: 'Added a "Pradal Serey Ringside" track to the Music Player -- a fast Sralai (reed oboe) and Skor Yaul (drum) piece evoking a Kun Khmer ringside band, the tradition the Sak Yant tattoo itself comes from. Picking the Sak Yantra theme now switches the music player to it automatically.' },
+      { kh: 'ជួសជុលអក្សរខ្មែរ "ស្ដេច" នៅលើកាតកូនអុកសាក់យន្តដែលនៅខ្ពស់ជាងចំណុចកណ្ដាលពិតប្រាកដនៃរាងជារង្វង់របស់វា ឲ្យស្ថិតនៅចំកណ្ដាលត្រឹមត្រូវ។',
+        en: 'Fixed the King\'s Khmer name on the Sak Yantra piece card, which sat noticeably above the crowned seal\'s true center -- it\'s now centered correctly.' }
+    ]
+  },
   {
     version: '1.3.1',
     date: '2026-07-18',
