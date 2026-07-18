@@ -3985,11 +3985,19 @@ const THEMES = {
     frame: 0x0b1230, tileLight: 0x1c2f6b, tileDark: 0x080b1e,
     pieceW: 0xdff0ff, pieceB: 0x241040, rough: 0.3, metal: 0.05,
     labelInk: '#bcd8ff', tray: 0x080a1c,
-    clearcoat: 0.5, clearcoatRoughness: 0.2, envMapIntensity: 0.65,
-    boardEnvMapIntensityDark: 0.12, boardClearcoatRoughnessDark: 0.5,
+    // Dialed back from the original launch tuning (clearcoat 0.5,
+    // envMapIntensity 0.65, ambientScale/hemiScale 0.5/0.4): the flat
+    // ambient+hemisphere fill was washing out each world's own baked
+    // texture into a uniform glossy sheen (unreadable as a genuine rocky/
+    // gaseous surface); dimming both fill lights lets the scene's own
+    // directional "sun" light carve a real day/night terminator across
+    // each sphere, and a softer, less mirror-glossy clearcoat reads as a
+    // natural planetary surface rather than a polished gem.
+    clearcoat: 0.32, clearcoatRoughness: 0.32, envMapIntensity: 0.48,
+    boardEnvMapIntensityDark: 0.1, boardClearcoatRoughnessDark: 0.55,
     reflectOpacity: 0.16,
-    ambientScale: 0.5, hemiScale: 0.4,
-    ambientColorOverride: 0xd8e6ff, hemiSkyColorOverride: 0xa8c4ff, hemiGroundColorOverride: 0x0c1030,
+    ambientScale: 0.4, hemiScale: 0.3,
+    ambientColorOverride: 0xcfe0f5, hemiSkyColorOverride: 0x9ab8e8, hemiGroundColorOverride: 0x0a0e22,
     galacticFx: true
   },
   // Acrylic/crystal chess set: near-clear "white" pieces and smoky-charcoal
@@ -4301,6 +4309,12 @@ const THEMES = {
     frame: 0xff8a4a, tileLight: 0xffe14d, tileDark: 0x2ec4b6,
     pieceW: 0xff6b6b, pieceB: 0x4a6cf7, rough: 0.5, metal: 0.0,
     labelInk: '#ffffff', tray: 0xff8a4a,
+    // A glossy clearcoat sheen on every piece body, the same reflective
+    // "shiny toy/glass marble" quality the Orbs theme's own orb pieces
+    // have (same three values, see the orbs theme above) -- these bright
+    // primary-color pieces read like glossy plastic toy balls with a
+    // clean highlight/reflection instead of a flat matte finish.
+    clearcoat: 0.6, clearcoatRoughness: 0.18, envMapIntensity: 0.8, reflectOpacity: 0.2,
     kidsFx: true,
     // on-board piece-name labels (see pieceLabelMaterial): the English
     // line matches the Khmer line's own size instead of reading noticeably
@@ -5036,7 +5050,7 @@ const MAT_GOLD = new THREE.MeshStandardMaterial({ color: 0xd4a548, roughness: 0.
 // chunky piece set (see buildKidsPiece) -- a cheerful sunshine yellow
 // that reads clearly against either the coral (White) or blue (Black)
 // body color.
-const MAT_KIDS_ACCENT = new THREE.MeshStandardMaterial({ color: 0xffe14d, roughness: 0.4, metalness: 0.0 });
+const MAT_KIDS_ACCENT = new THREE.MeshPhysicalMaterial({ color: 0xffe14d, roughness: 0.4, metalness: 0.0, clearcoat: 0.6, clearcoatRoughness: 0.18 });
 // Fixed accent colors for the Plants vs Zombies piece set (see
 // buildPvzPiece) -- unlike the single shared accent above, PvZ needs
 // several distinct, always-the-same prop colors regardless of theme
@@ -7813,7 +7827,13 @@ function buildGalacticTexture(kind) {
 // regardless of which side-tinting theme (there's currently only one,
 // Galactic itself) is active. A touch of emissive keeps every world
 // visibly self-lit against the theme's deep-space board; the star gets a
-// much stronger glow than the planets/moon.
+// much stronger glow than the planets/moon. buildGalacticPiece clones
+// each of these per piece and tints the clone's own .color (which
+// multiplies the map, while emissive stays untouched/independent of it)
+// with GALACTIC_TINT_W/B below -- White reads as the same world lit
+// brighter/warmer, Black as the same world in a cooler, dimmer shadow,
+// so the two sides are actually distinguishable at a glance instead of
+// both rendering as the identical rank-colored world.
 const galacticPlanetMat = (kind, emissiveHex, emissiveIntensity) => new THREE.MeshStandardMaterial({
   map: buildGalacticTexture(kind), roughness: 0.55, metalness: 0.05,
   emissive: new THREE.Color(emissiveHex), emissiveIntensity
@@ -7824,21 +7844,29 @@ const MAT_PLANET_NATURE = galacticPlanetMat('nature', 0x2f9c3a, 0.16);
 const MAT_PLANET_STORM = galacticPlanetMat('storm', 0x2a6fc0, 0.18);
 const MAT_PLANET_EMBER = galacticPlanetMat('ember', 0xc2361a, 0.25);
 const MAT_PLANET_MOON = galacticPlanetMat('moon', 0x2a271e, 0.08);
+// Multiply-tint applied to each side's own cloned planet material (see
+// above) -- White stays near-white so the map's own colors read at full
+// vividness, Black is a moderate cool slate (NOT near-black: emissive
+// isn't affected by this multiply, but a too-dark diffuse tint would
+// still crush the map's own texture detail to an unreadable silhouette).
+const GALACTIC_TINT_W = 0xfff2e0, GALACTIC_TINT_B = 0x5c5a90;
 // Galactic piece set: every rank is a floating star or planet (its own
 // canvas-baked surface texture, see buildGalacticTexture/MAT_PLANET_*)
 // with one or more small moons genuinely orbiting it (see
-// retrackGalacticOrbit) -- unlike Magic Orb, there is deliberately no
-// translucent halo "shield" sphere and no grounded "summoning ring" at
-// the piece's foot; the whole cluster is just the world and its moons,
-// floating. King is the Sun itself (bright, four fixed corona flares
-// radiating off its own surface), Queen a violet nebula/galaxy world with
-// three small stars swirling around it, Bishop a verdant world with two
-// orbiting moons, Knight an icy storm world with three small moons
-// orbiting fast (echoing the Knight's own speed), Rook a cracked ember
-// world with two moons of its own, Pawn the smallest -- a plain grey moon
-// with a single tiny orbiting star. Captures channel a "galactic
-// explosion" + "death ray" effect system instead of Magic Orb's supernova
-// (galacticFx, see triggerGalacticEffect).
+// retrackGalacticOrbit), each moon's own orbit traced by a thin ring --
+// unlike Magic Orb, there is deliberately no translucent halo "shield"
+// sphere and no grounded "summoning ring" at the piece's foot; the whole
+// cluster is just the world, its moons, and their orbit rings, floating
+// (lower and smaller than Magic Orb's own cluster -- see orbY/orbGroup's
+// own scale below). King is the Sun itself (bright, four fixed corona
+// flares radiating off its own surface), Queen a violet nebula/galaxy
+// world with three small stars swirling around it, Bishop a verdant
+// world with two orbiting moons, Knight an icy storm world with three
+// small moons orbiting fast (echoing the Knight's own speed), Rook a
+// cracked ember world with two moons of its own, Pawn the smallest -- a
+// plain grey moon with a single tiny orbiting star. Captures channel a
+// "galactic explosion" + "death ray" effect system instead of Magic
+// Orb's supernova (galacticFx, see triggerGalacticEffect).
 function buildGalacticPiece(g, add, type, promoted, color) {
   let r, orbY, planetMat, moonHex, moonCount, moonSize, moonRadius, moonSpeed;
   switch (type) {
@@ -7850,14 +7878,17 @@ function buildGalacticPiece(g, add, type, promoted, color) {
     case E.PAWN:
     default: r = 0.14; orbY = 0.4; planetMat = MAT_PLANET_MOON; moonHex = 0xffe9b0; moonCount = 1; moonSize = 0.025; moonRadius = 0.24; moonSpeed = 1.0; break;
   }
-  const sideMat = color === E.WHITE ? MAT_W : MAT_B;
+  orbY *= 0.8; // sit noticeably closer to the board surface than Magic Orb's own float height
   const orbGroup = new THREE.Group();
   orbGroup.position.y = orbY;
+  orbGroup.scale.setScalar(type === E.PAWN ? 1 : 0.85); // every rank but the Pawn reads a touch smaller/more agile
   g.add(orbGroup);
   const addOrb = (geom, m) => { const mesh = new THREE.Mesh(geom, m); mesh.castShadow = true; orbGroup.add(mesh); return mesh; };
 
-  addOrb(new THREE.SphereGeometry(r * 0.5, 14, 10), sideMat); // small side-colored core, mostly nested inside the world itself
-  addOrb(new THREE.SphereGeometry(r, 26, 18), planetMat); // the star/planet, wrapped in its own baked surface texture
+  const sideTint = color === E.WHITE ? GALACTIC_TINT_W : GALACTIC_TINT_B;
+  const sidePlanetMat = planetMat.clone();
+  sidePlanetMat.color.setHex(sideTint);
+  addOrb(new THREE.SphereGeometry(r, 26, 18), sidePlanetMat); // the star/planet, wrapped in its own baked surface texture, tinted per side
 
   if (type === E.KING) { // fixed corona flares radiating off the star's own surface -- not orbiting, the star itself is the "sun"
     const spikeMat = new THREE.MeshBasicMaterial({ color: 0xffdf9a, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -7870,13 +7901,22 @@ function buildGalacticPiece(g, add, type, promoted, color) {
   }
 
   const moonMat = new THREE.MeshStandardMaterial({ color: moonHex, emissive: moonHex, emissiveIntensity: 0.6, roughness: 0.4 });
+  const ringMat = new THREE.MeshBasicMaterial({ color: moonHex, transparent: true, opacity: 0.28, side: THREE.DoubleSide });
   const moons = [];
   for (let i = 0; i < moonCount; i++) {
+    const orbitR = moonRadius + i * 0.05;
     const moon = addOrb(new THREE.SphereGeometry(moonSize, 10, 8), moonMat);
     moons.push({
-      mesh: moon, radius: moonRadius + i * 0.05, speed: moonSpeed * (i % 2 === 0 ? 1 : -0.85),
+      mesh: moon, radius: orbitR, speed: moonSpeed * (i % 2 === 0 ? 1 : -0.85),
       phase: (i / moonCount) * Math.PI * 2 + Math.random() * 0.6, tilt: 0.15 + Math.random() * 0.2
     });
+    // a thin traced ring at this moon's own orbit radius -- a faint guide
+    // path, not the grounded "base ring" Magic Orb has (this one floats
+    // with the piece, at the moon's own orbital plane, gently tilted per
+    // moon like real inclined orbits rather than all flat/coplanar)
+    const ring = addOrb(new THREE.TorusGeometry(orbitR, 0.005, 6, 32), ringMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.rotation.z = (i - (moonCount - 1) / 2) * 0.12;
   }
   if (promoted) {
     const pr = addOrb(new THREE.TorusGeometry(r * 1.4, 0.03, 8, 24), MAT_GOLD);
@@ -13877,8 +13917,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.5.1';
+const APP_VERSION = '1.5.2';
 const WHATS_NEW = [
+  {
+    version: '1.5.2',
+    date: '2026-07-18',
+    title: { kh: 'ចក្រវាឡ៖ ពណ៌ខុសគ្នាសម្រាប់ស/ខ្មៅ ពន្លឺធម្មជាតិ រង្វង់ចរាចរព្រះច័ន្ទ និងទំហំតូចជាងមុន', en: 'Galactic: distinct White/Black colors, natural lighting, moon orbit rings, smaller pieces' },
+    items: [
+      { kh: 'ស្បែកចក្រវាឡ (Galactic) ជួសជុលកំហុសដែលកូនអុកសនិងខ្មៅមើលទៅដូចគ្នាបេះបិទ (ភពនីមួយៗឥឡូវត្រូវបានលាបពណ៌ខុសគ្នាបន្តិចទៅតាមភាគី ស ភ្លឺក្ដៅ ខ្មៅត្រជាក់ស្រអាប់ជាងមុន ដោយមិនបាត់បង់ព័ណ៌វាយនភាពដើម) ព្រមទាំងកែតម្រូវពន្លឺក្តារឲ្យមើលទៅធម្មជាតិជាងមុន (កាត់បន្ថយពន្លឺរាបស្មើ ឲ្យពន្លឺថ្ងៃចាំងបំភ្លឺផ្ទៃភពឲ្យឃើញផ្នែកភ្លឺងងឹតច្បាស់ជាងមុន)។ បន្ថែមរង្វង់ចរាចរស្តើងៗព័ទ្ធជុំវិញភពនីមួយៗសម្រាប់បង្ហាញផ្លូវហោះរបស់ព្រះច័ន្ទ។ កូនអុកទាំងអស់ (លើកលែងតែត្រី) បានបង្រួម ១៥% ហើយកូនអុកទាំងអស់ទម្លាក់ចុះ ២០% ឲ្យនៅជិតផ្ទៃក្ដារជាងមុន។',
+        en: "Fixed a bug in the Galactic theme where White and Black pieces rendered as the exact same color (the hidden side-tinted sphere was fully occluded by the opaque planet on top) -- each world is now cloned and tinted per side (White brighter/warmer, Black cooler/dimmer) while keeping its own baked texture readable. Also softened the flat ambient/hemisphere fill and the clearcoat shine so directional light carves a more natural day/night terminator across each sphere instead of a uniform glossy wash. Added a thin traced orbit ring around each moon. Every rank but the Pawn is now 15% smaller, and every piece sits 20% lower, closer to the board surface." },
+      { kh: 'ស្បែកកន្លែងលេងកុមារ (Kids Playroom) ឥឡូវមានពន្លឺឆ្លុះភ្លឺរលោង ដូចកូនកែវវេទមន្ត/ល្អឹមល្អែម ធ្វើឲ្យកូនអុកមើលទៅដូចប្រដាប់ក្មេងលេងកញ្ចក់ភ្លឺរលោង។',
+        en: 'The Kids Playroom theme now has a glossy clearcoat sheen on every piece, the same reflective quality the Magic Orb/Orbs pieces have -- these bright primary-color pieces now read like shiny glass/plastic toys instead of a flat matte finish.' }
+    ]
+  },
   {
     version: '1.5.1',
     date: '2026-07-18',
