@@ -3756,7 +3756,15 @@ const THEMES = {
     // itself (reusing the same procedural studio environment map the
     // Glass/Marble themes use) makes the polished floor visibly reflect
     // the pieces standing on it.
-    pieceW: 0xf2ecfc, pieceB: 0x180b2c, rough: 0.4, metal: 0.08,
+    // Re-tuned against a reference sheet of fantasy amulet/charm icons
+    // (glowing gems set in gold/silver metal frames): pieceW/pieceB were a
+    // near-white pale lavender and a near-black violet -- readable, but
+    // nothing like that reference's vividly saturated glowing gemstones.
+    // Both are now clearly violet/amethyst-family gem tones (light vs deep,
+    // not pale vs black), keeping the White/Black lightness contrast
+    // gameplay needs while actually reading as "an enchanted gem" the way
+    // goldAccents' gold-blended facets are meant to frame.
+    pieceW: 0xc9a6ff, pieceB: 0x4a1899, rough: 0.4, metal: 0.08,
     labelInk: '#e6d9ff', tray: 0x120820,
     clearcoat: 0.6, clearcoatRoughness: 0.25, envMapIntensity: 1.0,
     boardEnvMapIntensityDark: 0.12, boardClearcoatRoughnessDark: 0.7,
@@ -3787,7 +3795,13 @@ const THEMES = {
     // Louder than Magic in every dimension here too: a glossier reflective
     // floor (the base/accent split's own shine constants stay the same
     // "slight" values as Magic -- see MAT_BASE_*/MAT_ACCENT_*).
-    pieceW: 0xfff4d2, pieceB: 0x220520, rough: 0.4, metal: 0.08,
+    // Same amulet-reference re-tuning as Magic (see its comment above):
+    // pieceW moves from a pale cream to an actual vivid gold-gem tone,
+    // and pieceB from near-black to a deep saturated magenta gem --
+    // keeping Magic II's established gold-vs-magenta side pairing (see
+    // FX2_SIDE_COLOR below) but as two glowing gemstones rather than an
+    // off-white and a near-black.
+    pieceW: 0xffd76b, pieceB: 0x9c1478, rough: 0.4, metal: 0.08,
     labelInk: '#ffe9b0', tray: 0x160418,
     clearcoat: 0.75, clearcoatRoughness: 0.15, envMapIntensity: 1.4,
     boardEnvMapIntensityDark: 0.1, boardClearcoatRoughnessDark: 0.75,
@@ -4987,16 +5001,17 @@ const gemPhys = (color, emissive) => new THREE.MeshPhysicalMaterial({
 // this classic set for any theme (Gem Blitz included) that doesn't
 // override a slot -- the same "reset every switch, override per theme"
 // pattern MAT_W/MAT_B already use.
-// Re-tuned by sampling an actual Jeweled-Blitz-style match-3 board's gem
-// colors (a red ruby square, an orange-amber hexagon, a grass-emerald
-// hexagon, a royal-sapphire diamond, and a vivid magenta-violet amethyst
-// triangle) -- the previous set read as neon/electric (a hot-pink "ruby",
-// a minty "emerald", a pale sky-blue "sapphire"); these are richer, more
-// grounded true jewel-tones, matching that reference's saturated-but-
-// polished-gemstone vibe instead of an e-sports glow.
+// Re-tuned a second time against a reference sheet of fantasy amulet/charm
+// icons (glowing gems set in gold/silver metal frames): emerald shifted
+// from a pure grass-green toward the reference's lime/yellow-green facet,
+// sapphire shifted from a deep navy toward its vivid cyan-azure swirl (both
+// still clearly "green"/"blue" families, just brighter and warmer-leaning
+// like the reference's glow), and amber/amethyst brightened a touch to
+// match that same glowing-amulet saturation; ruby stays the grounded
+// jewel-tone red from the previous Jeweled-Blitz-style tuning.
 const GEM_HUE_DEFAULTS = {
-  ruby: [0xe8342f, 0x8a1512], amber: [0xf0862c, 0x8f4610], emerald: [0x4ecf42, 0x1f7a1a],
-  sapphire: [0x3060d8, 0x142f6e], amethyst: [0xd83bf0, 0x6e1580],
+  ruby: [0xe8342f, 0x8a1512], amber: [0xffa23e, 0x9c5410], emerald: [0x9fd83a, 0x5a8a12],
+  sapphire: [0x2f9fe8, 0x145a8a], amethyst: [0xe848ff, 0x7a1a92],
 };
 const MAT_GEM_RUBY = gemPhys(...GEM_HUE_DEFAULTS.ruby);
 const MAT_GEM_AMBER = gemPhys(...GEM_HUE_DEFAULTS.amber);
@@ -6212,28 +6227,37 @@ function flat2DArtTexture(setStyle, type, color) {
   } else if (setStyle === '2dyantra') {
     // Sak Yantra: a real yantra diagram's own signature frame -- corner
     // flame points and a khom-script border ringing an outer seal, with
-    // nested sacred geometry inside -- but now with the OUTER SEAL ITSELF
-    // shaped per rank (an actual rhombus, triangle, kite... not just a
-    // square with a differently-shaped accent glued inside it): Knight is
-    // an elongated rhombus, Queen an upward isosceles triangle, Bishop an
+    // nested sacred geometry inside -- with the OUTER SEAL ITSELF shaped
+    // per rank (an actual rhombus, triangle, kite... not just a square
+    // with a differently-shaped accent glued inside it): Knight is an
+    // elongated rhombus, Queen an upward isosceles triangle, Bishop an
     // upside-down kite (the classic bishop-mitre silhouette), Pawn a
-    // small concave notched quadrilateral; King and Rook keep the
-    // original square seal. Every rank's flame/script-border frame is
-    // built by the same two helpers (flame/outerSeal below) against
-    // whatever point list that rank passes in, so the "frame style" --
-    // ink linework, no gold trim, flame-tipped corners, a script-mark
-    // border, a sacred-red accent -- stays identical across all six even
-    // though the outline each is drawn on now differs.
+    // small concave notched quadrilateral; Rook keeps the original
+    // square seal. King also keeps the square, but -- as the one piece
+    // that stands for the monarchy itself -- breaks the theme's own
+    // "plain ink, no gold" rule (see below) and gets a gold frame
+    // instead. Every rank's flame/script-border frame is built by the
+    // same shared helpers (flame/outerSeal below) against whatever point
+    // list and ink color that rank passes in, so the "frame style" --
+    // flame-tipped corners, a script-mark border, a sacred-red accent --
+    // stays identical across all six even though the outline and (for
+    // the King) the color each is drawn with now differs. Every inner
+    // circle and its accents are sized specifically to fit inside that
+    // rank's own outer seal with a real clearance margin -- an earlier
+    // pass sized several of them (the Pawn's especially, whose concave
+    // notch cuts a gap right through the circle's own lower arc) too
+    // large for the shape they sat inside.
     const cxp = 128, cyp = 128;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     // A small abstract "sacred script" mark standing in for a khom-script
     // syllable: a stem plus a hook, bar, or curl (one of three variants,
     // cycled), rotated so it reads as script written along whatever line
-    // or ring it's placed on rather than a bare dot.
-    const scriptMark = (x, y, scale, rot, variant) => {
+    // or ring it's placed on rather than a bare dot. col overrides the
+    // default ink color (used only by the King's gold frame).
+    const scriptMark = (x, y, scale, rot, variant, col) => {
       ctx.save();
       ctx.translate(x, y); ctx.rotate(rot || 0); ctx.scale(scale || 1, scale || 1);
-      ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = col || ink; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       ctx.beginPath();
       ctx.moveTo(0, -6); ctx.lineTo(0, 6); // stem
       if (variant === 1) {
@@ -6252,29 +6276,30 @@ function flat2DArtTexture(setStyle, type, color) {
     // A row of script marks evenly spaced between two points, each
     // rotated tangential to the row so it reads as script written along
     // that edge rather than a plain row of dots.
-    const scriptRow = (x0, y0, x1, y1, count) => {
+    const scriptRow = (x0, y0, x1, y1, count, col) => {
       const ang = Math.atan2(y1 - y0, x1 - x0);
       for (let i = 0; i < count; i++) {
         const t = (i + 0.5) / count;
-        scriptMark(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, 0.55, ang + Math.PI / 2, i % 3);
+        scriptMark(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, 0.55, ang + Math.PI / 2, i % 3, col);
       }
     };
     // A ring of script marks around the inner circle, tangential to it.
-    const scriptRing = (r, count, startAngle) => {
+    const scriptRing = (r, count, startAngle, col) => {
       for (let i = 0; i < count; i++) {
         const a = (startAngle || 0) + (i / count) * Math.PI * 2;
-        scriptMark(cxp + Math.cos(a) * r, cyp + Math.sin(a) * r, 0.55, a + Math.PI / 2, i % 3);
+        scriptMark(cxp + Math.cos(a) * r, cyp + Math.sin(a) * r, 0.55, a + Math.PI / 2, i % 3, col);
       }
     };
     const redDot = (x, y) => { ctx.fillStyle = '#b3261e'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); };
     // A flame spike pointing outward from the seal's own center through
-    // vertex (vx,vy) -- generalized from the old fixed 45-degree-corner
-    // version so it works at ANY vertex angle (a triangle apex, a kite's
-    // narrow tip, not just a square's diagonal corners).
-    const flame = (vx, vy) => {
+    // vertex (vx,vy) -- generalized from a fixed 45-degree-corner version
+    // so it works at ANY vertex angle (a triangle apex, a kite's narrow
+    // tip, not just a square's diagonal corners).
+    const flame = (vx, vy, col) => {
       const dx = vx - cxp, dy = vy - cyp;
       const len = Math.hypot(dx, dy) || 1;
       const ux = dx / len, uy = dy / len, px = -uy, py = ux;
+      ctx.fillStyle = col || ink;
       ctx.beginPath();
       ctx.moveTo(vx, vy);
       ctx.lineTo(vx + ux * 5 + px * 9, vy + uy * 5 + py * 9);
@@ -6287,19 +6312,19 @@ function flat2DArtTexture(setStyle, type, color) {
     // plants a flame at each of its vertices (or a caller-supplied subset
     // -- the pawn's dart skips its one reflex/concave vertex, since a
     // flame "pointing outward" from a notch would point back INTO the
-    // shape), then runs a script-mark border along every edge.
-    const outerSeal = (pts, flamePts) => {
+    // shape), then runs a script-mark border along every edge -- all in
+    // col if given, else the theme's normal ink.
+    const outerSeal = (pts, flamePts, col) => {
       ctx.beginPath();
       pts.forEach(([x, y], i) => { if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
       ctx.closePath();
       ctx.fillStyle = body; ctx.fill();
-      ctx.strokeStyle = ink; ctx.lineWidth = 7; ctx.stroke();
-      ctx.fillStyle = ink;
-      (flamePts || pts).forEach(([x, y]) => flame(x, y));
+      ctx.strokeStyle = col || ink; ctx.lineWidth = 7; ctx.stroke();
+      (flamePts || pts).forEach(([x, y]) => flame(x, y, col));
       for (let i = 0; i < pts.length; i++) {
         const [x0, y0] = pts[i], [x1, y1] = pts[(i + 1) % pts.length];
         const edgeLen = Math.hypot(x1 - x0, y1 - y0);
-        scriptRow(x0, y0, x1, y1, Math.max(2, Math.round(edgeLen / 32)));
+        scriptRow(x0, y0, x1, y1, Math.max(2, Math.round(edgeLen / 32)), col);
       }
     };
     // glyphOy shifts the glyph to each shape's own safe/wide zone (a
@@ -6314,13 +6339,19 @@ function flat2DArtTexture(setStyle, type, color) {
     switch (type) {
       case E.KING: {
         const S = 40, EDGE = 216;
-        outerSeal([[S, S], [EDGE, S], [EDGE, EDGE], [S, EDGE]]);
+        // gold, not the theme's usual plain ink -- the one deliberate
+        // break from "no gold trim" every other yantra piece keeps,
+        // since the King's own seal stands for the monarchy itself.
+        // Two shades (light for the pale card, deep for the dark card)
+        // mirror how `ink` itself picks light-vs-dark for contrast.
+        const gold = light ? '#8a6316' : '#f0c65a';
+        outerSeal([[S, S], [EDGE, S], [EDGE, EDGE], [S, EDGE]], null, gold);
         ctx.beginPath(); ctx.arc(cxp, cyp, 52, 0, Math.PI * 2);
-        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(cxp, cyp - 68); ctx.lineTo(cxp + 68, cyp); ctx.lineTo(cxp, cyp + 68); ctx.lineTo(cxp - 68, cyp);
         ctx.closePath();
-        ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         // a fuller 5-petal lotus bud crowning the top edge -- rounder
         // and more overtly floral than a flame spike, reading
         // unmistakably as a lotus rather than another corner flame.
@@ -6331,20 +6362,20 @@ function flat2DArtTexture(setStyle, type, color) {
           ctx.closePath(); ctx.fill();
           ctx.restore();
         };
-        ctx.fillStyle = ink;
+        ctx.fillStyle = gold;
         lotusPetal(-0.7, 24); lotusPetal(-0.35, 30); lotusPetal(0, 34);
         lotusPetal(0.35, 30); lotusPetal(0.7, 24);
         for (let i = 0; i < 8; i++) {
           const a = (i / 8) * Math.PI * 2;
-          scriptMark(cxp + Math.cos(a) * 36, cyp + Math.sin(a) * 36, 0.55, a + Math.PI / 2, i % 3);
+          scriptMark(cxp + Math.cos(a) * 36, cyp + Math.sin(a) * 36, 0.55, a + Math.PI / 2, i % 3, gold);
         }
         topY = S - 34; botY = EDGE; // topY pulled up to clear the lotus tip
         break;
       }
       case E.QUEEN: {
-        const apexY = cyp - 104, baseY = cyp + 68, halfW = 92;
+        const apexY = cyp - 108, baseY = cyp + 72, halfW = 96;
         outerSeal([[cxp, apexY], [cxp + halfW, baseY], [cxp - halfW, baseY]]);
-        const r = 50;
+        const r = 46; // a real margin under the triangle's own width at every height the circle spans (checked at its widest, the vertical center)
         ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2;
@@ -6357,14 +6388,14 @@ function flat2DArtTexture(setStyle, type, color) {
         }
         scriptRing(r - 16, 6, Math.PI * 0.5);
         glyphOy = (apexY + baseY + baseY) / 3 - cyp; // triangle's own centroid
-        glyphMaxW = 104;
+        glyphMaxW = 108;
         topY = apexY; botY = baseY;
         break;
       }
       case E.BISHOP: {
-        const topPtY = cyp - 112, midW = 70, midY = cyp + 8, botPtY = cyp + 56;
+        const topPtY = cyp - 120, midW = 76, midY = cyp + 8, botPtY = cyp + 60;
         outerSeal([[cxp, topPtY], [cxp + midW, midY], [cxp, botPtY], [cxp - midW, midY]]);
-        const r = 46;
+        const r = 42; // clears the kite's own narrower bottom point with margin (checked at the tightest cross-section, just above that point)
         ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.fillStyle = ink;
@@ -6376,22 +6407,22 @@ function flat2DArtTexture(setStyle, type, color) {
         tri(cxp, cyp - r, 0); tri(cxp + r, cyp, Math.PI / 2);
         tri(cxp, cyp + r, Math.PI); tri(cxp - r, cyp, -Math.PI / 2);
         glyphOy = midY - cyp; // the kite's own widest cross-section
-        glyphMaxW = 118;
+        glyphMaxW = 128;
         topY = topPtY; botY = botPtY;
         break;
       }
       case E.KNIGHT: {
-        const rv = 92, rh = 68;
+        const rv = 100, rh = 74;
         outerSeal([[cxp, cyp - rv], [cxp + rh, cyp], [cxp, cyp + rv], [cxp - rh, cyp]]);
-        const r = 44;
+        const r = 42;
         ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         scriptRing(r - 14, 8, Math.PI / 8);
         ctx.strokeStyle = ink; ctx.lineWidth = 3;
         for (const sx of [cxp - 30, cxp + 30]) {
-          ctx.beginPath(); ctx.arc(sx, cyp + rv - 22, 9, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+          ctx.beginPath(); ctx.arc(sx, cyp + rv - 24, 9, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
         }
-        glyphMaxW = 118;
+        glyphMaxW = 126;
         topY = cyp - rv; botY = cyp + rv;
         break;
       }
@@ -6417,25 +6448,26 @@ function flat2DArtTexture(setStyle, type, color) {
       }
       case E.PAWN:
       default: {
-        // shorter and wider than the other pointed seals, so the notch
-        // reads as an obvious ~25%-of-height V-cut (clearly concave, not
-        // just a slightly-flattened triangle indistinguishable from the
-        // Queen's) while still leaving a wide, un-notched upper body
-        // for the glyph to sit in.
-        const tipY = cyp - 70, shY = cyp + 50, shW = 90, notchY = cyp + 20;
+        // bigger than before, and -- crucially -- the inner circle is now
+        // both smaller and pulled up well clear of the notch's own
+        // y-range entirely, so its lower arc never crosses the gap the
+        // notch cuts through the shape's bottom (the actual overflow
+        // bug in the previous sizing: the circle's bottom arc used to
+        // poke straight out through that gap).
+        const tipY = cyp - 78, shY = cyp + 56, shW = 98, notchY = cyp + 22;
         outerSeal(
           [[cxp, tipY], [cxp + shW, shY], [cxp, notchY], [cxp - shW, shY]],
           [[cxp, tipY], [cxp + shW, shY], [cxp - shW, shY]] // skip the reflex notch vertex
         );
-        const r = 38;
-        ctx.beginPath(); ctx.arc(cxp, cyp - 12, r, 0, Math.PI * 2);
+        const r = 34, cy2 = cyp - 22; // pulled up so the circle's bottom (cy2+r) stays above notchY
+        ctx.beginPath(); ctx.arc(cxp, cy2, r, 0, Math.PI * 2);
         ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2;
         for (const sx of [cxp - 26, cxp + 26]) {
-          ctx.beginPath(); ctx.arc(sx, cyp + 32, 8, Math.PI * 0.3, Math.PI * 0.7); ctx.stroke();
+          ctx.beginPath(); ctx.arc(sx, cyp + 38, 8, Math.PI * 0.3, Math.PI * 0.7); ctx.stroke();
         }
-        glyphOy = -6; // the wide un-notched upper body, clear of both the tip and the notch
-        glyphMaxW = 92;
+        glyphOy = -10; // the wide un-notched upper body, clear of both the tip and the notch
+        glyphMaxW = 88;
         topY = tipY; botY = shY;
         break;
       }
@@ -8669,9 +8701,12 @@ function applyTheme(key) {
   // nominal 20% blend ends up dominated by gold and reads as a muddy brown
   // instead of the intended dark-color-with-a-gold-hint.
   MAT_BASE_W.color.copy(MAT_W.color); MAT_BASE_B.color.copy(MAT_B.color);
+  // Blend bumped from 0.2 to 0.3 to make the gold accent read more like an
+  // actual metal frame around the gem (the amulet-icon reference this
+  // theme's colors were re-tuned against) rather than just a faint tint.
   const GOLD_TINT_HEX = 0xd4a548;
-  MAT_ACCENT_W.color.setHex(lerpSRGBHex(MAT_W.color.getHex(), GOLD_TINT_HEX, 0.2));
-  MAT_ACCENT_B.color.setHex(lerpSRGBHex(MAT_B.color.getHex(), GOLD_TINT_HEX, 0.2));
+  MAT_ACCENT_W.color.setHex(lerpSRGBHex(MAT_W.color.getHex(), GOLD_TINT_HEX, 0.3));
+  MAT_ACCENT_B.color.setHex(lerpSRGBHex(MAT_B.color.getHex(), GOLD_TINT_HEX, 0.3));
   MAT_BASE_W.needsUpdate = MAT_BASE_B.needsUpdate = MAT_ACCENT_W.needsUpdate = MAT_ACCENT_B.needsUpdate = true;
   // a texture's own baked-in pixels are multiplied by material.color, so
   // when a marble-vein texture supplies the real color, the material color
@@ -13056,8 +13091,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.3.5';
+const APP_VERSION = '1.3.6';
 const WHATS_NEW = [
+  {
+    version: '1.3.6',
+    date: '2026-07-18',
+    title: { kh: 'ស៊ុមសាក់យន្តធំជាង ស្ដេចមាស និងពណ៌ត្បូងវេទមន្តភ្លឺថ្លា', en: 'Bigger Sak Yantra frames, gold King, brighter gem/magic colors' },
+    items: [
+      { kh: 'ពង្រីកទំហំស៊ុមខាងក្រៅរបស់កូនអុកសាក់យន្តទាំងប្រាំមួយ ដើម្បីឲ្យរង្វង់ខាងក្នុងសមនឹងរាងស៊ុមកាន់តែប្រសើរ — ជាពិសេសត្រី ដែលរង្វង់ធ្លាប់លយចេញក្រៅតាមចន្លោះកាត់រាងបួនជ្រុងកោង ឥឡូវត្រូវបានកែតម្រូវទាំងស្រុង។ ស៊ុមរបស់ស្ដេចឥឡូវប្រែជាពណ៌មាស ជំនួសពណ៌ទឹកខ្មៅធម្មតា ដើម្បីសម្គាល់ថាជាព្រះមហាក្សត្រ។',
+        en: "Enlarged all six Sak Yantra pieces' outer seals so the inner circle fits with a real margin -- the Pawn's especially, whose circle used to poke straight out through the notch cut into its concave shape, now fully fixed. The King's frame is now gold instead of the theme's usual plain ink, marking it as the one piece that stands for the monarchy." },
+      { kh: 'កែលម្អពណ៌កូនអុកស្បែក Magic, Magic II, និង Gem Blitz ដោយផ្អែកលើសន្លឹករូបភាពទំនិញវេទមន្តគំរូ (ត្បូងភ្លឺចែងចាំងក្នុងស៊ុមលោហៈមាស/ប្រាក់)៖ Magic ឥឡូវប្រើពណ៌ស្វាយភ្លឺជាមួយពណ៌ស្វាយចាស់ជ្រៅ (មិនមែនស/ខ្មៅស្រាល់ទៀតទេ), Magic II ប្រើពណ៌មាសភ្លឺ/ផ្កាឈូកចាស់ជ្រៅ, ហើយត្បូងអេម៉រ៉ូដនិងសាហ្វៀរបស់ Gem Blitz ប្ដូរទៅជាពណ៌បៃតងខ្ចីនិងខៀវមេឃស្រាលជាងមុន។',
+        en: "Refined the Magic, Magic II, and Gem Blitz piece colors against a reference sheet of fantasy amulet icons (glowing gems set in gold/silver metal frames): Magic now uses a vivid light violet vs. deep violet (not a near-white/near-black pair), Magic II a vivid gold vs. deep magenta, and Gem Blitz's emerald and sapphire shifted toward that reference's lime-green and cyan-azure. The gold-accent metal-frame blend is also a touch stronger on Magic/Magic II so it reads more like an actual gem setting." }
+    ]
+  },
   {
     version: '1.3.5',
     date: '2026-07-18',
