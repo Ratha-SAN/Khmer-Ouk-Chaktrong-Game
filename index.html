@@ -6060,6 +6060,43 @@ function hexIsLight(hex) {
   const r = (hex >> 16) & 255, g = (hex >> 8) & 255, b = hex & 255;
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.55;
 }
+// Finds a glyph's real rendered ink bounding box by drawing it in
+// isolation on a reusable scratch canvas (nothing else on it, so any
+// non-transparent pixel IS glyph ink -- no color-matching needed) and
+// scanning the raw pixels, instead of trusting Canvas2D's own
+// measureText().actualBoundingBox* metrics. Those metrics proved
+// unreliable for Khmer glyph clusters specifically (coeng-stacked
+// subscript consonants) -- text centered from measureText's own numbers
+// still rendered visibly left-shifted on the card, since the metrics
+// don't fully account for how those clusters actually shape/lay out.
+// Scanning the real rendered pixels sidesteps that entirely: whatever
+// ends up on screen is exactly what gets measured.
+let glyphScratchCv, glyphScratchCtx;
+function glyphInkBox(text, font) {
+  if (!glyphScratchCv) {
+    glyphScratchCv = document.createElement('canvas');
+    glyphScratchCv.width = glyphScratchCv.height = 256;
+    glyphScratchCtx = glyphScratchCv.getContext('2d');
+  }
+  const sc = glyphScratchCtx;
+  sc.clearRect(0, 0, 256, 256);
+  sc.font = font;
+  sc.textAlign = 'center';
+  sc.textBaseline = 'alphabetic';
+  sc.fillStyle = '#000';
+  sc.fillText(text, 128, 128); // drawn at a known, fixed reference anchor
+  const data = sc.getImageData(0, 0, 256, 256).data;
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (let y = 0; y < 256; y++) {
+    for (let x = 0; x < 256; x++) {
+      if (data[(y * 256 + x) * 4 + 3] > 10) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    }
+  }
+  return minX <= maxX ? { minX, maxX, minY, maxY } : null;
+}
 function flat2DArtTexture(setStyle, type, color) {
   const t = theme();
   const key = setStyle + '_' + type + '_' + color + '_' + themeKey;
@@ -6074,9 +6111,12 @@ function flat2DArtTexture(setStyle, type, color) {
   const ctx = cv.getContext('2d');
   ctx.clearRect(0, 0, 256, 256);
   ctx.lineJoin = 'round';
-  // Centers a glyph by its actual INK box, not its font metrics -- Khmer
-  // stacked clusters carry tall ascenders/subscripts that make baseline-
-  // or middle-anchored text sit visibly off the card's center.
+  // Centers a glyph by its actual rendered INK box (see glyphInkBox
+  // above), not font metrics -- Khmer stacked clusters carry tall
+  // ascenders/subscripts that make baseline- or middle-anchored text sit
+  // visibly off the card's center, and measureText()'s own
+  // actualBoundingBox* numbers for those clusters proved unreliable too
+  // (see glyphInkBox's own comment).
   // maxWidth (optional): shrinks the font down to fit when a piece's own
   // ink width would overflow the card -- Khmer stacked clusters vary a
   // lot in real width at a single fixed px size (a 5-character name like
@@ -6084,23 +6124,20 @@ function flat2DArtTexture(setStyle, type, color) {
   // same font size), so a fixed font-size-by-character-count guess alone
   // still overflows some names on the narrower card shapes.
   const glyphCentered = (text, cx, cy, font, fill, maxWidth) => {
+    let box = glyphInkBox(text, font);
+    if (maxWidth && box && (box.maxX - box.minX) > maxWidth) {
+      const scale = maxWidth / (box.maxX - box.minX);
+      font = font.replace(/(\d+(?:\.\d+)?)px/, (_, px) => (parseFloat(px) * scale).toFixed(1) + 'px');
+      box = glyphInkBox(text, font);
+    }
     ctx.font = font;
     ctx.fillStyle = fill;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    let m = ctx.measureText(text);
-    const inkW = (m.actualBoundingBoxLeft || 0) + (m.actualBoundingBoxRight || 0);
-    if (maxWidth && inkW > maxWidth) {
-      const scale = maxWidth / inkW;
-      font = font.replace(/(\d+(?:\.\d+)?)px/, (_, px) => (parseFloat(px) * scale).toFixed(1) + 'px');
-      ctx.font = font;
-      m = ctx.measureText(text);
-    }
-    const dx = (m.actualBoundingBoxLeft != null && m.actualBoundingBoxRight != null)
-      ? (m.actualBoundingBoxLeft - m.actualBoundingBoxRight) / 2 : 0;
-    const dy = (m.actualBoundingBoxAscent != null && m.actualBoundingBoxDescent != null)
-      ? (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2 : 0;
-    ctx.fillText(text, cx + dx, cy + dy);
+    if (!box) { ctx.fillText(text, cx, cy); return; } // defensive fallback, e.g. an empty string
+    const drawX = cx + (128 - (box.minX + box.maxX) / 2);
+    const drawY = cy + (128 - (box.minY + box.maxY) / 2);
+    ctx.fillText(text, drawX, drawY);
   };
   if (setStyle === '2dkhmer') {
     // Lotus-arch standee card: concave sides sweeping to a pointed top
@@ -13918,8 +13955,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.5.4';
+const APP_VERSION = '1.5.5';
 const WHATS_NEW = [
+  {
+    version: '1.5.5',
+    date: '2026-07-18',
+    title: { kh: 'តម្រឹមអក្សរខ្មែរនៅចំកណ្ដាលកាតកូនអុក 2D ទាំងអស់ឲ្យត្រឹមត្រូវជាងមុន', en: 'More robust Khmer letter centering on every flat-2D piece card' },
+    items: [
+      { kh: 'ជួសជុលអក្សរខ្មែរនៅលើកាតកូនអុករាបស 2D (Khmer Art, Lacquer, Shadow Puppet, Sak Yantra) ដែលមិនតម្រឹមចំកណ្ដាលបានត្រឹមត្រូវក្នុងករណីខ្លះ។ ការគណនាចំណុចកណ្ដាលពីមុនពឹងផ្អែកលើរង្វាស់អក្សររបស់កម្មវិធីរុករក (measureText) ដែលបានឃើញថាមិនគួរឱ្យទុកចិត្តសម្រាប់ចង្កោមអក្សរខ្មែរជង់គ្នា (subscript) លើឧបករណ៍/កម្មវិធីរុករកមួយចំនួន។ ការគណនាថ្មីស្កែនភីកសែលដែលបានគូរជាក់ស្តែងវិញ ដើម្បីរកឃើញប្រអប់ទឹកខ្មៅពិតប្រាកដ ធានាថាការតម្រឹមត្រឹមត្រូវទោះបីនៅលើកម្មវិធីរុករក ឬឧបករណ៍ណាក៏ដោយ។',
+        en: "Fixed the Khmer glyph on flat-2D piece cards (Khmer Art, Lacquer, Shadow Puppet, Sak Yantra) not centering correctly on some browsers/devices. The previous centering math relied on the browser's own text-measurement API (measureText), which proved unreliable for Khmer's stacked subscript clusters on at least some devices. Centering is now computed by actually scanning the rendered pixels for the glyph's real ink bounding box instead, so it stays correctly centered regardless of which browser or device renders it." }
+    ]
+  },
   {
     version: '1.5.4',
     date: '2026-07-18',
