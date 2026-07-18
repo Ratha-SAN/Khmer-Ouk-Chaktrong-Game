@@ -1420,6 +1420,57 @@
   }
   @keyframes fxYantraMateFlash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
 
+  /* ============ Magic Orb theme: "super magic attack" capture effects ============
+     Every capture channels the same multi-stage sequence -- a ring collapsing
+     inward, a bright core flash, then an outward supernova burst with
+     radiating shards and a shockwave ring -- recolored per rank via --fxcol
+     (see ORB_ACCENT_COLOR/triggerMagicOrbEffect) to match that piece's own
+     glow accent (buildMagicOrbPiece's MAT_ORB_*). Checkmate fires a much
+     bigger version (fx-orb-super) after the shared shockwave finishes. */
+  .fx-orb-collapse {
+    position: absolute; width: 60px; height: 60px; left: -30px; top: -30px; border-radius: 50%;
+    border: 3px solid var(--fxcol, #fff); box-shadow: 0 0 14px var(--fxcol, #fff);
+    animation: fxOrbCollapse 220ms ease-in forwards;
+  }
+  @keyframes fxOrbCollapse { 0% { transform: scale(2.4); opacity: 0; } 40% { opacity: 1; } 100% { transform: scale(.15); opacity: 1; } }
+  .fx-orb-core {
+    position: absolute; width: 30px; height: 30px; left: -15px; top: -15px; border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, var(--fxcol, #fff) 55%, transparent 80%);
+    animation: fxOrbCore 260ms ease-out forwards;
+  }
+  @keyframes fxOrbCore { 0% { transform: scale(.2); opacity: 1; } 40% { transform: scale(1.4); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
+  .fx-orb-burst {
+    position: absolute; width: 70px; height: 70px; left: -35px; top: -35px; border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, var(--fxcol, #fff) 40%, transparent 78%);
+    animation: fxOrbBurst 480ms ease-out forwards;
+  }
+  @keyframes fxOrbBurst { 0% { transform: scale(.2); opacity: 1; } 45% { opacity: 1; } 100% { transform: scale(2.3); opacity: 0; } }
+  .fx-orb-shard {
+    position: absolute; width: 7px; height: 7px; left: -3.5px; top: -3.5px; border-radius: 50%;
+    background: #ffffff; box-shadow: 0 0 8px 3px var(--fxcol, #fff);
+    animation: fxOrbShard 520ms ease-out forwards;
+  }
+  @keyframes fxOrbShard { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) scale(.2); opacity: 0; } }
+  .fx-orb-ring {
+    position: absolute; width: 24px; height: 24px; left: -12px; top: -12px; border-radius: 50%;
+    border: 3px solid var(--fxcol, #fff); box-shadow: 0 0 12px var(--fxcol, #fff);
+    animation: fxOrbRing 460ms ease-out forwards;
+  }
+  @keyframes fxOrbRing { 0% { transform: scale(.3); opacity: .9; } 100% { transform: scale(4.4); opacity: 0; } }
+  .fx-orb-super {
+    position: absolute; width: 220px; height: 220px; left: -110px; top: -110px; border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, var(--fxcol, #fff) 38%, transparent 80%);
+    animation: fxOrbSuper 700ms ease-out forwards;
+  }
+  @keyframes fxOrbSuper { 0% { transform: scale(.1); opacity: 1; } 35% { opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+
+  /* checkmate: a bright violet-white vignette flash layered after the shared shockwave */
+  #fxCheckVignette.orbmate {
+    animation: fxOrbMateFlash 600ms ease-out forwards;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,.92) 0%, rgba(160,110,255,.75) 55%, rgba(10,5,25,.7) 100%);
+  }
+  @keyframes fxOrbMateFlash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+
   /* ============ Last Airbender theme: footstep-gust move / four-element capture effects ============
      A plain footstep gust for a normal move (no element -- the four
      bending elements are reserved for captures, see triggerAtlaEffect),
@@ -2372,6 +2423,7 @@
       <option value="painting">Painted Jungle — គំនូរព្រៃ</option>
       <option value="magic">Magic — វេទមន្ត</option>
       <option value="magic2">Magic II — វេទមន្តខ្លាំង</option>
+      <option value="magicorb">Magic Orb — កូនកែវវេទមន្ត</option>
       <option value="glass">Glass — កញ្ចក់</option>
       <option value="marble">Marble — ថ្មម៉ាបល</option>
       <option value="mario">Super Ouk World — ពិភពម៉ារីយ៉ូ</option>
@@ -3809,6 +3861,28 @@ const THEMES = {
     magicFx: true, magicFxTier: 2, pieceBFloor: 0.045, ambientScale: 0.5, hemiScale: 0.45,
     ambientColorOverride: 0xf5d9f0, hemiSkyColorOverride: 0xd9a8e0, hemiGroundColorOverride: 0x1c0620
   },
+  // Magic Orb: pieces are floating glowing orbs (see buildMagicOrbPiece) --
+  // a fantasy amulet/planet-icon look, each rank a different glow accent
+  // hovering above its own small "summoning circle" ring, drifting with a
+  // slow idle bob (retrackMagicOrbFloat). A deep-space void board (near-black
+  // violet-tinted tiles) so the glowing orbs themselves are the entire
+  // visual event, the same "dark stage, bright subject" idea Magic/Magic II
+  // use. Paired with its own "super magic" capture-effect system
+  // (magicOrbFx, see triggerMagicOrbEffect): a collapse-then-supernova burst
+  // colored per rank, escalating further on check and checkmate.
+  magicorb: {
+    name: 'Magic Orb', style: 'magicorb',
+    bg: 0x050414, fog: null,
+    frame: 0x140d28, tileLight: 0x2a2058, tileDark: 0x0e0a22,
+    pieceW: 0xffb84d, pieceB: 0x9b4dff, rough: 0.15, metal: 0.05,
+    labelInk: '#c9b8ff', tray: 0x0d0820,
+    clearcoat: 0.7, clearcoatRoughness: 0.15, envMapIntensity: 0.9,
+    boardEnvMapIntensityDark: 0.15, boardClearcoatRoughnessDark: 0.55,
+    reflectOpacity: 0.22,
+    ambientScale: 0.5, hemiScale: 0.45,
+    ambientColorOverride: 0xe0d4ff, hemiSkyColorOverride: 0xb8a0ff, hemiGroundColorOverride: 0x140a28,
+    magicOrbFx: true
+  },
   // Acrylic/crystal chess set: near-clear "white" pieces and smoky-charcoal
   // "black" pieces, a glass-tiled board. A touch of metalness (a common
   // stylized-glass trick -- pure dielectric Fresnel reflectivity is only a
@@ -5019,6 +5093,18 @@ const MAT_GEM_EMERALD = gemPhys(...GEM_HUE_DEFAULTS.emerald);
 const MAT_GEM_SAPPHIRE = gemPhys(...GEM_HUE_DEFAULTS.sapphire);
 const MAT_GEM_AMETHYST = gemPhys(...GEM_HUE_DEFAULTS.amethyst);
 const MAT_GEM_SILVER = new THREE.MeshPhysicalMaterial({ color: 0xd8dae2, roughness: 0.2, metalness: 0.35, flatShading: true, clearcoat: 0.8, clearcoatRoughness: 0.2, envMapIntensity: 0.25 });
+// Fixed glow-accent materials for the Magic Orb piece set (see
+// buildMagicOrbPiece): one glow color per rank, echoing a fantasy
+// amulet/orb-icon reference sheet -- reuses gemPhys (translucent, self-lit,
+// clearcoat-sparkling) since a floating magic orb wants the exact same
+// "glowing gemstone" read Gem Blitz's jewels have, just built into spheres/
+// rings/spikes instead of faceted polyhedra.
+const MAT_ORB_SUN = gemPhys(0xffb84d, 0xff6a1a);      // King -- fiery gold-orange core
+const MAT_ORB_GALAXY = gemPhys(0x4fc3ff, 0x1a6aff);   // Queen -- swirling cyan-blue
+const MAT_ORB_NATURE = gemPhys(0x7fe86a, 0x1f9c2a);   // Bishop -- verdant green
+const MAT_ORB_STORM = gemPhys(0xbfe8ff, 0x3fa8ff);    // Knight -- electric storm-blue
+const MAT_ORB_EMBER = gemPhys(0xff7a4a, 0xc2361a);    // Rook -- cracked-lava ember
+const MAT_ORB_SPIRIT = gemPhys(0xe89aff, 0x9a2ad8);   // Pawn -- soft violet spirit-glow
 // Magic/Magic II accent materials (theme().goldAccents): replace the old
 // full-chrome body + separate solid gold trim ring with a subtler split --
 // the base gets its own slight metal shine, and the rest of the body gets
@@ -5366,6 +5452,7 @@ function buildPiece(type, color, promoted) {
   if (style === 'nature') return buildNaturePiece(g, add, type, promoted, color);
   if (style === 'cambodia') return buildCambodiaPiece(g, add, type, promoted, color);
   if (style === 'gems') return buildGemPiece(g, add, type, promoted, color);
+  if (style === 'magicorb') return buildMagicOrbPiece(g, add, type, promoted, color);
   if (style === 'anno') return buildAnnoPiece(g, add, type, promoted, color);
   if (style === 'transformers') return buildTransformersPiece(g, add, type, promoted, color);
   if (style === 'angkor') return buildAngkorPiece(g, add, type, promoted, color);
@@ -6616,6 +6703,23 @@ function retrackFlat2DArt() {
     }
   }
 }
+// Magic Orb's own idle bob (see buildMagicOrbPiece): bobs just the orb
+// sub-group up and down, leaving the grounded summoning-circle ring
+// beneath it still -- own userData keys (orbFloatBaseY/orbFloatTarget/
+// orbFloatPhase) so this never collides with retrackFlat2DArt's
+// unrelated floatBaseY/floatPhase pair above.
+function retrackMagicOrbFloat() {
+  const reduced = fxPrefersReducedMotion();
+  const t = clock.getElapsedTime();
+  for (const grp of [pieceGroup, capturedGroup]) {
+    for (const g of grp.children) {
+      const target = g.userData && g.userData.orbFloatTarget;
+      if (!target || g.userData.orbFloatBaseY == null) continue;
+      const bob = reduced ? 0 : Math.sin(t * 1.6 + g.userData.orbFloatPhase) * 0.07;
+      target.position.y = g.userData.orbFloatBaseY + bob;
+    }
+  }
+}
 
 // Plants vs Zombies piece set: unlike every other style here, White and
 // Black don't share one silhouette recolored -- each piece type gets a
@@ -7340,6 +7444,99 @@ function buildGemPiece(g, add, type, promoted, color) {
       break;
   }
   if (promoted) add(new THREE.TorusGeometry(0.26, 0.04, 10, 22), 0.2, MAT_GOLD).rotation.x = Math.PI / 2;
+  if (color === E.BLACK) g.rotation.y = Math.PI;
+  return g;
+}
+
+// Magic Orb piece set: every rank is a floating glowing orb hovering above
+// its own small "summoning circle" ring on the square -- a soft additive-
+// blended halo, a side-colored core (White/Black, like Gem Blitz's body),
+// and an inner glow-gem heart in a fixed per-rank accent color (MAT_ORB_*)
+// that also drives that rank's own accent geometry: King a tilted ring plus
+// a bright crowning mote (closest to a "sun"), Queen a wider swirl ring
+// (a "galaxy"), Bishop three small orbiting motes (a "nature" spirit),
+// Knight four jagged radiating spikes (a "storm"), Rook a thick equator
+// band (a grounded "ember" shell), Pawn a single tiny sparkle -- smallest
+// and simplest of the six. The orb cluster lives in its own sub-group
+// (not directly on `g`) so the idle float bob (retrackMagicOrbFloat) can
+// drift just the orb up and down without moving the grounded ring beneath
+// it -- same reasoning as buildFlat2DPiece's floating standees, just a
+// sub-group instead of a single plane.
+function buildMagicOrbPiece(g, add, type, promoted, color) {
+  let orbY = 0.6, r, accent;
+  switch (type) {
+    case E.KING: r = 0.32; accent = MAT_ORB_SUN; orbY = 0.68; break;
+    case E.QUEEN: r = 0.27; accent = MAT_ORB_GALAXY; orbY = 0.62; break;
+    case E.BISHOP: r = 0.23; accent = MAT_ORB_NATURE; orbY = 0.56; break;
+    case E.KNIGHT: r = 0.21; accent = MAT_ORB_STORM; orbY = 0.54; break;
+    case E.ROOK: r = 0.25; accent = MAT_ORB_EMBER; orbY = 0.5; break;
+    case E.PAWN:
+    default: r = 0.15; accent = MAT_ORB_SPIRIT; orbY = 0.4; break;
+  }
+  // the grounded summoning circle, tinted to this rank's own glow color --
+  // stays a direct child of `g` (not the bobbing orbGroup below)
+  const circle = add(new THREE.TorusGeometry(0.3, 0.02, 8, 28), 0.03, accent);
+  circle.rotation.x = Math.PI / 2;
+
+  const sideMat = color === E.WHITE ? MAT_W : MAT_B;
+  const orbGroup = new THREE.Group();
+  orbGroup.position.y = orbY;
+  g.add(orbGroup);
+  const addOrb = (geom, m) => { const mesh = new THREE.Mesh(geom, m); mesh.castShadow = true; orbGroup.add(mesh); return mesh; };
+
+  addOrb(new THREE.SphereGeometry(r * 1.55, 16, 12), new THREE.MeshBasicMaterial({
+    color: accent.color, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false
+  }));
+  addOrb(new THREE.SphereGeometry(r, 24, 18), sideMat); // side-colored core
+  addOrb(new THREE.SphereGeometry(r * 0.62, 16, 12), accent); // inner glow-gem heart
+
+  switch (type) {
+    case E.KING: {
+      const rg = addOrb(new THREE.TorusGeometry(r * 1.35, 0.025, 8, 26), accent);
+      rg.rotation.x = Math.PI / 2.6; rg.rotation.z = 0.3;
+      addOrb(new THREE.SphereGeometry(0.06, 10, 8), accent).position.y = r * 1.5;
+      break;
+    }
+    case E.QUEEN: {
+      const rg = addOrb(new THREE.TorusGeometry(r * 1.25, 0.02, 8, 26), accent);
+      rg.rotation.x = Math.PI / 2.2; rg.rotation.y = 0.5;
+      break;
+    }
+    case E.BISHOP: {
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2;
+        addOrb(new THREE.SphereGeometry(0.045, 8, 6), accent)
+          .position.set(Math.cos(a) * r * 1.5, Math.sin(a * 1.7) * 0.06, Math.sin(a) * r * 1.5);
+      }
+      break;
+    }
+    case E.KNIGHT: {
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2 + 0.3;
+        const spike = addOrb(new THREE.ConeGeometry(0.035, 0.16, 6), accent);
+        spike.position.set(Math.cos(a) * r * 1.05, 0, Math.sin(a) * r * 1.05);
+        spike.rotation.z = Math.PI / 2 - a; spike.rotation.x = 0.3;
+      }
+      break;
+    }
+    case E.ROOK: {
+      const band = addOrb(new THREE.TorusGeometry(r * 1.02, 0.05, 8, 20), accent);
+      band.rotation.x = Math.PI / 2;
+      break;
+    }
+    case E.PAWN:
+    default:
+      addOrb(new THREE.SphereGeometry(0.035, 8, 6), accent).position.y = r * 1.3;
+      break;
+  }
+  if (promoted) {
+    const pr = addOrb(new THREE.TorusGeometry(r * 1.5, 0.035, 8, 24), MAT_GOLD);
+    pr.rotation.x = Math.PI / 2;
+  }
+
+  g.userData.orbFloatBaseY = orbY;
+  g.userData.orbFloatTarget = orbGroup;
+  g.userData.orbFloatPhase = Math.random() * Math.PI * 2;
   if (color === E.BLACK) g.rotation.y = Math.PI;
   return g;
 }
@@ -9138,6 +9335,23 @@ const SFX = {
     } else {
       [392, 494, 587].forEach((f, i) => envOsc({ freq: f, type: 'sawtooth', dur: 0.3, gain: 0.16, delay: i * 0.02 }));
       [523, 659, 784].forEach((f, i) => envOsc({ freq: f, type: 'sawtooth', dur: 0.4, gain: 0.16, delay: 0.22 + i * 0.02 }));
+    }
+  },
+  // Magic Orb: a soft rising sine chime for a move (the orb drifting to a
+  // new square), a whoosh-collapse into a crackling magic boom for a
+  // capture (echoing the 2D collapse-then-supernova burst, fxOrbCapture),
+  // and a rising four-note bell arpeggio for check/checkmate -- an
+  // ethereal, resonant timbre distinct from Gem Blitz's harder
+  // glass-shatter capture.
+  magicorb(kind) {
+    if (kind === 'move') { envOsc({ freq: 720, type: 'sine', dur: 0.16, gain: 0.16, freqTo: 1080 }); envOsc({ freq: 1080, type: 'sine', dur: 0.12, gain: 0.1, delay: 0.06 }); }
+    else if (kind === 'capture') {
+      noiseBurst({ dur: 0.08, filterFreq: 2600, q: 3, gain: 0.22, filterType: 'highpass' }); // whoosh-in (collapse)
+      envOsc({ freq: 900, type: 'sine', dur: 0.1, gain: 0.22, freqTo: 220, delay: 0.08 }); // collapse pull
+      envOsc({ freq: 160, type: 'triangle', dur: 0.28, gain: 0.32, freqTo: 60, delay: 0.16 }); // supernova boom
+      noiseBurst({ dur: 0.18, filterFreq: 3200, q: 1.6, gain: 0.24, delay: 0.16 }); // crackle
+    } else {
+      [523.25, 659.26, 783.99, 1046.5].forEach((f, i) => envOsc({ freq: f, type: 'sine', dur: 0.22, gain: 0.22, delay: i * 0.07 }));
     }
   },
   // ANNO Mutationem vibe: a clipped sawtooth "data-ping" rising blip for a
@@ -11081,6 +11295,102 @@ function triggerYantraEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate)
   }
 }
 
+// ============ Magic Orb theme: "super magic attack" capture effects ============
+// Every capture channels the SAME multi-stage sequence (a ring collapsing
+// inward, a bright core flash, then an outward supernova burst with
+// radiating shards, a shockwave ring, and a board shake), recolored per
+// rank via ORB_ACCENT_COLOR to match that piece's own glow accent (see
+// MAT_ORB_*/buildMagicOrbPiece) and scaled bigger for the King/Queen --
+// deliberately ONE consistent "super magic" language across all six ranks
+// (unlike Yantra's six distinct elements), just recolored and rescaled.
+// Check layers a violet bolt (fxElementBolt, already built for Yantra's own
+// sky-strike captures) onto the shared shockwave every theme's check effect
+// uses (fxCheck); checkmate instead layers a much bigger supernova burst +
+// radiating shards + a bright vignette flash on top of that same shockwave,
+// staged to start only once the shockwave's own vignette has finished
+// (~520ms) rather than cutting it off mid-flight.
+const ORB_ACCENT_COLOR = {
+  [E.KING]: '#ffb84d', [E.QUEEN]: '#4fc3ff', [E.BISHOP]: '#7fe86a',
+  [E.KNIGHT]: '#bfe8ff', [E.ROOK]: '#ff7a4a', [E.PAWN]: '#e89aff'
+};
+// A brief impact shake on capture -- same .fx-shake every other theme's
+// own capture/check shockwave uses (see fxCheck/fxYantraShake).
+function fxOrbShake() {
+  const sceneEl = document.getElementById('scene');
+  sceneEl.classList.remove('fx-shake');
+  void sceneEl.offsetWidth;
+  sceneEl.classList.add('fx-shake');
+  setTimeout(() => sceneEl.classList.remove('fx-shake'), 380);
+}
+function fxOrbCapture(sq, effType) {
+  const pt = fxScreenPoint(sq);
+  const col = ORB_ACCENT_COLOR[effType] || '#c9a6ff';
+  const big = effType === E.KING || effType === E.QUEEN;
+  fxSpawn(fxAt(pt, 'fx-orb-collapse', { '--fxcol': col }), 220);
+  setTimeout(() => { // the burst lands once the collapse has finished pulling in
+    try {
+      fxSpawn(fxAt(pt, 'fx-orb-core', { '--fxcol': col }), 260);
+      fxSpawn(fxAt(pt, 'fx-orb-burst', { '--fxcol': col }), 480);
+      fxSpawn(fxAt(pt, 'fx-orb-ring', { '--fxcol': col }), 460);
+      const shardCount = big ? 14 : 9;
+      for (let i = 0; i < shardCount; i++) {
+        const a = (i / shardCount) * Math.PI * 2 + Math.random() * 0.3;
+        const dist = (big ? 34 : 24) + Math.random() * (big ? 34 : 24);
+        fxSpawn(fxAt(pt, 'fx-orb-shard', { '--fxcol': col, '--mx': (Math.cos(a) * dist) + 'px', '--my': (Math.sin(a) * dist) + 'px' }), 520);
+      }
+      fxOrbShake();
+    } catch (err) { console.warn('orb-capture burst failed (ignored):', err); }
+  }, 200);
+  window.__oukFxLog.push({ tier: 2, key: 'orb_capture_' + (big ? 'big' : 'small') });
+}
+function fxOrbCheck(kingSq) {
+  fxCheck(kingSq); // shared shockwave (ring surge + vignette + shake)
+  if (fxPrefersReducedMotion()) return; // fxCheck's own reduced-motion path already covered the beat
+  const pt = fxScreenPoint(kingSq);
+  fxSpawn(fxElementBolt(pt.x, pt.y, '#e0d0ff', '#9b4dff'), 260);
+  window.__oukFxLog.push({ tier: 3, key: 'orb_check_bolt' });
+}
+function fxOrbCheckmate(kingSq) {
+  fxCheck(kingSq); // stage 1: shared shockwave
+  if (fxPrefersReducedMotion()) {
+    fxSimpleFlash(fxScreenPoint(kingSq), '#c9a6ff');
+    window.__oukFxLog.push({ tier: 4, key: 'orb_checkmate_simple' });
+    return;
+  }
+  const pt = fxScreenPoint(kingSq);
+  setTimeout(() => { // stage 2: once the shockwave's own vignette has finished (~520ms)
+    try {
+      fxSpawn(fxAt(pt, 'fx-orb-super', { '--fxcol': '#c9a6ff' }), 700);
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * Math.PI * 2;
+        fxSpawn(fxAt(pt, 'fx-orb-shard', { '--fxcol': '#ffe0ff', '--mx': (Math.cos(a) * 70) + 'px', '--my': (Math.sin(a) * 70) + 'px' }), 560);
+      }
+      fxCheckVignette.classList.remove('go', 'go2', 'simple', 'mategoflash', 'modgo', 'modmate', 'yantramate');
+      void fxCheckVignette.offsetWidth;
+      fxCheckVignette.classList.add('orbmate');
+      setTimeout(() => fxCheckVignette.classList.remove('orbmate'), 600);
+      fxOrbShake();
+    } catch (err) { console.warn('orb checkmate supernova failed (ignored):', err); }
+  }, 520);
+  window.__oukFxLog.push({ tier: 4, key: 'orb_checkmate_super' });
+}
+function triggerMagicOrbEffect(m, moverPiece, capturedPiece, isCheck, isCheckmate) {
+  const t = theme();
+  if (!t.magicOrbFx) return;
+  try {
+    const reduced = fxPrefersReducedMotion();
+    if (capturedPiece !== E.EMPTY) {
+      const effType = E.isProm(moverPiece) ? E.QUEEN : E.typeOf(moverPiece);
+      if (reduced) fxSimpleFlash(fxScreenPoint(m.to), ORB_ACCENT_COLOR[effType] || '#c9a6ff');
+      else fxOrbCapture(m.to, effType);
+    }
+    if (isCheckmate) fxOrbCheckmate(E.kingSq(state, state.turn));
+    else if (isCheck) fxOrbCheck(E.kingSq(state, state.turn));
+  } catch (err) {
+    console.warn('magic-orb-effect render failed (ignored):', err);
+  }
+}
+
 // Ambient "sprinkle" twinkles: while Gem Blitz OR a Girly theme is active,
 // stray star glints pop at random board squares every second or so,
 // keeping the whole board alive with sparkle between moves -- skipped
@@ -11828,6 +12138,7 @@ function applyMove(m) {
   triggerTransformersEffect(m, mover, captured, isCheck, isCheckmate);
   triggerModernEffect(m, mover, captured, isCheck, isCheckmate, modernCaptureCue);
   triggerYantraEffect(m, mover, captured, isCheck, isCheckmate);
+  triggerMagicOrbEffect(m, mover, captured, isCheck, isCheckmate);
   if (promoted) fxPromote(m.to, E.colorOf(mover));
   maybeAutoCount();
   scheduleAI();
@@ -13091,8 +13402,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.3.6';
+const APP_VERSION = '1.4.0';
 const WHATS_NEW = [
+  {
+    version: '1.4.0',
+    date: '2026-07-18',
+    title: { kh: 'ស្បែកក្ដារថ្មី "កូនកែវវេទមន្ត" — កូនអុករាងកែវពន្លឺអណ្ដែត', en: 'New "Magic Orb" theme — floating glowing orb pieces' },
+    items: [
+      { kh: 'ស្បែកក្ដារថ្មីទាំងស្រុង "កូនកែវវេទមន្ត" — កូនអុកនីមួយៗគឺជាកែវពន្លឺវេទមន្តអណ្ដែតនៅលើរង្វង់អញ្ជើញនៅលើក្រឡា ភ្លឺពណ៌ខុសៗគ្នាតាមឋានៈ (ស្ដេច=ពណ៌ថ្ងៃមាស, នាង=មហាចក្រវាឡខៀវ, គោល=ធម្មជាតិបៃតង, សេះ=ព្យុះអគ្គិសនី, ទូក=ភ្លើងឆេះថ្មភ្នំភ្លើង, ត្រី=វិញ្ញាណស្វាយស្រាល) ហោះឡើងចុះយឺតៗដូចអណ្ដែតនៅលើអាកាស។',
+        en: 'A brand new "Magic Orb" theme -- every piece is a floating glowing orb hovering above a small summoning-circle ring on its square, drifting with a slow idle bob, each rank glowing a different color (King=sun-gold, Queen=galaxy-blue, Bishop=nature-green, Knight=storm-electric, Rook=ember-lava, Pawn=soft spirit-violet).' },
+      { kh: 'បន្ថែមអានុភាព "វេទមន្តខ្លាំងបំផុត" សម្រាប់ការស៊ីកូនអុក៖ រង្វង់តូចអណ្ដែតចូលមកកណ្ដាល រួចផ្ទុះជាពន្លឺនិងបំណែកកញ្ចក់ចេញ ពណ៌តាមឋានៈកូនអុកនោះ ធំជាងសម្រាប់ស្ដេចនិងនាង។ អុកមានផ្លេកបន្ទោរស្វាយ ហើយអុកងាប់ផ្ទុះជាភ្លើងបំផុសធំបំផុត។',
+        en: 'Added a "super magic attack" capture-effect system: a ring collapses inward then bursts into light and radiating shards, colored per rank and bigger for the King/Queen. Check adds a violet lightning bolt; checkmate fires a much bigger supernova burst.' }
+    ]
+  },
   {
     version: '1.3.6',
     date: '2026-07-18',
@@ -14504,7 +14826,7 @@ function applyAccessTier() {
 // each category is already short enough to scan.
 const THEME_CATEGORIES = [
   { key: 'khmer', label: 'ខ្មែរបុរាណ Khmer Heritage', themes: ['wood', 'stone', 'cambodia', 'angkor', 'naga', 'lacquer', 'sbek', 'flat2d', 'yantra'] },
-  { key: 'fantasy', label: 'វេទមន្ត Fantasy', themes: ['magic', 'magic2', 'avatar', 'atla', 'gems'] },
+  { key: 'fantasy', label: 'វេទមន្ត Fantasy', themes: ['magic', 'magic2', 'magicorb', 'avatar', 'atla', 'gems'] },
   { key: 'scifi', label: 'អនាគត Sci-Fi & Future', themes: ['scifi', 'starwars', 'anno', 'transformers', 'modern'] },
   { key: 'arcade', label: 'អាកាដ Arcade & Retro', themes: ['mario', 'contra', 'pvz', 'pixel'] },
   { key: 'elegant', label: 'ប្រណីត Elegant & Minimal', themes: ['glass', 'marble', 'sofisticate', 'ios', 'night'] },
@@ -15092,6 +15414,7 @@ function loop() {
   retrackPieceLabels(); // keep piece-name labels perspective-corrected and centered on every viewport
   retrackOnlineThinkingTip();
   retrackFlat2DArt(); // keep 2D standee artwork facing the camera
+  retrackMagicOrbFloat(); // bob Magic Orb pieces up and down
   updateModernCinematics(); // advance any in-flight Modern Ops shoot/explode cinematics
   renderer.render(scene, camera);
 }
