@@ -417,6 +417,13 @@
   #whatsNewBody ul { margin: 4px 0 12px 20px; padding: 0; }
   #whatsNewBody li { margin-bottom: 5px; }
   #whatsNewBody .relSep { border: none; border-top: 1px solid var(--line); margin: 16px 0; }
+  #whatsNewMoreBtn {
+    display: block; width: 100%; margin: 4px 0 0; padding: 9px 10px;
+    font-size: 13px; color: var(--accent); background: transparent; border: 1px dashed var(--accent-dim);
+  }
+  #whatsNewMoreBtn::after { content: ' \25BC'; font-size: 10px; }
+  #whatsNewMoreBtn.open::after { content: ' \25B2'; }
+  #whatsNewOlder[hidden] { display: none; }
   .verDot {
     display: inline-block; width: 8px; height: 8px; border-radius: 50%;
     background: #ff5252; box-shadow: 0 0 4px #ff5252; margin-left: 6px; vertical-align: middle;
@@ -13082,12 +13089,32 @@ const WHATS_NEW = [
     ]
   }
 ];
+const WHATS_NEW_RECENT_COUNT = 3;
 function renderWhatsNew() {
-  document.getElementById('whatsNewBody').innerHTML = WHATS_NEW.map((rel, i) => `
-    ${i > 0 ? '<hr class="relSep">' : ''}
+  const entryHtml = (rel) => `
     <h3><span class="kh">${rel.title.kh}</span><span class="en">${rel.title.en}</span> <small>v${rel.version} — ${rel.date}</small></h3>
     <ul>${rel.items.map(it => `<li><span class="kh">${it.kh}</span><span class="en">${it.en}</span></li>`).join('')}</ul>
-  `).join('');
+  `;
+  const recent = WHATS_NEW.slice(0, WHATS_NEW_RECENT_COUNT);
+  const older = WHATS_NEW.slice(WHATS_NEW_RECENT_COUNT);
+  let html = recent.map((rel, i) => (i > 0 ? '<hr class="relSep">' : '') + entryHtml(rel)).join('');
+  if (older.length) {
+    html += `
+      <button id="whatsNewMoreBtn" type="button">
+        <span class="kh">មើលបច្ចុប្បន្នភាពចាស់ៗ (${older.length})</span><span class="en">Show ${older.length} older update${older.length > 1 ? 's' : ''}</span>
+      </button>
+      <div id="whatsNewOlder" hidden>${older.map((rel) => '<hr class="relSep">' + entryHtml(rel)).join('')}</div>
+    `;
+  }
+  document.getElementById('whatsNewBody').innerHTML = html;
+  const moreBtn = document.getElementById('whatsNewMoreBtn');
+  if (moreBtn) {
+    moreBtn.onclick = () => {
+      const box = document.getElementById('whatsNewOlder');
+      box.hidden = !box.hidden;
+      moreBtn.classList.toggle('open', !box.hidden);
+    };
+  }
 }
 renderWhatsNew();
 const WHATS_NEW_SEEN_KEY = 'oukLastSeenVersion';
