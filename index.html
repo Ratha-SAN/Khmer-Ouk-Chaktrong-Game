@@ -2273,6 +2273,7 @@
       <option value="naga">Naga Jade — នាគមរកត</option>
       <option value="lacquer">Khmer Lacquer — គ្រឿងខ្មុកខ្មែរ</option>
       <option value="sbek">Sbek Thom — ស្បែកធំ</option>
+      <option value="yantra">Sak Yantra — សាក់យន្ត</option>
       <option value="modern">Modern Ops — ប្រតិបត្តិការទំនើប</option>
     </select>
     <select id="pieceStyleSel" style="margin-top:6px">
@@ -2290,6 +2291,7 @@
       <option value="2dminimal">Piece style: 2D Minimal — សាមញ្ញ 2D</option>
       <option value="2dlacquer">Piece style: 2D Lacquer — ខ្មុក 2D</option>
       <option value="2dsbek">Piece style: 2D Shadow Puppet — ស្បែក 2D</option>
+      <option value="2dyantra">Piece style: 2D Sak Yantra — សាក់យន្ត 2D</option>
       <option value="2dwarrior">Piece style: 2D Khmer Warrior — អ្នកចម្បាំង 2D</option>
     </select>
     <label style="margin-top:6px">
@@ -4272,6 +4274,22 @@ const THEMES = {
     labelInk: '#f2d8a8', tray: 0x241505,
     reflectOpacity: 0.08
   },
+  // Sak Yantra: the sacred geometric tattoo/cloth-talisman tradition --
+  // incense-dark board, warm parchment/skin-cloth tiles against a deep
+  // sacred-red ink square, ivory vs charcoal-cloth piece panels (the
+  // '2dyantra' art set: nested square/diamond/circle sacred geometry,
+  // a khom-script-stand-in syllable-dot border, corner flame points, all
+  // in plain ink -- no gold trim, unlike the rest of the Khmer Heritage
+  // sets, since a tattoo/cloth yantra is monochrome linework, not gilded).
+  // Matte, almost no mirror, like inked cloth rather than lacquer.
+  yantra: {
+    name: 'Sak Yantra', style: '2dyantra',
+    bg: 0x140b09, fog: null,
+    frame: 0x231613, tileLight: 0xe6d2a8, tileDark: 0x6b1f1a,
+    pieceW: 0xfaf1da, pieceB: 0x241f1d, rough: 0.88, metal: 0.0, pieceBFloor: 0.13,
+    labelInk: '#e9c896', tray: 0x1a100d,
+    reflectOpacity: 0.08
+  },
   // Modern Ops: a tactical map board (concrete/tarmac grid on gunmetal)
   // for the buildModernPiece military-hardware set -- NATO sand tan vs
   // OPFOR olive drab, an amber HUD-style labelInk, and a matte (not
@@ -6011,6 +6029,131 @@ function flat2DArtTexture(setStyle, type, color) {
     ctx.fillStyle = ink;
     ctx.globalAlpha = 0.8;
     ctx.fillText(NAMES[type].tr, 128, 190);
+    ctx.globalAlpha = 1;
+  } else if (setStyle === '2dyantra') {
+    // Sak Yantra: the sacred geometric tattoo/cloth-diagram tradition --
+    // an axis-aligned square seal (deliberately NOT the lotus-arch shape
+    // every other Khmer set here shares, since a yantra diagram is
+    // fundamentally a symmetric square/circle figure, not an arch) with
+    // classic nested "square in diamond in circle" sacred geometry, a
+    // syllable-dot border standing in for the khom-script rows a real
+    // yantra is inscribed with, and outward corner flame points -- all
+    // drawn in plain ink with no gold trim, the one deliberate break from
+    // the gilded language the rest of the Khmer Heritage sets share, since
+    // a tattoo/cloth yantra is monochrome linework. A small sacred-red dot
+    // crowns the seal like the accent mark on a real Sak Yant. Per-type
+    // touches vary the shared frame: a triple flame tip (a small crown)
+    // for the King, lotus-petal border marks for the Queen, cardinal
+    // wisdom-triangles around the circle for the Bishop, horseshoe arcs
+    // for the Knight, a water-wave base for the Rook (the boat), and
+    // plain scale-arcs flanking the glyph for the Pawn.
+    const S = 40, EDGE = 216, cxp = 128, cyp = 128;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.rect(S, S, EDGE - S, EDGE - S);
+    ctx.fillStyle = body; ctx.fill();
+    ctx.strokeStyle = ink; ctx.lineWidth = 7; ctx.stroke();
+    // corner flame points
+    const flame = (fx, fy, dx, dy) => {
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(fx + dx * 16, fy + dy * 4);
+      ctx.lineTo(fx + dx * 22, fy + dy * 22);
+      ctx.lineTo(fx + dx * 4, fy + dy * 16);
+      ctx.closePath();
+      ctx.fill();
+    };
+    ctx.fillStyle = ink;
+    flame(S, S, -1, -1); flame(EDGE, S, 1, -1);
+    flame(S, EDGE, -1, 1); flame(EDGE, EDGE, 1, 1);
+    // syllable-dot border (khom-script stand-in), 5 per side
+    const inset = 14;
+    for (let i = 1; i <= 5; i++) {
+      const p = S + (EDGE - S) * (i / 6);
+      for (const [px, py] of [[p, S + inset], [p, EDGE - inset], [S + inset, p], [EDGE - inset, p]]) {
+        ctx.beginPath(); ctx.arc(px, py, 2.6, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    // nested diamond, then nested circle -- the classic square/diamond/
+    // circle layering
+    const dr = 68;
+    ctx.beginPath();
+    ctx.moveTo(cxp, cyp - dr); ctx.lineTo(cxp + dr, cyp); ctx.lineTo(cxp, cyp + dr); ctx.lineTo(cxp - dr, cyp);
+    ctx.closePath();
+    ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cxp, cyp, 52, 0, Math.PI * 2);
+    ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+    // sacred-red accent mark at the top
+    ctx.fillStyle = '#b3261e';
+    ctx.beginPath(); ctx.arc(cxp, S - 8, 5, 0, Math.PI * 2); ctx.fill();
+    // per-type frame accent
+    switch (type) {
+      case E.KING: {
+        ctx.fillStyle = ink;
+        for (const off of [-14, 0, 14]) {
+          const tipY = S - 22 - (off === 0 ? 8 : 0);
+          ctx.beginPath();
+          ctx.moveTo(cxp + off, S - 6);
+          ctx.lineTo(cxp + off + 5, tipY);
+          ctx.lineTo(cxp + off - 5, tipY);
+          ctx.closePath(); ctx.fill();
+        }
+        break;
+      }
+      case E.QUEEN: {
+        ctx.strokeStyle = ink; ctx.lineWidth = 2;
+        for (const px of [cxp - 40, cxp - 13, cxp + 13, cxp + 40]) {
+          ctx.beginPath(); ctx.arc(px, S + 10, 6, Math.PI, Math.PI * 2); ctx.stroke();
+        }
+        break;
+      }
+      case E.BISHOP: {
+        ctx.fillStyle = ink;
+        const tri = (px, py, rot) => {
+          ctx.save(); ctx.translate(px, py); ctx.rotate(rot);
+          ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(7, 6); ctx.lineTo(-7, 6); ctx.closePath(); ctx.fill();
+          ctx.restore();
+        };
+        tri(cxp, cyp - 52, 0); tri(cxp + 52, cyp, Math.PI / 2);
+        tri(cxp, cyp + 52, Math.PI); tri(cxp - 52, cyp, -Math.PI / 2);
+        break;
+      }
+      case E.KNIGHT: {
+        ctx.strokeStyle = ink; ctx.lineWidth = 3;
+        for (const sx of [S + 22, EDGE - 22]) {
+          ctx.beginPath(); ctx.arc(sx, EDGE - 20, 9, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+        }
+        break;
+      }
+      case E.ROOK: {
+        ctx.strokeStyle = ink; ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(S + 10, EDGE - 12);
+        for (let i = 0; i < 4; i++) {
+          const wx = S + 10 + (EDGE - S - 20) * ((i + 0.5) / 4);
+          ctx.quadraticCurveTo(wx, EDGE - (i % 2 ? 18 : 6), wx + (EDGE - S - 20) / 8, EDGE - 12);
+        }
+        ctx.stroke();
+        break;
+      }
+      case E.PAWN:
+      default: {
+        // below the glyph, clear of it regardless of glyph width
+        ctx.strokeStyle = ink; ctx.lineWidth = 2;
+        for (const sx of [cxp - 30, cxp + 30]) {
+          ctx.beginPath(); ctx.arc(sx, cyp + 44, 9, Math.PI * 0.3, Math.PI * 0.7); ctx.stroke();
+        }
+        break;
+      }
+    }
+    const khY = NAMES[type].kh;
+    glyphCentered(khY, cxp, cyp,
+      '700 ' + (khY.length > 3 ? 42 : 50) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink);
+    ctx.font = '600 18px "Segoe UI",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = ink;
+    ctx.globalAlpha = 0.8;
+    ctx.fillText(NAMES[type].tr, cxp, EDGE + 14);
     ctx.globalAlpha = 1;
   } else if (setStyle === '2dclassic') {
     // Round medallion with the classic (western) chess glyph -- the
@@ -12371,8 +12514,21 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const WHATS_NEW = [
+  {
+    version: '1.1.0',
+    date: '2026-07-18',
+    title: { kh: 'ស្បែកក្ដារ សាក់យន្ត និងការជួសជុលស្ថិតិ', en: 'Sak Yantra theme + stats fix' },
+    items: [
+      { kh: 'ស្បែកក្ដារថ្មី "សាក់យន្ត" — កូនអុកជាកាតសំបុត្រ 2D លាបនឹងអង្កាមយន្តពិសិដ្ឋ (ការ៉េ-ត្រីកោណ-រង្វង់ជាន់គ្នា ព្រំដែនចំណុចតំណាងអក្សរខម និងស្នូលភ្លើងជ្រុង) គូរដោយទឹកខ្មៅសុទ្ធ មិនប្រើមាសដូចស្បែកខ្មែរផ្សេងទៀតឡើយ។',
+        en: 'New "Sak Yantra" board theme — pieces are flat 2D cards inked with sacred yantra geometry (nested square/triangle/circle layers, a khom-script-style syllable-dot border, corner flame points), drawn in plain ink rather than the gold trim the other Khmer sets use.' },
+      { kh: 'ជួសជុលកំហុសសំខាន់មួយ៖ ស្ថិតិអ្នកលេង (ល្បែង/ឈ្នះ/ចាញ់/ស្មើ) កត់ត្រាតែល្បែងទីមួយប៉ុណ្ណោះក្នុងមួយវគ្គ។ ល្បែងបន្ទាប់ៗបន្ទាប់ពីចុច "ល្បែងថ្មី" ឬ "លេងម្ដងទៀត" ឥឡូវនេះកត់ត្រាដូចធម្មតា។',
+        en: 'Fixed a bug where player stats (games/wins/losses/draws) only ever recorded the first game of a session -- every game after clicking New Game or Rematch now gets recorded correctly too.' },
+      { kh: 'បន្ថែមចំនួន "បោះបង់" ទៅក្នុងស្ថិតិ៖ ការចាកចេញពីល្បែងទល់កុំព្យូទ័រ ឬអនឡាញដែលមិនទាន់ចប់ (បោះបង់ល្បែង, ប្ដូររបៀប, បញ្ចប់វគ្គ) ឥឡូវត្រូវបានរាប់ដាច់ដោយឡែក មិនលាយឡំជាមួយចំនួន "ល្បែង" ឬ "អត្រាឈ្នះ" ឡើយ។',
+        en: 'Added an "Abandoned" counter to player stats: leaving an unfinished vs-Computer/online game (Cancel Game, Change Mode, End Session) is now tracked as its own category, separate from -- and not counted toward -- Games or Win rate.' }
+    ]
+  },
   {
     version: '1.0.0',
     date: '2026-07-18',
@@ -13639,7 +13795,7 @@ function applyAccessTier() {
 // (not reordered for guests the way themeSel's own option order is) since
 // each category is already short enough to scan.
 const THEME_CATEGORIES = [
-  { key: 'khmer', label: 'ខ្មែរបុរាណ Khmer Heritage', themes: ['wood', 'stone', 'cambodia', 'angkor', 'naga', 'lacquer', 'sbek', 'flat2d'] },
+  { key: 'khmer', label: 'ខ្មែរបុរាណ Khmer Heritage', themes: ['wood', 'stone', 'cambodia', 'angkor', 'naga', 'lacquer', 'sbek', 'flat2d', 'yantra'] },
   { key: 'fantasy', label: 'វេទមន្ត Fantasy', themes: ['magic', 'magic2', 'avatar', 'atla', 'gems'] },
   { key: 'scifi', label: 'អនាគត Sci-Fi & Future', themes: ['scifi', 'starwars', 'anno', 'transformers', 'modern'] },
   { key: 'arcade', label: 'អាកាដ Arcade & Retro', themes: ['mario', 'contra', 'pvz', 'pixel'] },
@@ -13928,6 +14084,7 @@ window.__ouk = {
       canvasRect: (() => { const r = renderer.domElement.getBoundingClientRect(); return { w: r.width, h: r.height }; })()
     };
   },
+  flat2DArtDataURL: (setStyle, type, color) => flat2DArtTexture(setStyle, type, color).image.toDataURL(),
   pieceLabelBgColors: () => {
     const out = {};
     for (const key in pieceLabelMats) {
