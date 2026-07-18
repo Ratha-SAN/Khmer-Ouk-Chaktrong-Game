@@ -1990,6 +1990,14 @@
         // One doc per finished game (for the profile's progress graph) plus
         // atomic aggregate counters on the profile doc itself (cheap to
         // read for the summary numbers without scanning the whole log).
+        // A failed write here (blocked security rules, offline, an
+        // unauthenticated fallback uid -- see offlineUid()) used to be
+        // silently swallowed by these catch handlers, so a player whose
+        // stats genuinely weren't syncing had no way to tell "broken" apart
+        // from "haven't played yet" -- both just showed all zeros.
+        // window.__oukStatsSyncFailed (read by refreshStatsUI, in the main
+        // script below) now surfaces that distinction as a visible warning
+        // instead of a silent console.warn only the developer console sees.
         window.__oukAuth.recordGameResult = function (uid, entry) {
           try {
             var inc = firebase.firestore.FieldValue.increment(1);
@@ -1997,7 +2005,7 @@
               : entry.result === 'abandon' ? 'stats.abandons' : 'stats.draws';
             db.collection('users').doc(uid).collection('games').add(Object.assign({}, entry, {
               playedAt: firebase.firestore.FieldValue.serverTimestamp()
-            })).catch(function (err) { console.warn('Firestore game-result save failed:', err); });
+            })).catch(function (err) { window.__oukStatsSyncFailed = true; console.warn('Firestore game-result save failed:', err); });
             // "Games" (and the win-rate derived from it) only counts games
             // that actually reached a decisive end -- an abandoned game
             // still increments its own counter, just not that one.
@@ -2005,8 +2013,9 @@
             if (entry.result !== 'abandon') statsUpdate['stats.games'] = inc;
             statsUpdate[incField] = inc;
             db.collection('users').doc(uid).set(statsUpdate, { merge: true })
-              .catch(function (err) { console.warn('Firestore stats update failed:', err); });
-          } catch (err) { console.warn('Firestore game-result save threw:', err); }
+              .then(function () { window.__oukStatsSyncFailed = false; })
+              .catch(function (err) { window.__oukStatsSyncFailed = true; console.warn('Firestore stats update failed:', err); });
+          } catch (err) { window.__oukStatsSyncFailed = true; console.warn('Firestore game-result save threw:', err); }
         };
         window.__oukAuth.fetchGameHistory = function (uid, limit) {
           return db.collection('users').doc(uid).collection('games')
@@ -2759,6 +2768,9 @@
     <p id="profileStatus" style="display:none;color:var(--accent);font-size:12px;margin-top:10px"></p>
     <hr class="profileDivider">
     <h2 style="font-size:15px;margin:0 0 10px">ស្ថិតិអ្នកលេង — Player Statistics</h2>
+    <p id="statsSyncWarning" class="loginHint" style="display:none;text-align:center;color:var(--danger)">
+      ⚠ ស្ថិតិមិនអាចរក្សាទុកបានទេ សូមពិនិត្យអ៊ីនធឺណិត — Stats couldn't be saved. Check your connection and try again.
+    </p>
     <div id="statsSummary" class="statsSummary">
       <div class="statTile"><span id="statGames">0</span><small>ល្បែង Games</small></div>
       <div class="statTile"><span id="statWins">0</span><small>ឈ្នះ Wins</small></div>
@@ -6643,8 +6655,11 @@ function flat2DArtTexture(setStyle, type, color) {
     // dot sits -- pulled in close to the seal's own top vertex (not
     // touching it) for every rank except the Knight, whose wider gap
     // (its dot sits well clear of the rhombus's own sharp point) is
-    // left as it was.
-    let glyphOy = 0, glyphMaxW = 120, topY = 24, botY = 232, redDotGap = 5;
+    // left as it was. glyphScale is a per-rank multiplier on top of the
+    // usual length-based font size, for a rank whose glyph needs to read
+    // a touch smaller than that formula alone gives (currently just the
+    // Bishop's own).
+    let glyphOy = 0, glyphMaxW = 120, topY = 24, botY = 232, redDotGap = 5, glyphScale = 1;
 
     switch (type) {
       case E.KING: {
@@ -6738,8 +6753,9 @@ function flat2DArtTexture(setStyle, type, color) {
         };
         tri(cxp, bcy - r, 0); tri(cxp + r, bcy, Math.PI / 2);
         tri(cxp, bcy + r, Math.PI); tri(cxp - r, bcy, -Math.PI / 2);
-        glyphOy = midY - cyp; // the kite's own widest cross-section
+        glyphOy = midY - cyp - 8; // the kite's own widest cross-section, raised up slightly
         glyphMaxW = 118;
+        glyphScale = 0.9; // reads a touch smaller than the usual length-based size
         topY = topPtY; botY = botPtY;
         break;
       }
@@ -6839,7 +6855,7 @@ function flat2DArtTexture(setStyle, type, color) {
     redDot(cxp, topY - redDotGap);
     const khY = NAMES[type].kh;
     glyphCentered(khY, cxp, cyp + glyphOy,
-      '700 ' + (khY.length > 3 ? 42 : 50) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink, glyphMaxW);
+      '700 ' + ((khY.length > 3 ? 42 : 50) * glyphScale).toFixed(1) + 'px "Noto Sans Khmer","Khmer OS","Khmer MN",sans-serif', ink, glyphMaxW);
     ctx.font = '600 18px "Segoe UI",sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = ink;
@@ -14051,8 +14067,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.6.1';
 const WHATS_NEW = [
+  {
+    version: '1.6.1',
+    date: '2026-07-18',
+    title: { kh: 'សាក់យន្ត៖ កែឈ្មោះគោល — ស្ថិតិអ្នកលេង៖ ព្រមានពេលមិនអាចរក្សាទុកបាន', en: 'Sak Yantra: refined the Bishop\'s name — Player Stats: warns when it can\'t actually save' },
+    items: [
+      { kh: 'ឈ្មោះ "គោល" នៅលើកាតគោលក្នុងសាក់យន្តឥឡូវតូចបន្តិច ហើយលើកឡើងខ្ពស់បន្តិចផងដែរ។',
+        en: "The Bishop's own Khmer name (\"គោល\") on its Sak Yantra card now reads slightly smaller and sits a touch higher." },
+      { kh: 'ស្ថិតិអ្នកលេង (ល្បែង/ឈ្នះ/ចាញ់/ស្មើ) ពីមុនអាចបរាជ័យក្នុងការរក្សាទុកដោយស្ងាត់ស្ងៀម (ច្បាប់សុវត្ថិភាព គ្មានអ៊ីនធឺណិត ឬការចូលប្រើមិនពិត) ដោយគ្មានវិធីណាឲ្យអ្នកលេងដឹងថាតើវាគ្រាន់តែមិនទាន់ចាប់ផ្ដើមលេង ឬពិតជាខូច។ ឥឡូវប្រអប់ស្ថិតិបង្ហាញសារព្រមានច្បាស់នៅពេលការរក្សាទុកបរាជ័យ ជំនួសឲ្យបង្ហាញលេខសូន្យស្ងាត់ៗ។',
+        en: "Player stats (games/wins/losses/draws) could previously fail to save silently (a security-rule rejection, no connection, or an unauthenticated fallback identity) with no way to tell that apart from genuinely not having played yet -- both just showed all zeros. The stats panel now shows a clear warning when a save actually fails, instead of quietly showing zero." }
+    ]
+  },
   {
     version: '1.6.0',
     date: '2026-07-18',
@@ -15473,6 +15500,11 @@ function refreshStatsUI() {
   if (!currentProfile || !currentProfile.uid) return;
   const uid = currentProfile.uid;
   paintStatTiles(currentProfile.stats);
+  // Surfaces a real write failure (blocked security rules, offline, an
+  // unauthenticated fallback uid) as a visible warning instead of the
+  // all-zeros tiles looking identical to "haven't played yet" -- see
+  // window.__oukStatsSyncFailed's own comment (set in recordGameResult).
+  document.getElementById('statsSyncWarning').style.display = window.__oukStatsSyncFailed ? 'block' : 'none';
   Promise.resolve(window.__oukAuth.fetchProfile(uid)).then((fresh) => {
     if (fresh && fresh.stats) { currentProfile.stats = fresh.stats; paintStatTiles(fresh.stats); }
   }).catch(() => {});
@@ -15809,6 +15841,14 @@ window.__ouk = {
   // having to play out a whole game through UI clicks.
   debugLoadState: (json) => { state = E.fromJSON(json); lastMove = null; selected = -1; legalForSelected = []; gameOver = false; clearMarkers(); refreshAll(); },
   debugCurrentProfile: () => currentProfile,
+  // Test-only: stand in for a real completeSignIn() (which needs a real
+  // Firebase Auth session) so Playwright can exercise the player-stats
+  // recording pipeline without one.
+  debugSetProfile: (profile) => { currentProfile = profile; },
+  // Test-only: the exact same code path the "New Game" button uses
+  // (recordGameAbandonIfInProgress + resetGame), so Playwright can verify
+  // a second game's stats are recorded too, not just the first.
+  debugNewGame: () => newGame(),
   debugFlat2DSize: (setStyle, type) => (setStyle === '2dyantra' ? FLAT2D_SIZE_YANTRA : FLAT2D_SIZE)[type],
   debugApplyMove: (m) => applyMove(m),
   debugFxLog: () => window.__oukFxLog.slice(),
@@ -15842,6 +15882,7 @@ window.__ouk = {
     abandons: document.getElementById('statAbandons').textContent,
     winRate: document.getElementById('statWinRate').textContent
   }),
+  statsSyncWarningVisible: () => document.getElementById('statsSyncWarning').style.display !== 'none',
   aiBusy: () => aiBusy,
   uiMode: () => uiMode,
   theme: () => themeKey,
