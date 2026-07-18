@@ -327,8 +327,29 @@
   .themeCatBtn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   .themeCatBtn.active .catCur { color: var(--on-accent); opacity: .85; }
   .themeCatBtn.hasSelection { border-color: var(--accent); }
+  /* position: fixed, and moved to be a direct child of <body> at open
+     time (see buildThemeCategoryUI/positionThemeCatDrop) -- for two
+     separate reasons, both only visible once the Playful/Kids category
+     grew to 5 themes and this dropdown got tall enough to trigger them:
+     (1) every settings-panel accordion (details.acc, see below) clips
+     its own content with overflow:hidden (just to keep the summary's
+     rounded corners clean), which was silently clipping the bottom of
+     this dropdown with no way to scroll the clipped-off last item back
+     into view -- the clip happens on the ANCESTOR, not on this element's
+     own overflow-y:auto, so no amount of scrolling here helps; (2) on the
+     mobile layout #panel itself is a position:fixed sheet with its own
+     CSS transform (see the @media block far below), and per spec ANY
+     transform on an ancestor makes that ancestor the containing block for
+     position:fixed descendants instead of the viewport -- so a fixed
+     dropdown left nested inside #panel would be positioned relative to
+     the (possibly scrolled) panel sheet, not the screen. Moving this to
+     a <body> child sidesteps both: body clips nothing and has no
+     transform, so getBoundingClientRect()-based top/left math in
+     positionThemeCatDrop() is reliably viewport-relative. z-index 17 is
+     deliberately above #panel's own mobile z-index (15) and the mobile
+     toolbar's (16), so it isn't hidden under either. */
   .themeCatDrop {
-    position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 8;
+    position: fixed; z-index: 17;
     background: var(--panel-bg, var(--surface-1)); border: 1px solid var(--accent-dim); border-radius: 8px;
     box-shadow: 0 8px 24px rgba(0,0,0,.4); min-width: 220px; max-width: 280px;
     max-height: 320px; overflow-y: auto; padding: 4px; display: none;
@@ -13897,8 +13918,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.5.3';
+const APP_VERSION = '1.5.4';
 const WHATS_NEW = [
+  {
+    version: '1.5.4',
+    date: '2026-07-18',
+    title: { kh: 'ជួសជុលបញ្ជីប្រភេទស្បែកកុមារមិនអាចរំកិលចុះមើលស្បែកចុងក្រោយបាន', en: 'Fixed the Playful/Kids theme-category list not scrolling to its last theme' },
+    items: [
+      { kh: 'ជួសជុលកំហុសដែលបញ្ជីទម្លាក់ចុះនៃប្រភេទស្បែក "កុមារ Playful & Kids" កាត់ផ្ដាច់ស្បែកចុងក្រោយ (ល្អឹមល្អែម Orbs) ចោលដោយគ្មានផ្លូវរំកិលឲ្យឃើញ — ប្រអប់ការកំណត់ខាងក្រៅកាត់ផ្ដាច់វា ដូច្នេះការរំកិលក្នុងបញ្ជីទម្លាក់ចុះខ្លួនឯងមិនអាចជួយបានទេ។ បញ្ជីទម្លាក់ចុះឥឡូវលេចឡើងនៅខាងក្រៅប្រអប់ការកំណត់ ដូច្នេះមិនអាចត្រូវបានកាត់ផ្ដាច់ទៀតឡើយ ហើយធានាថានៅតែសមនឹងអេក្រង់ទាំងលើកុំព្យូទ័រនិងទូរស័ព្ទ។',
+        en: "Fixed a bug where the \"Playful & Kids\" theme-category dropdown clipped off its last theme (Orbs) with no way to scroll it into view -- the surrounding settings panel was clipping the dropdown before its own internal scroll could help. The dropdown now renders outside the settings panel entirely so it can no longer be clipped, and stays correctly positioned and sized to fit the screen on both desktop and mobile." }
+    ]
+  },
   {
     version: '1.5.3',
     date: '2026-07-18',
@@ -15402,6 +15432,23 @@ function closeThemeCatDropdowns() {
   document.querySelectorAll('.themeCatDrop').forEach(d => d.classList.remove('open'));
   document.querySelectorAll('.themeCatBtn').forEach(b => b.classList.remove('active'));
 }
+// Positions a .themeCatDrop (now position:fixed, see its own CSS comment)
+// directly under its own button, clamped to the viewport so it never
+// runs off the right edge or gets cut off at the bottom with no way to
+// scroll the rest into view -- has to be recomputed every open since the
+// button's own screen position can change (panel scroll, window resize).
+function positionThemeCatDrop(btn, drop) {
+  const r = btn.getBoundingClientRect();
+  drop.style.left = r.left + 'px';
+  drop.style.top = (r.bottom + 4) + 'px';
+  const maxW = Math.min(280, window.innerWidth - r.left - 8);
+  drop.style.maxWidth = Math.max(180, maxW) + 'px';
+  if (r.left + Math.max(180, maxW) > window.innerWidth - 8) {
+    drop.style.left = Math.max(8, window.innerWidth - Math.max(180, maxW) - 8) + 'px';
+  }
+  const spaceBelow = window.innerHeight - r.bottom - 12;
+  drop.style.maxHeight = Math.max(120, Math.min(320, spaceBelow)) + 'px';
+}
 function buildThemeCategoryUI() {
   const row = document.getElementById('themeCatRow');
   const sel = document.getElementById('themeSel');
@@ -15423,6 +15470,7 @@ function buildThemeCategoryUI() {
         openThemeCatKey = cat.key;
         btn.classList.add('active');
         drop.classList.add('open');
+        positionThemeCatDrop(btn, drop);
       }
     };
     const drop = document.createElement('div');
@@ -15443,10 +15491,22 @@ function buildThemeCategoryUI() {
       drop.appendChild(item);
     });
     wrap.appendChild(btn);
-    wrap.appendChild(drop);
+    // drop is deliberately NOT nested inside wrap -- see its own CSS
+    // comment (accordion clipping + mobile #panel transform both break a
+    // nested position:fixed dropdown). wrap.themeCatDrop is a plain JS
+    // property (not a DOM relationship) so refreshThemeCategoryUI() can
+    // still find each category's own drop without a query scoped to wrap.
+    wrap.themeCatDrop = drop;
+    document.body.appendChild(drop);
     row.appendChild(wrap);
   });
   document.addEventListener('click', closeThemeCatDropdowns);
+  // the dropdown is position:fixed now (see its own CSS comment), so it
+  // no longer tracks the button if the settings panel scrolls or the
+  // window resizes -- just close it rather than repositioning on every
+  // scroll tick
+  document.getElementById('panel').addEventListener('scroll', closeThemeCatDropdowns);
+  window.addEventListener('resize', closeThemeCatDropdowns);
   refreshThemeCategoryUI();
 }
 function refreshThemeCategoryUI() {
@@ -15465,8 +15525,8 @@ function refreshThemeCategoryUI() {
     btn.querySelector('.catCur').textContent = isCur ? (labelByValue[curValue] || '').replace(/\s*🔒$/, '') : '';
     btn.classList.toggle('hasSelection', isCur);
     btn.classList.toggle('active', openThemeCatKey === cat.key);
-    wrap.querySelector('.themeCatDrop').classList.toggle('open', openThemeCatKey === cat.key);
-    wrap.querySelectorAll('.item').forEach(item => {
+    wrap.themeCatDrop.classList.toggle('open', openThemeCatKey === cat.key);
+    wrap.themeCatDrop.querySelectorAll('.item').forEach(item => {
       item.textContent = labelByValue[item.dataset.value] || item.dataset.value;
       item.classList.toggle('selected', item.dataset.value === curValue);
     });
