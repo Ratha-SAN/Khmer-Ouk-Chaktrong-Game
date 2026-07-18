@@ -6530,6 +6530,15 @@ function flat2DArtTexture(setStyle, type, color) {
     // itself picks light-vs-dark for contrast); also the King's own
     // outer-seal color (see the comment above).
     const gold = light ? '#8a6316' : '#f0c65a';
+    // Each rank's circle radius below is its shape's true inradius MINUS
+    // this: outerSeal's own border is a 7px stroke (3.5px bleeding in
+    // from the path) and the circle's own stroke is 2.5px (1.25px
+    // bleeding out), so a circle drawn at the exact inradius would have
+    // the two strokes visibly overlap at every tangent point. Pulling
+    // the radius in by both halves together makes the circle's own
+    // outer edge just meet the seal's own inner edge -- touching, not
+    // overlapping.
+    const strokeGap = 7 / 2 + 2.5 / 2;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     // A small abstract "sacred script" mark standing in for a khom-script
     // syllable: a stem plus a hook, bar, or curl (one of three variants,
@@ -6634,9 +6643,9 @@ function flat2DArtTexture(setStyle, type, color) {
         // keeps, since the King's own seal stands for the monarchy itself.
         outerSeal([[S, S], [EDGE, S], [EDGE, EDGE], [S, EDGE]], null, gold);
         // inradius of the square = half its own side length, centered on
-        // the square's own center (which is also cxp,cyp here) -- touches
-        // all 4 edges at their midpoints
-        ctx.beginPath(); ctx.arc(cxp, cyp, (EDGE - S) / 2, 0, Math.PI * 2);
+        // the square's own center (which is also cxp,cyp here) -- minus
+        // strokeGap so it touches all 4 edges without overlapping them
+        ctx.beginPath(); ctx.arc(cxp, cyp, (EDGE - S) / 2 - strokeGap, 0, Math.PI * 2);
         ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(cxp, cyp - 68); ctx.lineTo(cxp + 68, cyp); ctx.lineTo(cxp, cyp + 68); ctx.lineTo(cxp - 68, cyp);
@@ -6669,8 +6678,9 @@ function flat2DArtTexture(setStyle, type, color) {
         // via the standard side-length-weighted formula, NOT the
         // triangle's own centroid or cxp/cyp, so the circle is genuinely
         // tangent to all 3 edges rather than just roughly centered
-        // with clearance to spare.
-        const qcy = 142, r = 58;
+        // with clearance to spare (minus strokeGap so it touches without
+        // overlapping).
+        const qcy = 142, r = 58 - strokeGap;
         ctx.beginPath(); ctx.arc(cxp, qcy, r, 0, Math.PI * 2);
         ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2;
@@ -6700,8 +6710,9 @@ function flat2DArtTexture(setStyle, type, color) {
         // incenter sits on x=cxp, but the top/bottom asymmetry (a much
         // longer top edge than bottom edge) pulls it well above cyp;
         // computed from the kite's own 4 edge lines, not just cyp with a
-        // fixed clearance.
-        const bcy = 114, r = 50;
+        // fixed clearance (minus strokeGap so it touches without
+        // overlapping).
+        const bcy = 114, r = 50 - strokeGap;
         ctx.beginPath(); ctx.arc(cxp, bcy, r, 0, Math.PI * 2);
         ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.fillStyle = ink;
@@ -6729,8 +6740,9 @@ function flat2DArtTexture(setStyle, type, color) {
         redDotGap = 8; // kept at the original wider gap -- not pulled in like every other rank's dot
         // true incircle of this rhombus -- symmetric on both axes, so it
         // stays centered on cxp/cyp; r is the actual distance from center
-        // to each edge line (not an arbitrary clearance-padded guess).
-        const r = 51;
+        // to each edge line (not an arbitrary clearance-padded guess),
+        // minus strokeGap so it touches without overlapping.
+        const r = 51 - strokeGap;
         ctx.beginPath(); ctx.arc(cxp, cyp, r, 0, Math.PI * 2);
         ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         scriptRing(r - 14, 8, Math.PI / 8);
@@ -6746,8 +6758,8 @@ function flat2DArtTexture(setStyle, type, color) {
         const S = 40, EDGE = 216;
         outerSeal([[S, S], [EDGE, S], [EDGE, EDGE], [S, EDGE]]);
         // same square as the King's own seal -- inradius = half the side
-        // length, touching all 4 edge midpoints
-        ctx.beginPath(); ctx.arc(cxp, cyp, (EDGE - S) / 2, 0, Math.PI * 2);
+        // length, touching all 4 edge midpoints without overlapping them
+        ctx.beginPath(); ctx.arc(cxp, cyp, (EDGE - S) / 2 - strokeGap, 0, Math.PI * 2);
         ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(cxp, cyp - 68); ctx.lineTo(cxp + 68, cyp); ctx.lineTo(cxp, cyp + 68); ctx.lineTo(cxp - 68, cyp);
@@ -6789,9 +6801,10 @@ function flat2DArtTexture(setStyle, type, color) {
         // true incircle of this concave dart, tangent to BOTH the outer
         // tip-to-shoulder edges and the inner shoulder-to-notch edges
         // (computed from those 4 edge lines directly) -- sits low enough
-        // that its bottom just clears the notch vertex without poking
-        // through the concave opening.
-        const r = 41, cy2 = 126;
+        // that its bottom clears the notch vertex without poking through
+        // the concave opening. Minus strokeGap so it touches the tip/
+        // shoulder edges without overlapping them.
+        const r = 41 - strokeGap, cy2 = 126;
         ctx.beginPath(); ctx.arc(cxp, cy2, r, 0, Math.PI * 2);
         ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
         ctx.strokeStyle = ink; ctx.lineWidth = 2;
@@ -7996,7 +8009,13 @@ function buildGalacticPiece(g, add, type, promoted, color) {
   }
 
   const moonMat = new THREE.MeshStandardMaterial({ color: moonHex, emissive: moonHex, emissiveIntensity: 0.6, roughness: 0.4 });
-  const ringMat = new THREE.MeshBasicMaterial({ color: moonHex, transparent: true, opacity: 0.28, side: THREE.DoubleSide });
+  // Black's own orbit rings are a fixed bright red across every rank
+  // (not the rank-tinted moonHex every White piece's own ring uses) --
+  // a simple, static "this is the opponent" read at a glance, brighter
+  // than the usual faint guide-ring opacity so it actually reads as red
+  // rather than a pale tint.
+  const ringColor = color === E.BLACK ? 0xff2020 : moonHex;
+  const ringMat = new THREE.MeshBasicMaterial({ color: ringColor, transparent: true, opacity: color === E.BLACK ? 0.55 : 0.28, side: THREE.DoubleSide });
   const moons = [];
   for (let i = 0; i < moonCount; i++) {
     const orbitR = moonRadius + i * 0.05;
@@ -13992,8 +14011,19 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.5.7';
+const APP_VERSION = '1.5.8';
 const WHATS_NEW = [
+  {
+    version: '1.5.8',
+    date: '2026-07-18',
+    title: { kh: 'ចក្រវាឡ៖ រង្វង់ចរាចរអុកខ្មៅជាពណ៌ក្រហមភ្លឺ — សាក់យន្ត៖ រង្វង់ខាងក្នុងប៉ះស៊ុមដោយគ្មានត្រួតគ្នា', en: 'Galactic: Black\'s orbit rings now bright red — Sak Yantra: inner circle touches the frame without overlapping it' },
+    items: [
+      { kh: 'ស្បែកចក្រវាឡ (Galactic) ឥឡូវរង្វង់ចរាចរព្រះច័ន្ទរបស់អុកខ្មៅ (គូប្រកួត) ប្ដូរទៅជាពណ៌ក្រហមភ្លឺឯកសណ្ឋានលើគ្រប់ឋានៈ ជំនួសពណ៌ដែលប្រែប្រួលទៅតាមឋានៈ — ជាសញ្ញាមួយមើលឃើញភ្លាមថាកូនអុកនេះជារបស់អុកខ្មៅ។ អុកសនៅតែប្រើពណ៌រង្វង់ដើមតាមឋានៈដដែល។',
+        en: "In the Galactic theme, every Black piece's own moon-orbit rings are now a fixed bright red across all six ranks, instead of the rank-varying accent tint -- an instant \"this is the opponent's piece\" cue. White's rings are unchanged." },
+      { kh: 'រង្វង់មាសខាងក្នុងរបស់សាក់យន្តត្រូវបានទាញចូលបន្តិចទៀត ដើម្បីឲ្យខ្សែពណ៌របស់វាគ្រាន់តែប៉ះនឹងស៊ុមខាងក្រៅដោយគ្មានត្រួតគ្នាទៀត — ពីមុនរង្វង់ត្រូវបានគូឲ្យប៉ះខ្សែផ្លូវពិតប្រាកដនៃរាងឆ្នូតធ្វើឲ្យខ្សែក្រាស់ទាំងពីរត្រួតគ្នាបន្តិចត្រង់ចំណុចប៉ះ។',
+        en: "Sak Yantra's gold inner circle is pulled in slightly further so its own stroke just touches the outer seal's stroke without visibly crossing it -- the circle was previously sized to the shape's exact mathematical inradius, which put its stroke right on top of the seal's own stroke at each tangent point." }
+    ]
+  },
   {
     version: '1.5.7',
     date: '2026-07-18',
