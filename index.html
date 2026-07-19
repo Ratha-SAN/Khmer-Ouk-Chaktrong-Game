@@ -5106,6 +5106,15 @@ const MAT_B = new THREE.MeshPhysicalMaterial({ color: 0x6d2a18, roughness: 0.45,
 // that survives being called again later on its own -- e.g. from the
 // separate piece-style dropdown -- without a full theme re-application.
 let pieceRealColorW = 0xe9dabb, pieceRealColorB = 0x6d2a18;
+// A separate material for just the base disc (and carved's own collar) of
+// the plain matte piece styles' shared default builder -- so its own
+// texture can fade toward the board's own tile color at the very bottom
+// (see buildPieceBaseTexture), grounding the piece into the board instead
+// of a hard-edged cutout. Kept in sync with MAT_W/MAT_B's own roughness/
+// metalness (not MAT_BASE_W/B's fixed Magic/Magic II metal-accent
+// values) every theme application, in updatePieceMaterialTexture.
+const MAT_PLAIN_BASE_W = new THREE.MeshPhysicalMaterial({ color: 0xe9dabb, roughness: 0.45, metalness: 0.05 });
+const MAT_PLAIN_BASE_B = new THREE.MeshPhysicalMaterial({ color: 0x6d2a18, roughness: 0.45, metalness: 0.05 });
 const MAT_GOLD = new THREE.MeshStandardMaterial({ color: 0xd4a548, roughness: 0.3, metalness: 0.6 });
 // A bright contrasting cap/accent color for the Kids Playroom theme's
 // chunky piece set (see buildKidsPiece) -- a cheerful sunshine yellow
@@ -5592,7 +5601,7 @@ function applyPieceLuminescence() {
   MAT_B.emissive.copy(glowTint(MAT_B.color));
   MAT_W.emissiveIntensity = pieceLuminescence;
   MAT_B.emissiveIntensity = pieceLuminescence;
-  for (const [mat, base] of [[MAT_BASE_W, MAT_W], [MAT_BASE_B, MAT_B], [MAT_ACCENT_W, MAT_W], [MAT_ACCENT_B, MAT_B]]) {
+  for (const [mat, base] of [[MAT_BASE_W, MAT_W], [MAT_BASE_B, MAT_B], [MAT_ACCENT_W, MAT_W], [MAT_ACCENT_B, MAT_B], [MAT_PLAIN_BASE_W, MAT_W], [MAT_PLAIN_BASE_B, MAT_B]]) {
     mat.emissive.copy(base.emissive);
     mat.emissiveIntensity = pieceLuminescence;
   }
@@ -5632,7 +5641,14 @@ function buildPiece(type, color, promoted, seed) {
   // body gets the piece color blended a touch toward gold with its own
   // slight shine (mat) -- replacing the old uniform-chrome body plus a
   // separate solid gold trim ring.
-  const baseMat = goldAccents ? (color === E.WHITE ? MAT_BASE_W : MAT_BASE_B) : (color === E.WHITE ? MAT_W : MAT_B);
+  // Non-goldAccents 'traditional'/'carved'/'minimal' bases get their own
+  // MAT_PLAIN_BASE_W/B (see its own comment) instead of sharing MAT_W/B
+  // with the rest of the body, so just the base can fade toward the
+  // board's own tile color at its bottom rim.
+  const plainStyle = style === 'traditional' || style === 'carved' || style === 'minimal';
+  const baseMat = goldAccents ? (color === E.WHITE ? MAT_BASE_W : MAT_BASE_B)
+    : plainStyle ? (color === E.WHITE ? MAT_PLAIN_BASE_W : MAT_PLAIN_BASE_B)
+    : (color === E.WHITE ? MAT_W : MAT_B);
   const mat = goldAccents ? (color === E.WHITE ? MAT_ACCENT_W : MAT_ACCENT_B) : (color === E.WHITE ? MAT_W : MAT_B);
   const add = (geom, y, m) => {
     const mesh = new THREE.Mesh(geom, m || mat);
@@ -5671,8 +5687,12 @@ function buildPiece(type, color, promoted, seed) {
       // piece (body 0.5 + torus + a 0.34-tall cone + sphere, ~1.1 total)
       // -- shortened the body and cone here (carved's own stepped-tower
       // branch below is untouched, it wasn't part of the complaint) so it
-      // reads less stretched, without changing its part count/shape.
-      const bodyH = style === 'carved' ? 0.5 : 0.38;
+      // reads less stretched, without changing its part count/shape. That
+      // first pass (bodyH 0.38, cone 0.22) went too far the other way and
+      // read as too short/stubby -- these split the difference, keeping
+      // the King a clear head-and-shoulders taller than every other piece
+      // (as a King should be) while still shorter than the original 1.1.
+      const bodyH = style === 'carved' ? 0.5 : 0.44;
       add(new THREE.CylinderGeometry(0.2 * wide, 0.28 * wide, bodyH, seg), 0.14 + bodyH / 2);
       if (style === 'carved') { // stepped prang tower
         add(new THREE.CylinderGeometry(0.17, 0.22, 0.14, seg), 0.68);
@@ -5680,8 +5700,8 @@ function buildPiece(type, color, promoted, seed) {
         add(new THREE.ConeGeometry(0.12, 0.3, seg), 1.0);
       } else {
         add(new THREE.TorusGeometry(0.17, 0.045, 10, seg), 0.14 + bodyH).rotation.x = Math.PI / 2;
-        add(new THREE.ConeGeometry(0.17 * wide, 0.22, seg), 0.14 + bodyH + 0.11);
-        add(new THREE.SphereGeometry(0.05, 12, 10), 0.14 + bodyH + 0.27);
+        add(new THREE.ConeGeometry(0.17 * wide, 0.28, seg), 0.14 + bodyH + 0.14);
+        add(new THREE.SphereGeometry(0.05, 12, 10), 0.14 + bodyH + 0.33);
       }
       break;
     }
@@ -9074,44 +9094,95 @@ function buildMarbleTexture(hex, veinHex, key) {
   }
   ctx.filter = 'none'; ctx.globalAlpha = 1;
   const tex = new THREE.CanvasTexture(cv);
+  // A CanvasTexture defaults to no color space at all, which the
+  // renderer's color management then treats as already-linear -- but
+  // these pixels are sRGB-encoded (plain hex colors drawn straight to a
+  // 2D canvas), so leaving this unset makes the renderer misinterpret
+  // them, reading as washed-out/too-bright, especially for darker colors.
+  tex.colorSpace = THREE.SRGBColorSpace;
   marbleTexCache[key] = tex;
   return tex;
 }
-// A subtle grain + soft top-lit gradient for the plain matte piece styles
-// (Classic Wood, Angkor Stone, Modern Night, Magic, Magic II, Sofisticate,
-// iOS Studio, Khmer Traditional) that otherwise render as one perfectly
-// flat color -- same "base fill, texture supplies the color" pattern
-// buildMarbleTexture above uses, just a much gentler treatment (fine
-// scattered flecks instead of veins, a soft light/shadow gradient instead
-// of any hue shift) so the exact same color still reads at a glance, just
-// less flat/plasticky up close. See updatePieceMaterialTexture.
-const plainPieceTexCache = {};
-function buildPlainPieceTexture(hex, key) {
-  if (plainPieceTexCache[key]) return plainPieceTexCache[key];
-  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
-  const ctx = cv.getContext('2d');
+// A wood-grain texture + soft top-lit gradient for the plain matte piece
+// styles (Classic Wood, Angkor Stone, Modern Night, Magic, Magic II,
+// Sofisticate, iOS Studio, Khmer Traditional) that otherwise render as
+// one perfectly flat color -- same "base fill, texture supplies the
+// color" pattern buildMarbleTexture above uses, just a much gentler
+// treatment: thin wavy streaks in the SAME hue (not a contrasting vein
+// color, so it reads as the wood's own grain rather than an inlay) plus
+// fine scattered flecks and a soft light/shadow gradient, all low-alpha
+// enough that the texture's own average color still matches the theme's
+// flat piece color. See updatePieceMaterialTexture.
+function paintPlainPieceGrain(ctx, hex) {
   ctx.fillStyle = '#' + hex.toString(16).padStart(6, '0');
   ctx.fillRect(0, 0, 128, 128);
+  // grain streaks: a dozen-ish thin, wavy, mostly-horizontal lines,
+  // alternating a touch lighter/darker than the base fill.
+  for (let i = 0; i < 14; i++) {
+    ctx.filter = 'blur(0.8px)';
+    ctx.strokeStyle = Math.random() < 0.5 ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.10)';
+    ctx.lineWidth = 0.8 + Math.random() * 1.6;
+    ctx.beginPath();
+    const y0 = (i / 14) * 128 + (Math.random() - 0.5) * 6;
+    ctx.moveTo(-10, y0);
+    let x = -10, y = y0;
+    while (x < 138) {
+      const nx = x + 14 + Math.random() * 18;
+      const ny = y + (Math.random() - 0.5) * 10;
+      ctx.quadraticCurveTo(x + 7, y + (Math.random() - 0.5) * 8, nx, ny);
+      x = nx; y = ny;
+    }
+    ctx.stroke();
+  }
+  ctx.filter = 'none';
   // slight top-lit gradient: a touch brighter near the top, a touch
   // darker near the bottom, like ambient light catching a turned/carved
-  // surface -- alpha stays low enough that the texture's own average
-  // color still matches the theme's flat piece color.
+  // surface.
   const grad = ctx.createLinearGradient(0, 0, 0, 128);
   grad.addColorStop(0, 'rgba(255,255,255,0.10)');
   grad.addColorStop(0.5, 'rgba(255,255,255,0)');
   grad.addColorStop(1, 'rgba(0,0,0,0.12)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 128, 128);
-  // fine grain: tiny scattered flecks, roughly half lighter half darker,
-  // each at low opacity -- reads as a subtle painted/turned-wood texture
-  // rather than a perfectly smooth plastic surface.
-  for (let i = 0; i < 260; i++) {
-    ctx.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)';
-    const x = Math.random() * 128, y = Math.random() * 128, s = 0.6 + Math.random() * 1.2;
+  // fine grain flecks on top of the streaks -- reads as a subtle
+  // painted/turned-wood texture rather than a perfectly smooth surface.
+  for (let i = 0; i < 160; i++) {
+    ctx.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)';
+    const x = Math.random() * 128, y = Math.random() * 128, s = 0.6 + Math.random() * 1.0;
     ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill();
   }
+}
+const plainPieceTexCache = {};
+function buildPlainPieceTexture(hex, key) {
+  if (plainPieceTexCache[key]) return plainPieceTexCache[key];
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  paintPlainPieceGrain(cv.getContext('2d'), hex);
   const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace; // see buildMarbleTexture's own comment on this
   plainPieceTexCache[key] = tex;
+  return tex;
+}
+// The piece's own base disc (see buildPiece's own baseMat/
+// MAT_PLAIN_BASE_W/B): the same grain as buildPlainPieceTexture, plus a
+// fade toward the board's own tile color right at the bottom edge of the
+// canvas -- which a THREE.CylinderGeometry's default side UVs map to this
+// mesh's own bottom rim, its actual contact point with the board -- so
+// the piece grounds into the square it's standing on instead of reading
+// as a hard-edged cutout sitting on top of it.
+const plainPieceBaseTexCache = {};
+function buildPieceBaseTexture(hex, tileHex, key) {
+  if (plainPieceBaseTexCache[key]) return plainPieceBaseTexCache[key];
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const ctx = cv.getContext('2d');
+  paintPlainPieceGrain(ctx, hex);
+  const grad = ctx.createLinearGradient(0, 128, 0, 72);
+  grad.addColorStop(0, '#' + tileHex.toString(16).padStart(6, '0'));
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 72, 128, 56);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  plainPieceBaseTexCache[key] = tex;
   return tex;
 }
 let paintingBackdropCache = null;
@@ -9428,20 +9499,29 @@ function setPixelation(active) {
 // on its own, without a full theme re-application, whenever just the
 // piece style changes (see pieceStyleSel's own onchange below).
 function updatePieceMaterialTexture() {
+  const t = theme();
   const GOLD_TINT_HEX = 0xd4a548;
   const realAccentW = lerpSRGBHex(pieceRealColorW, GOLD_TINT_HEX, 0.3);
   const realAccentB = lerpSRGBHex(pieceRealColorB, GOLD_TINT_HEX, 0.3);
-  if (theme().marblePieces) {
+  // MAT_PLAIN_BASE_W/B (see their own comment) are a genuinely separate
+  // material now, not an alias of MAT_W/MAT_B, so their roughness/
+  // metalness have to be kept in sync with them explicitly every call.
+  MAT_PLAIN_BASE_W.roughness = MAT_PLAIN_BASE_B.roughness = MAT_W.roughness;
+  MAT_PLAIN_BASE_W.metalness = MAT_PLAIN_BASE_B.metalness = MAT_W.metalness;
+  if (t.marblePieces) {
     MAT_W.map = buildMarbleTexture(pieceRealColorW, 0x000000, 'mpW' + pieceRealColorW);
     MAT_B.map = buildMarbleTexture(pieceRealColorB, 0xffffff, 'mpB' + pieceRealColorB);
     MAT_W.color.setHex(0xffffff); MAT_B.color.setHex(0xffffff);
     MAT_BASE_W.color.setHex(pieceRealColorW); MAT_BASE_B.color.setHex(pieceRealColorB);
     MAT_ACCENT_W.color.setHex(realAccentW); MAT_ACCENT_B.color.setHex(realAccentB);
-    MAT_BASE_W.map = MAT_BASE_B.map = MAT_ACCENT_W.map = MAT_ACCENT_B.map = null;
-    MAT_W.needsUpdate = MAT_B.needsUpdate = MAT_BASE_W.needsUpdate = MAT_BASE_B.needsUpdate = MAT_ACCENT_W.needsUpdate = MAT_ACCENT_B.needsUpdate = true;
+    MAT_PLAIN_BASE_W.color.setHex(pieceRealColorW); MAT_PLAIN_BASE_B.color.setHex(pieceRealColorB);
+    MAT_BASE_W.map = MAT_BASE_B.map = MAT_ACCENT_W.map = MAT_ACCENT_B.map = MAT_PLAIN_BASE_W.map = MAT_PLAIN_BASE_B.map = null;
+    MAT_W.needsUpdate = MAT_B.needsUpdate = MAT_BASE_W.needsUpdate = MAT_BASE_B.needsUpdate =
+      MAT_ACCENT_W.needsUpdate = MAT_ACCENT_B.needsUpdate = MAT_PLAIN_BASE_W.needsUpdate = MAT_PLAIN_BASE_B.needsUpdate = true;
     return;
   }
-  const plain = ['traditional', 'carved', 'minimal', 'khmer'].includes(pieceStyle());
+  const style = pieceStyle();
+  const plain = ['traditional', 'carved', 'minimal', 'khmer'].includes(style);
   const entries = [
     [MAT_W, 'ppW', pieceRealColorW], [MAT_B, 'ppB', pieceRealColorB],
     [MAT_BASE_W, 'ppBaseW', pieceRealColorW], [MAT_BASE_B, 'ppBaseB', pieceRealColorB],
@@ -9452,6 +9532,21 @@ function updatePieceMaterialTexture() {
     else { mat.map = null; mat.color.setHex(hex); }
     mat.needsUpdate = true;
   }
+  // MAT_PLAIN_BASE_W/B (buildPiece's own baseMat for non-goldAccents
+  // traditional/carved/minimal -- Magic/Magic II keep MAT_BASE_W/B's own
+  // metal-accent base instead, khmer doesn't use baseMat at all) get the
+  // base-specific fade-to-tile texture instead of the plain grain, using
+  // this same match check buildPiece's own plainStyle uses.
+  const plainBase = !t.goldAccents && (style === 'traditional' || style === 'carved' || style === 'minimal');
+  if (plainBase) {
+    MAT_PLAIN_BASE_W.map = buildPieceBaseTexture(pieceRealColorW, t.tileDark, 'pbW' + pieceRealColorW + t.tileDark);
+    MAT_PLAIN_BASE_B.map = buildPieceBaseTexture(pieceRealColorB, t.tileDark, 'pbB' + pieceRealColorB + t.tileDark);
+    MAT_PLAIN_BASE_W.color.setHex(0xffffff); MAT_PLAIN_BASE_B.color.setHex(0xffffff);
+  } else {
+    MAT_PLAIN_BASE_W.map = MAT_PLAIN_BASE_B.map = null;
+    MAT_PLAIN_BASE_W.color.setHex(pieceRealColorW); MAT_PLAIN_BASE_B.color.setHex(pieceRealColorB);
+  }
+  MAT_PLAIN_BASE_W.needsUpdate = MAT_PLAIN_BASE_B.needsUpdate = true;
 }
 
 // ---------- theme application ----------
@@ -9545,7 +9640,7 @@ function applyTheme(key) {
   // reused across every theme switch, so anything a previous theme turned
   // on must be explicitly reset here, not just conditionally set --
   // otherwise it would silently leak into the next theme.
-  for (const mat of [MAT_W, MAT_B, MAT_BASE_W, MAT_BASE_B, MAT_ACCENT_W, MAT_ACCENT_B, frameMat, trayMat]) {
+  for (const mat of [MAT_W, MAT_B, MAT_BASE_W, MAT_BASE_B, MAT_ACCENT_W, MAT_ACCENT_B, MAT_PLAIN_BASE_W, MAT_PLAIN_BASE_B, frameMat, trayMat]) {
     mat.ior = t.ior || 1.5;
     mat.clearcoat = t.clearcoat || 0;
     mat.clearcoatRoughness = t.clearcoatRoughness || 0;
@@ -9580,6 +9675,7 @@ function applyTheme(key) {
   MAT_W.envMapIntensity = MAT_B.envMapIntensity =
     MAT_BASE_W.envMapIntensity = MAT_BASE_B.envMapIntensity =
     MAT_ACCENT_W.envMapIntensity = MAT_ACCENT_B.envMapIntensity =
+    MAT_PLAIN_BASE_W.envMapIntensity = MAT_PLAIN_BASE_B.envMapIntensity =
     Math.min(t.envMapIntensity || 0.25, 0.3);
   // Pieces-only polish floor: real chess pieces are waxed/lacquered, so a
   // completely clearcoat-free piece read as unfinished raw material
@@ -9589,7 +9685,7 @@ function applyTheme(key) {
   // gloss -- while the board/frame keep the theme's own (usually matte)
   // finish. Themes that do specify clearcoat keep exactly what they chose.
   if (!t.clearcoat) {
-    for (const mat of [MAT_W, MAT_B, MAT_BASE_W, MAT_BASE_B, MAT_ACCENT_W, MAT_ACCENT_B]) {
+    for (const mat of [MAT_W, MAT_B, MAT_BASE_W, MAT_BASE_B, MAT_ACCENT_W, MAT_ACCENT_B, MAT_PLAIN_BASE_W, MAT_PLAIN_BASE_B]) {
       mat.clearcoat = 0.28;
       mat.clearcoatRoughness = 0.5;
       mat.needsUpdate = true;
@@ -14233,8 +14329,21 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.8';
+const APP_VERSION = '1.6.9';
 const WHATS_NEW = [
+  {
+    version: '1.6.9',
+    date: '2026-07-19',
+    title: { kh: 'ស្តេចខ្ពស់ត្រឡប់មកវិញ, កូនអុកខ្មៅមិនស្លេកទៀតទេ, បន្ថែមវាយនភាពសាច់ឈើ និងឆាយចូលទៅពណ៌ក្តារ', en: 'King height restored, Black pieces no longer pale, real wood grain, base fades into the tile' },
+    items: [
+      { kh: 'ស្តេចនៅស្បែក ឈើបុរាណ, ថ្មអង្គរ, យប់ទំនើប, វេទមន្ត, វេទមន្តII, Sofisticate, iOS Studio ខ្ពស់តិចពេកបន្ទាប់ពីការកែសម្រួលពីមុន — ឥឡូវត្រឡប់ទៅកម្ពស់សមរម្យវិញ ខ្ពស់ជាងកូនអុកដទៃទៀតយ៉ាងច្បាស់ ដូចជាស្តេចគប្បីមាន។',
+        en: "The King in Classic Wood, Angkor Stone, Modern Night, Magic, Magic II, Sofisticate, and iOS Studio had gotten too short from the last height adjustment -- restored to a proper height, clearly taller than every other piece again, as a King should be." },
+      { kh: 'រកឃើញមូលហេតុពិតនៃការស្លេកនៃពណ៌កូនអុកខ្មៅ (និងសរសៃថ្មម្រម័រ)៖ វាយនភាពដែលគូរដោយកម្មវិធីខ្វះការកំណត់លំហពណ៌ត្រឹមត្រូវ ធ្វើឲ្យកម្មវិធីបង្ហាញកម្រិតពណ៌ខុសទាំងស្រុង — ជះឥទ្ធិពលខ្លាំងបំផុតទៅលើពណ៌ងងឹតៗដូចជាកូនអុកខ្មៅ។ ឥឡូវពណ៌ត្រូវបានកែតម្រូវត្រឹមត្រូវហើយ។',
+        en: "Found the real cause of the pale Black pieces (and washed-out Marble veins): the app's own procedurally-drawn textures were missing a color-space tag, causing the renderer to misinterpret their color values entirely -- hitting darker colors like the Black pieces hardest. Colors now render correctly." },
+      { kh: 'ស្បែកពណ៌សុទ្ធសាធ (ឈើបុរាណ ។ល។) ឥឡូវមានស្នាមសរសៃឈើពិតប្រាកដ (ស្នូលរលកស្តើងៗ) ជំនួសឲ្យចំណុចតូចៗចៃដន្យ។ គោលកូនអុកនីមួយៗឥឡូវឆាយចូលទៅពណ៌ក្តារនៅផ្នែកខាងក្រោមផងដែរ ដើម្បីឲ្យមើលទៅដូចឈរនៅលើក្តារ ជំនួសឲ្យរូបភាពកាត់ច្បាស់ៗ។',
+        en: "The plain-color piece styles (Classic Wood, etc.) now have real wood-grain streaks instead of random speckle dots. Each piece's base also fades toward the board's own tile color at the very bottom, so it reads as standing on the board instead of a hard-edged cutout sitting on top of it." }
+    ]
+  },
   {
     version: '1.6.8',
     date: '2026-07-18',
