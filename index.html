@@ -14199,9 +14199,23 @@ function openPopup(id) {
   document.getElementById(id).style.display = 'flex';
 }
 document.getElementById('rulesBtn').onclick = (e) => { e.preventDefault(); openPopup('modal'); };
+// Shared with the main app-language toggle (#langBtns) further down --
+// moved up here so the Rules/What's New modals' own language state (see
+// below) can read the user's already-saved app-wide choice as their own
+// starting point, instead of always opening in Khmer regardless of what
+// the player picked for the rest of the app.
+const LANG_PREF_KEY = 'oukLangPref';
+function savedUiLangIsEnglish() {
+  try { return localStorage.getItem(LANG_PREF_KEY) === 'en'; } catch (e) { return false; }
+}
 // Rules modal language toggle: the button always labels the language
-// clicking it switches TO, not the one currently shown.
-let rulesLang = 'kh';
+// clicking it switches TO, not the one currently shown. Only Khmer/Latin
+// (no "both" -- these are long prose blocks, not the short inline runs
+// #langBtns' "both" option interleaves), so the app-wide 'both' choice
+// maps to Khmer, matching this modal's own prior default. Kept in sync
+// with #langBtns going forward too, see applyLangPref below -- this is
+// just the correct value for the very first paint, before that's run.
+let rulesLang = savedUiLangIsEnglish() ? 'en' : 'kh';
 function applyRulesLang() {
   document.querySelector('#modal .box').dataset.lang = rulesLang;
   document.getElementById('rulesLangBtn').textContent = rulesLang === 'kh' ? '🌐 English' : '🌐 ខ្មែរ';
@@ -14219,8 +14233,17 @@ applyRulesLang();
 // and en string; the modal below renders them bilingually and the small
 // dot on the "What's New" button auto-clears once a player has opened it
 // for the current APP_VERSION (tracked in localStorage).
-const APP_VERSION = '1.6.6';
+const APP_VERSION = '1.6.7';
 const WHATS_NEW = [
+  {
+    version: '1.6.7',
+    date: '2026-07-18',
+    title: { kh: 'ការជ្រើសរើសភាសានៅក្នុងច្បាប់ និងអ្វីថ្មី ឥឡូវធ្វើតាមភាសាកម្មវិធីទាំងមូល', en: 'The Rules and What\'s New language now follows your app-wide choice' },
+    items: [
+      { kh: 'ប្រអប់ច្បាប់ និងអ្វីថ្មី នីមួយៗពីមុនមានប៊ូតុងប្តូរភាសារបស់ខ្លួនឯង ដែលតែងតែចាប់ផ្តើមជាភាសាខ្មែរ ទោះបីជាបានជ្រើសរើស English សម្រាប់កម្មវិធីទាំងមូលរួចហើយក៏ដោយ — ដូចជាការសម្រេចចិត្តជ្រើសរើសភាសាដដែលៗចំនួនបី។ ឥឡូវប្រអប់ទាំងពីរនេះបើកដោយស្វ័យប្រវត្តិតាមភាសាដែលបានជ្រើសរើសសម្រាប់កម្មវិធីទាំងមូល ហើយផ្លាស់ប្តូរភ្លាមៗនៅពេលអ្នកផ្លាស់ប្តូរភាសាកម្មវិធី។ ប៊ូតុង 🌐 ផ្ទាល់ខ្លួននៅតែមាន សម្រាប់ករណីចង់មើលប្រអប់តែមួយជាភាសាផ្សេង។',
+        en: "The Rules and What's New popups each had their own language toggle that always started in Khmer, even after picking English for the whole app -- a third, separate language decision to repeat every time. Both now open in whichever language the app-wide toggle is set to, and switch immediately when that's changed. Their own 🌐 button is still there for anyone who wants just that one popup in the other language." }
+    ]
+  },
   {
     version: '1.6.6',
     date: '2026-07-18',
@@ -14579,7 +14602,8 @@ document.getElementById('whatsNewBtn').onclick = (e) => {
   document.getElementById('whatsNewDot').style.display = 'none';
 };
 document.getElementById('appVersionTag').onclick = (e) => { e.preventDefault(); document.getElementById('whatsNewBtn').click(); };
-let whatsNewLang = 'kh';
+// Same app-wide-default reasoning as rulesLang above.
+let whatsNewLang = savedUiLangIsEnglish() ? 'en' : 'kh';
 function applyWhatsNewLang() {
   document.querySelector('#whatsNewModal .box').dataset.lang = whatsNewLang;
   document.getElementById('whatsNewLangBtn').textContent = whatsNewLang === 'kh' ? '🌐 English' : '🌐 ខ្មែរ';
@@ -16545,11 +16569,21 @@ function wrapLangRuns(root) {
     node.parentNode.replaceChild(frag, node);
   }
 }
-const LANG_PREF_KEY = 'oukLangPref';
 function applyLangPref(v) {
   document.body.classList.toggle('lang-kh', v === 'kh');
   document.body.classList.toggle('lang-en', v === 'en');
   try { localStorage.setItem(LANG_PREF_KEY, v); } catch (e) {}
+  // Keep the Rules and What's New modals' own (Khmer/Latin-only) language
+  // in sync with this app-wide choice too -- without this, picking
+  // English here still left both modals defaulting back to Khmer on their
+  // own, a third, separate language decision the player had to keep
+  // repeating. A per-modal 🌐 override button still exists for anyone who
+  // wants just that one modal in the other language; it stays in effect
+  // until the next time #langBtns itself is changed.
+  rulesLang = v === 'en' ? 'en' : 'kh';
+  applyRulesLang();
+  whatsNewLang = v === 'en' ? 'en' : 'kh';
+  applyWhatsNewLang();
 }
 (function initLangToggle() {
   wrapLangRuns(document.getElementById('panel'));
